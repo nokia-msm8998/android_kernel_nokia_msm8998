@@ -1732,7 +1732,9 @@ static int select_fallback_rq(int cpu, struct task_struct *p, bool allow_iso)
 	for (;;) {
 		/* Any allowed, online CPU? */
 		for_each_cpu(dest_cpu, tsk_cpus_allowed(p)) {
-			if (!is_cpu_allowed(p, dest_cpu))
+			if (!(p->flags & PF_KTHREAD) && !cpu_active(dest_cpu))
+				continue;
+			if (!cpu_online(dest_cpu))
 				continue;
 			if (cpu_isolated(dest_cpu)) {
 				if (allow_iso)
