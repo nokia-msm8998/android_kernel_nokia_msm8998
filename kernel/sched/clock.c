@@ -422,7 +422,6 @@ void sched_clock_idle_wakeup_event(void)
 
 	local_irq_save(flags);
 	sched_clock_tick();
-	local_irq_restore(flags);
 }
 EXPORT_SYMBOL_GPL(sched_clock_idle_wakeup_event);
 
