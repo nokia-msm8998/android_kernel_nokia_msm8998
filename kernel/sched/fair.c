@@ -3901,47 +3901,15 @@ __update_load_avg(u64 now, int cpu, struct sched_avg *sa,
 		/* how much left for next period will start over, we don't know yet */
 		sa->period_contrib = 0;
 
-		/*
-		 * Now that we know we're crossing a period boundary, figure
-		 * out how much from delta we need to complete the current
-		 * period and accrue it.
-		 */
-		delta_w = 1024 - delta_w;
-		scaled_delta_w = cap_scale(delta_w, scale_freq);
-		if (weight) {
-			sa->load_sum += weight * scaled_delta_w;
-			if (cfs_rq) {
-				cfs_rq->runnable_load_sum +=
-						weight * scaled_delta_w;
-			}
-		}
-		if (running)
-			sa->util_sum += scaled_delta_w * scale_cpu;
-
-		delta -= delta_w;
-
-		/* Figure out how many additional periods this update spans */
-		periods = delta / 1024;
-		delta %= 1024;
-
-		sa->load_sum = decay_load(sa->load_sum, periods + 1);
-		if (cfs_rq) {
-			cfs_rq->runnable_load_sum =
-				decay_load(cfs_rq->runnable_load_sum, periods + 1);
-		}
-		sa->util_sum = decay_load((u64)(sa->util_sum), periods + 1);
-
-		/* Efficiently calculate \sum (1..n_period) 1024*y^i */
-		contrib = __compute_runnable_contrib(periods);
-		contrib = cap_scale(contrib, scale_freq);
-		if (weight) {
-			sa->load_sum += weight * contrib;
-			if (cfs_rq)
-				cfs_rq->runnable_load_sum += weight * contrib;
-		}
-		if (running)
-			sa->util_sum += contrib * scale_cpu;
+	/*
+	 * Step 2: update *_avg.
+	 */
+	sa->load_avg = div_u64(sa->load_sum, LOAD_AVG_MAX - 1024 + sa->period_contrib);
+	if (cfs_rq) {
+		cfs_rq->runnable_load_avg =
+			div_u64(cfs_rq->runnable_load_sum, LOAD_AVG_MAX - 1024 + sa->period_contrib);
 	}
+	sa->util_avg = sa->util_sum / (LOAD_AVG_MAX - 1024 + sa->period_contrib);
 
 	/* Remainder of delta accrued against u_0` */
 	scaled_delta = cap_scale(delta, scale_freq);
