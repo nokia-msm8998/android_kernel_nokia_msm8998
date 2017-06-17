@@ -1179,6 +1179,14 @@ static struct rq *__migrate_task(struct rq *rq, struct task_struct *p, int dest_
 {
 	int src_cpu;
 
+	if (p->flags & PF_KTHREAD) {
+		if (unlikely(!cpu_online(dest_cpu)))
+			return ret;
+	} else {
+		if (unlikely(!cpu_active(dest_cpu)))
+			return ret;
+	}
+
 	/* Affinity changed (again). */
 	if (!is_cpu_allowed(p, dest_cpu))
 		return rq;
