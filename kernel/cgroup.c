@@ -2026,7 +2026,8 @@ static int cgroup_setup_root(struct cgroup_root *root, u16 ss_mask)
 		goto cancel_ref;
 
 	root->kf_root = kernfs_create_root(&cgroup_kf_syscall_ops,
-					   KERNFS_ROOT_CREATE_DEACTIVATED,
+					   KERNFS_ROOT_CREATE_DEACTIVATED |
+					   KERNFS_ROOT_SUPPORT_EXPORTOP,
 					   root_cgrp);
 	if (IS_ERR(root->kf_root)) {
 		ret = PTR_ERR(root->kf_root);
