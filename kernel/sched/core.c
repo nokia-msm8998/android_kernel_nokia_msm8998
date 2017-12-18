@@ -2404,8 +2404,10 @@ try_to_wake_up(struct task_struct *p, unsigned int state, int wake_flags,
 	p->sched_contributes_to_load = !!task_contributes_to_load(p);
 	p->state = TASK_WAKING;
 
-	if (p->sched_class->task_waking)
-		p->sched_class->task_waking(p);
+	if (p->in_iowait) {
+		delayacct_blkio_end(p);
+		atomic_dec(&task_rq(p)->nr_iowait);
+	}
 
 	cpu = select_task_rq(p, p->wake_cpu, SD_BALANCE_WAKE, wake_flags,
 			     sibling_count_hint);
@@ -2417,7 +2419,13 @@ try_to_wake_up(struct task_struct *p, unsigned int state, int wake_flags,
 		set_task_cpu(p, cpu);
 	}
 
-	note_task_waking(p, wallclock);
+#else /* CONFIG_SMP */
+
+	if (p->in_iowait) {
+		delayacct_blkio_end(p);
+		atomic_dec(&task_rq(p)->nr_iowait);
+	}
+
 #endif /* CONFIG_SMP */
 	ttwu_queue(p, cpu);
 unlock:
@@ -2493,8 +2501,12 @@ static void try_to_wake_up_local(struct task_struct *p)
 
 		walt_update_task_ravg(rq->curr, rq, TASK_UPDATE, wallclock, 0);
 		walt_update_task_ravg(p, rq, TASK_WAKE, wallclock, 0);
-		ttwu_activate(rq, p, ENQUEUE_WAKEUP);
-		note_task_waking(p, wallclock);
+#endif
+		if (p->in_iowait) {
+			delayacct_blkio_end(p);
+			atomic_dec(&rq->nr_iowait);
+		}
+		ttwu_activate(rq, p, ENQUEUE_WAKEUP | ENQUEUE_NOCLOCK);
 	}
 
 	ttwu_do_wakeup(rq, p, 0);
