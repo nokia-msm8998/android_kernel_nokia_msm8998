@@ -145,7 +145,7 @@ static inline void task_state(struct seq_file *m, struct pid_namespace *ns,
 {
 	struct user_namespace *user_ns = seq_user_ns(m);
 	struct group_info *group_info;
-	int g;
+	int g, umask = -1;
 	struct task_struct *tracer;
 	const struct cred *cred;
 	pid_t ppid, tpid = 0, tgid, ngid;
@@ -164,11 +164,15 @@ static inline void task_state(struct seq_file *m, struct pid_namespace *ns,
 	cred = get_task_cred(p);
 
 	task_lock(p);
+	if (p->fs)
+		umask = p->fs->umask;
 	if (p->files)
 		max_fds = files_fdtable(p->files)->max_fds;
 	task_unlock(p);
 	rcu_read_unlock();
 
+	if (umask >= 0)
+		seq_printf(m, "Umask:\t%#04o\n", umask);
 	seq_printf(m, "State:\t%s", get_task_state(p));
 
 	seq_put_decimal_ull(m, "\nTgid:\t", tgid);
