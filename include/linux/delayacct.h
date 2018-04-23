@@ -29,6 +29,9 @@
 #define DELAYACCT_PF_BLKIO	0x00000002	/* I am waiting on IO */
 
 #ifdef CONFIG_TASK_DELAY_ACCT
+struct task_delay_info {
+	raw_spinlock_t	lock;
+	unsigned int	flags;	/* Private per-task flags */
 
 extern int delayacct_on;	/* Delay accounting turned on/off */
 extern struct kmem_cache *delayacct_cache;
