@@ -49,16 +49,17 @@ void __delayacct_tsk_init(struct task_struct *tsk)
  * Finish delay accounting for a statistic using its timestamps (@start),
  * accumalator (@total) and @count
  */
-static void delayacct_end(spinlock_t *lock, u64 *start, u64 *total, u32 *count)
+static void delayacct_end(raw_spinlock_t *lock, u64 *start, u64 *total,
+			  u32 *count)
 {
 	s64 ns = ktime_get_ns() - *start;
 	unsigned long flags;
 
 	if (ns > 0) {
-		spin_lock_irqsave(lock, flags);
+		raw_spin_lock_irqsave(lock, flags);
 		*total += ns;
 		(*count)++;
-		spin_unlock_irqrestore(lock, flags);
+		raw_spin_unlock_irqrestore(lock, flags);
 	}
 }
 
