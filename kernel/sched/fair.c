@@ -7792,7 +7792,8 @@ static inline int find_best_target(struct task_struct *p, int *backup_cpu,
 		for_each_cpu_and(i, tsk_cpus_allowed(p), sched_group_cpus(sg)) {
 			unsigned long capacity_curr = capacity_curr_of(i);
 			unsigned long capacity_orig = capacity_orig_of(i);
-			unsigned long wake_util, new_util;
+			unsigned long wake_util, new_util, min_capped_util;
+			long spare_cap;
 
 			if (!cpu_online(i))
 				continue;
@@ -7821,6 +7822,13 @@ static inline int find_best_target(struct task_struct *p, int *backup_cpu,
 			if (walt_cpu_high_irqload(i))
 				continue;
 #endif
+
+			/*
+			 * Pre-compute the maximum possible capacity we expect
+			 * to have available on this CPU once the task is
+			 * enqueued here.
+			 */
+			spare_cap = capacity_orig - min_capped_util;
 
 			/*
 			 * Case A) Latency sensitive tasks
@@ -7872,9 +7880,9 @@ static inline int find_best_target(struct task_struct *p, int *backup_cpu,
 				 * Case A.2: Target ACTIVE CPU
 				 * Favor CPUs with max spare capacity.
 				 */
-				if ((capacity_curr > new_util) &&
-					(capacity_orig - new_util > target_max_spare_cap)) {
-					target_max_spare_cap = capacity_orig - new_util;
+				if (capacity_curr > new_util &&
+				    spare_cap > target_max_spare_cap) {
+					target_max_spare_cap = spare_cap;
 					target_cpu = i;
 					continue;
 				}
@@ -7994,10 +8002,10 @@ static inline int find_best_target(struct task_struct *p, int *backup_cpu,
 
 			/* Favor CPUs with maximum spare capacity */
 			if (capacity_orig == target_capacity &&
-			    (capacity_orig - min_capped_util) < target_max_spare_cap)
+			    spare_cap < target_max_spare_cap)
 				continue;
 
-			target_max_spare_cap = capacity_orig - new_util;
+			target_max_spare_cap = spare_cap;
 			target_capacity = capacity_orig;
 			target_cpu = i;
 		}
