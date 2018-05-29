@@ -678,9 +678,10 @@ static void sugov_tunables_save(struct cpufreq_policy *policy,
 
 	if (!cached) {
 		cached = kzalloc(sizeof(*tunables), GFP_KERNEL);
-		if (!cached)
+		if (!cached) {
+			pr_warn("Couldn't allocate tunables for caching\n");
 			return;
-
+		}
 		for_each_cpu(cpu, policy->related_cpus)
 			per_cpu(cached_tunables, cpu) = cached;
 	}
@@ -708,7 +709,12 @@ static void sugov_tunables_restore(struct cpufreq_policy *policy)
 
 	tunables->up_rate_limit_us = cached->up_rate_limit_us;
 	tunables->down_rate_limit_us = cached->down_rate_limit_us;
-	update_min_rate_limit_ns(sg_policy);
+	sg_policy->up_rate_delay_ns =
+		tunables->up_rate_limit_us * NSEC_PER_USEC;
+	sg_policy->down_rate_delay_ns =
+		tunables->down_rate_limit_us * NSEC_PER_USEC;
+	sg_policy->min_rate_limit_ns = min(sg_policy->up_rate_delay_ns,
+					   sg_policy->down_rate_delay_ns);
 }
 
 static int sugov_init(struct cpufreq_policy *policy)
