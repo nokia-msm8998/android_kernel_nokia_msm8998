@@ -14,7 +14,7 @@
 # Based on the ia64 boot/Makefile.
 #
 
-targets := Image Image.bz2 Image.gz Image.lz4 Image.lzma Image.lzo
+targets := Image Image.gz dtbo.img
 
 DTB_NAMES := $(subst $\",,$(CONFIG_BUILD_ARM64_APPENDED_DTB_IMAGE_NAMES))
 ifneq ($(DTB_NAMES),)
@@ -22,6 +22,7 @@ DTB_LIST := $(addsuffix .dtb,$(DTB_NAMES))
 DTB_OBJS := $(addprefix $(obj)/dts/,$(DTB_LIST))
 else
 DTB_OBJS := $(shell find -L $(obj)/dts/ -name \*.dtb)
+DTBO_OBJS := $(shell find $(obj)/dts/ -name \*.dtbo)
 endif
 
 $(obj)/Image: vmlinux FORCE
@@ -47,6 +48,9 @@ $(obj)/Image.lzo: $(obj)/Image FORCE
 
 $(obj)/Image.gz-dtb: $(obj)/Image.gz $(DTB_OBJS) FORCE
 	$(call if_changed,cat)
+
+$(obj)/dtbo.img: $(DTBO_OBJS) FORCE
+	$(call if_changed,mkdtimg)
 
 install: $(obj)/Image
 	$(CONFIG_SHELL) $(srctree)/$(src)/install.sh $(KERNELRELEASE) \
