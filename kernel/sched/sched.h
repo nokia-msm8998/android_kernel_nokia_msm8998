@@ -232,6 +232,8 @@ struct cfs_bandwidth {
 	ktime_t period;
 	u64 quota, runtime;
 	s64 hierarchical_quota;
+	u64 runtime_expires;
+	int expires_seq;
 
 	short idle, period_active;
 	struct hrtimer period_timer, slack_timer;
@@ -527,6 +529,8 @@ struct cfs_rq {
 #endif
 
 	int runtime_enabled;
+        int expires_seq;
+	u64 runtime_expires;
 	s64 runtime_remaining;
 
 	u64 throttled_clock, throttled_clock_task;
@@ -2820,13 +2824,8 @@ static inline void cpufreq_update_util(struct rq *rq, unsigned int flags)
 	rq->load_reported_window = rq->window_start;
 #endif
 
-<<<<<<< HEAD
-		data = rcu_dereference_sched(*per_cpu_ptr(&cpufreq_update_util_data,
-						cpu_of(rq)));
-=======
 	data = rcu_dereference_sched(*per_cpu_ptr(&cpufreq_update_util_data,
 						  cpu_of(rq)));
->>>>>>> 7f4c7e50e687 (sched: cpufreq: Allow remote cpufreq callbacks)
         if (data)
                 data->func(data, rq_clock(rq), flags);
 }
