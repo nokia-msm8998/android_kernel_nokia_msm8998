@@ -1600,7 +1600,8 @@ start:
 			if (hba->clk_gating.is_suspended && !flush_result)
 				goto out;
 			spin_lock_irqsave(hba->host->host_lock, flags);
-			goto start;
+			if (hba->ufshcd_state == UFSHCD_STATE_OPERATIONAL)
+				goto start;
 		}
 		break;
 	case REQ_CLKS_OFF:
