@@ -759,8 +759,26 @@ static int sugov_init(struct cpufreq_policy *policy)
 		goto stop_kthread;
 	}
 
-	tunables->up_rate_limit_us = 500;
-	tunables->down_rate_limit_us = 20000;
+	if (policy->up_transition_delay_us && policy->down_transition_delay_us) {
+		tunables->up_rate_limit_us = policy->up_transition_delay_us;
+		tunables->down_rate_limit_us = policy->down_transition_delay_us;
+	} else {
+		unsigned int lat;
+
+                tunables->up_rate_limit_us = LATENCY_MULTIPLIER;
+                tunables->down_rate_limit_us = LATENCY_MULTIPLIER;
+		lat = policy->cpuinfo.transition_latency / NSEC_PER_USEC;
+		if (lat) {
+                        tunables->up_rate_limit_us *= lat;
+                        tunables->down_rate_limit_us *= lat;
+                }
+	}
+
+        /* Hard-code some sane rate-limit values */
+        tunables->up_rate_limit_us = 10000;
+        tunables->down_rate_limit_us = 20000;
+
+	tunables->iowait_boost_enable = policy->iowait_boost_enable;
 
 	tunables->iowait_boost_enable = true;
 	policy->governor_data = sg_policy;
