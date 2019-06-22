@@ -511,7 +511,8 @@ queue:
 	 *
 	 */
 	pv_wait_head(lock, node);
-	smp_cond_acquire(!((val = atomic_read(&lock->val)) & _Q_LOCKED_PENDING_MASK));
+	while ((val = smp_load_acquire(&lock->val.counter)) & _Q_LOCKED_PENDING_MASK)
+		cpu_relax();
 
 	val = smp_cond_load_acquire(&lock->val.counter, !(VAL & _Q_LOCKED_PENDING_MASK));
 
