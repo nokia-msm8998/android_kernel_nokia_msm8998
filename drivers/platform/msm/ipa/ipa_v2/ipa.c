@@ -3862,11 +3862,11 @@ void ipa_dec_release_wakelock(enum ipa_wakelock_ref_client ref_client)
 	spin_unlock_irqrestore(&ipa_ctx->wakelock_ref_cnt.spinlock, flags);
 }
 #else
-inline void ipa_inc_acquire_wakelock(enum ipa_wakelock_ref_client ref_client)
+void ipa_inc_acquire_wakelock(enum ipa_wakelock_ref_client ref_client)
 {
 }
 
-inline void ipa_dec_release_wakelock(enum ipa_wakelock_ref_client ref_client)
+void ipa_dec_release_wakelock(enum ipa_wakelock_ref_client ref_client)
 {
 }
 #endif
