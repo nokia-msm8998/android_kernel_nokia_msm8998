@@ -949,7 +949,7 @@ void adreno_efuse_unmap(struct adreno_device *adreno_dev);
 #define ADRENO_TARGET(_name, _id) \
 static inline int adreno_is_##_name(struct adreno_device *adreno_dev) \
 { \
-	return (ADRENO_GPUREV(adreno_dev) == (_id)); \
+	return 0; \
 }
 
 static inline int adreno_is_a3xx(struct adreno_device *adreno_dev)
@@ -1006,8 +1006,7 @@ static inline int adreno_is_a430v2(struct adreno_device *adreno_dev)
 
 static inline int adreno_is_a5xx(struct adreno_device *adreno_dev)
 {
-	return ADRENO_GPUREV(adreno_dev) >= 500 &&
-			ADRENO_GPUREV(adreno_dev) < 600;
+	return 1;
 }
 
 ADRENO_TARGET(a505, ADRENO_REV_A505)
@@ -1017,42 +1016,40 @@ ADRENO_TARGET(a509, ADRENO_REV_A509)
 ADRENO_TARGET(a510, ADRENO_REV_A510)
 ADRENO_TARGET(a512, ADRENO_REV_A512)
 ADRENO_TARGET(a530, ADRENO_REV_A530)
-ADRENO_TARGET(a540, ADRENO_REV_A540)
 
 static inline int adreno_is_a530v1(struct adreno_device *adreno_dev)
 {
-	return (ADRENO_GPUREV(adreno_dev) == ADRENO_REV_A530) &&
-		(ADRENO_CHIPID_PATCH(adreno_dev->chipid) == 0);
+	return 0;
 }
 
 static inline int adreno_is_a530v2(struct adreno_device *adreno_dev)
 {
-	return (ADRENO_GPUREV(adreno_dev) == ADRENO_REV_A530) &&
-		(ADRENO_CHIPID_PATCH(adreno_dev->chipid) == 1);
+	return 0;
 }
 
 static inline int adreno_is_a530v3(struct adreno_device *adreno_dev)
 {
-	return (ADRENO_GPUREV(adreno_dev) == ADRENO_REV_A530) &&
-		(ADRENO_CHIPID_PATCH(adreno_dev->chipid) == 2);
+	return 0;
 }
 
 static inline int adreno_is_a505_or_a506(struct adreno_device *adreno_dev)
 {
-	return ADRENO_GPUREV(adreno_dev) >= 505 &&
-			ADRENO_GPUREV(adreno_dev) <= 506;
+	return 0;
 }
 
 static inline int adreno_is_a540v1(struct adreno_device *adreno_dev)
 {
-	return (ADRENO_GPUREV(adreno_dev) == ADRENO_REV_A540) &&
-		(ADRENO_CHIPID_PATCH(adreno_dev->chipid) == 0);
+	return (ADRENO_CHIPID_PATCH(adreno_dev->chipid) == 0);
 }
 
 static inline int adreno_is_a540v2(struct adreno_device *adreno_dev)
 {
-	return (ADRENO_GPUREV(adreno_dev) == ADRENO_REV_A540) &&
-		(ADRENO_CHIPID_PATCH(adreno_dev->chipid) == 1);
+	return (ADRENO_CHIPID_PATCH(adreno_dev->chipid) == 1);
+}
+
+static inline int adreno_is_a540(struct adreno_device *adreno_dev)
+{
+	return 1;
 }
 
 /*
