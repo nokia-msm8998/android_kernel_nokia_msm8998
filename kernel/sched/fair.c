@@ -7610,7 +7610,8 @@ static inline int find_best_target(struct task_struct *p, int *backup_cpu,
 		for_each_cpu_and(i, tsk_cpus_allowed(p), sched_group_cpus(sg)) {
 			unsigned long capacity_curr = capacity_curr_of(i);
 			unsigned long capacity_orig = capacity_orig_of(i);
-			unsigned long wake_util, new_util;
+			unsigned long wake_util, new_util, min_capped_util;
+			int idle_idx = INT_MAX;
 
 			if (!cpu_online(i))
 				continue;
@@ -7639,6 +7640,9 @@ static inline int find_best_target(struct task_struct *p, int *backup_cpu,
 			if (walt_cpu_high_irqload(i))
 				continue;
 #endif
+
+			if (idle_cpu(i))
+				idle_idx = idle_get_state_idx(cpu_rq(i));
 
 			/*
 			 * Case A) Latency sensitive tasks
