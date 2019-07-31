@@ -9103,11 +9103,7 @@ static void detach_task(struct task_struct *p, struct lb_env *env)
 
 	p->on_rq = TASK_ON_RQ_MIGRATING;
         deactivate_task(env->src_rq, p, DEQUEUE_NOCLOCK);
-	double_lock_balance(env->src_rq, env->dst_rq);
 	set_task_cpu(p, env->dst_cpu);
-	if (task_in_related_thread_group(p))
-		env->flags |= LBF_MOVED_RELATED_THREAD_GROUP_TASK;
-	double_unlock_balance(env->src_rq, env->dst_rq);
 }
 
 /*
@@ -9343,13 +9339,9 @@ static void update_blocked_averages(int cpu)
 		if (se && !skip_blocked_update(se))
 			update_load_avg(se, 0);
 	}
-<<<<<<< HEAD
-	raw_spin_unlock_irqrestore(&rq->lock, flags);
-=======
 
 	update_rt_rq_load_avg(rq_clock_task(rq), cpu, &rq->rt, 0);
 	rq_unlock_irqrestore(rq, &rf);
->>>>>>> 89bb900651ea (sched/core: Add rq->lock wrappers)
 }
 
 /*
@@ -9408,12 +9400,8 @@ static inline void update_blocked_averages(int cpu)
 	rq_lock_irqsave(rq, &rf);
 	update_rq_clock(rq);
 	update_cfs_rq_load_avg(cfs_rq_clock_task(cfs_rq), cfs_rq, true);
-<<<<<<< HEAD
-	raw_spin_unlock_irqrestore(&rq->lock, flags);
-=======
 	update_rt_rq_load_avg(rq_clock_task(rq), cpu, &rq->rt, 0);
 	rq_unlock_irqrestore(rq, &rf);
->>>>>>> 89bb900651ea (sched/core: Add rq->lock wrappers)
 }
 
 static unsigned long task_h_load(struct task_struct *p)
@@ -10846,21 +10834,9 @@ more_balance:
 		rq_lock_irqsave(busiest, &rf);
 		update_rq_clock(busiest);
 
-<<<<<<< HEAD
-		/*
-		 * The world might have changed. Validate assumptions.
-		 * And also, if the busiest cpu is undergoing active_balance,
-		 * it doesn't need help if it has less than 2 tasks on it.
-		 */
-
-		if (busiest->nr_running <= 1 ||
-		    (busiest->active_balance && busiest->nr_running <= 2)) {
-			raw_spin_unlock_irqrestore(&busiest->lock, flags);
-=======
 		/* The world might have changed. Validate assumptions */
 		if (busiest->nr_running <= 1) {
 			rq_unlock_irqrestore(busiest, &rf);
->>>>>>> 89bb900651ea (sched/core: Add rq->lock wrappers)
 			env.flags &= ~LBF_ALL_PINNED;
 			goto no_move;
 		}
@@ -11739,10 +11715,6 @@ static void nohz_idle_balance(struct rq *this_rq, enum cpu_idle_type idle)
 			rq_lock_irq(rq, &rf);
 			update_rq_clock(rq);
 			update_idle_cpu_load(rq);
-<<<<<<< HEAD
-			raw_spin_unlock_irq(&rq->lock);
-			rebalance_domains(rq, CPU_IDLE);
-=======
 			rq_unlock_irq(rq, &rf);
 
 			update_blocked_averages(balance_cpu);
@@ -11754,7 +11726,6 @@ static void nohz_idle_balance(struct rq *this_rq, enum cpu_idle_type idle)
 			 */
 			if (!test_bit(NOHZ_STATS_KICK, nohz_flags(this_cpu)))
 				rebalance_domains(rq, idle);
->>>>>>> 89bb900651ea (sched/core: Add rq->lock wrappers)
 		}
 
 		if (time_after(next_balance, rq->next_balance)) {
