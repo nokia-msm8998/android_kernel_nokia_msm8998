@@ -92,6 +92,11 @@ static unsigned int sched_nr_latency = 10;
 unsigned int sysctl_sched_child_runs_first __read_mostly;
 
 /*
+ * To enable/disable energy aware feature.
+ */
+unsigned int __read_mostly sysctl_sched_energy_aware = 1;
+
+/*
  * SCHED_OTHER wake-up granularity.
  * (default: 1 msec * (1 + ilog(ncpus)), units: nanoseconds)
  *
@@ -5477,6 +5482,43 @@ unsigned long capacity_curr_of(int cpu)
 	       >> SCHED_CAPACITY_SHIFT;
 }
 
+/*
+ * Returns the current capacity of cpu after applying both
+ * cpu and min freq scaling.
+ */
+unsigned long capacity_min_of(int cpu)
+{
+	if (!sched_feat(MIN_CAPACITY_CAPPING))
+		return 0;
+	return arch_scale_cpu_capacity(NULL, cpu) *
+	       arch_scale_min_freq_capacity(NULL, cpu)
+	       >> SCHED_CAPACITY_SHIFT;
+}
+
+
+static inline bool energy_aware(void)
+{
+	return sysctl_sched_energy_aware;
+}
+
+/*
+ * CPU candidates.
+ *
+ * These are labels to reference CPU candidates for an energy_diff.
+ * Currently we support only two possible candidates: the task's previous CPU
+ * and another candiate CPU.
+ * More advanced/aggressive EAS selection policies can consider more
+ * candidates.
+ */
+#define EAS_CPU_PRV	0
+#define EAS_CPU_NXT	1
+#define EAS_CPU_BKP	2
+#define EAS_CPU_CNT	3
+
+/*
+ * energy_diff - supports the computation of the estimated energy impact in
+ * moving a "task"'s "util_delta" between different CPU candidates.
+ */
 struct energy_env {
 	struct sched_group	*sg_top;
 	struct sched_group	*sg_cap;
