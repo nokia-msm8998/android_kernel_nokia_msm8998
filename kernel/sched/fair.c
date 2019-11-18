@@ -10916,7 +10916,10 @@ static inline bool nohz_kick_needed(struct rq *rq, int *type)
 	if (_nohz_kick_needed(rq, cpu, type))
 		return true;
 
-#ifndef CONFIG_SCHED_HMP
+	/* Do idle load balance if there have misfit task */
+	if (energy_aware())
+		return rq->misfit_task > 0;
+
 	rcu_read_lock();
 	sds = rcu_dereference(per_cpu(sd_llc_shared, cpu));
 	if (sds) {
