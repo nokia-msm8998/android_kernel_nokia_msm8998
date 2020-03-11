@@ -332,7 +332,7 @@ _dtbinst_pre_:
 # mkdtimg
 #----------------------------------------------------------------------------
 quiet_cmd_mkdtimg = DTBOIMG $@
-cmd_mkdtimg = mkdtimg create $@ --page_size=4096 $(filter-out FORCE,$^)
+cmd_mkdtimg = python2 $(srctree)/scripts/dtc/mkdtboimg.py create $@ --page_size=4096 $(filter-out FORCE,$^)
 
 # cat
 # ---------------------------------------------------------------------------
