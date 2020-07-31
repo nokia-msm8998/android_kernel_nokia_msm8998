@@ -7897,11 +7897,13 @@ static int tasha_rx_hph_mode_put(struct snd_kcontrol *kcontrol,
 	dev_dbg(codec->dev, "%s: mode: %d\n",
 		__func__, mode_val);
 
-	if (mode_val == 0) {
-		dev_warn(codec->dev, "%s:Invalid HPH Mode, default to Cls-H HiFi\n",
+	/* Set to CLS_AB unless CLS_H_LP is set for calls */
+	if (tasha->hph_mode != CLS_H_LP) {
+		dev_dbg(codec->dev, "%s:Override HPH Mode, set to Cls-AB\n",
 			__func__);
-		mode_val = CLS_H_HIFI;
+		mode_val = CLS_AB;
 	}
+
 	tasha->hph_mode = mode_val;
 	return 0;
 }
@@ -13589,6 +13591,76 @@ static struct regulator *tasha_codec_find_ondemand_regulator(
 	return NULL;
 }
 
+#ifdef CONFIG_SOUND_CONTROL
+static struct snd_soc_codec *sound_control_codec_ptr;
+
+static ssize_t mic_gain_show(struct kobject *kobj,
+		struct kobj_attribute *attr, char *buf)
+{
+	return snprintf(buf, PAGE_SIZE, "%d\n",
+		snd_soc_read(sound_control_codec_ptr, WCD9335_CDC_TX6_TX_VOL_CTL));
+}
+
+static ssize_t mic_gain_store(struct kobject *kobj,
+		struct kobj_attribute *attr, const char *buf, size_t count)
+{
+	int input;
+
+	sscanf(buf, "%d", &input);
+
+	if (input < -10 || input > 20)
+		input = 0;
+
+	snd_soc_write(sound_control_codec_ptr, WCD9335_CDC_TX6_TX_VOL_CTL, input);
+
+	return count;
+}
+
+static struct kobj_attribute mic_gain_attribute =
+	__ATTR(mic_gain, 0664,
+		mic_gain_show,
+		mic_gain_store);
+
+static ssize_t earpiece_gain_show(struct kobject *kobj,
+		struct kobj_attribute *attr, char *buf)
+{
+	return snprintf(buf, PAGE_SIZE, "%d\n",
+		snd_soc_read(sound_control_codec_ptr, WCD9335_CDC_RX0_RX_VOL_CTL));
+}
+
+static ssize_t earpiece_gain_store(struct kobject *kobj,
+		struct kobj_attribute *attr, const char *buf, size_t count)
+{
+	int input;
+
+	sscanf(buf, "%d", &input);
+
+	if (input < -10 || input > 20)
+		input = 0;
+
+	snd_soc_write(sound_control_codec_ptr, WCD9335_CDC_RX0_RX_VOL_CTL, input);
+
+	return count;
+}
+
+static struct kobj_attribute earpiece_gain_attribute =
+	__ATTR(earpiece_gain, 0664,
+		earpiece_gain_show,
+		earpiece_gain_store);
+
+static struct attribute *sound_control_attrs[] = {
+		&mic_gain_attribute.attr,
+		&earpiece_gain_attribute.attr,
+		NULL,
+};
+
+static struct attribute_group sound_control_attr_group = {
+		.attrs = sound_control_attrs,
+};
+
+static struct kobject *sound_control_kobj;
+#endif
+
 static int tasha_codec_probe(struct snd_soc_codec *codec)
 {
 	struct wcd9xxx *control;
@@ -13620,8 +13692,8 @@ static int tasha_codec_probe(struct snd_soc_codec *codec)
 	}
 	/* Class-H Init*/
 	wcd_clsh_init(&tasha->clsh_d);
-	/* Default HPH Mode to Class-H HiFi */
-	tasha->hph_mode = CLS_H_HIFI;
+	/* Default HPH Mode to Class-AB */
+	tasha->hph_mode = CLS_AB;
 
 	tasha->codec = codec;
 	for (i = 0; i < COMPANDER_MAX; i++)
