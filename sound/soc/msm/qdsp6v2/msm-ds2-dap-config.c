@@ -179,8 +179,12 @@ struct ds2_dap_params_states_s {
 	bool custom_stereo_onoff;
 };
 
-static struct ds2_dap_params_states_s ds2_dap_params_states = {true, false,
-				false, DEVICE_NONE};
+static struct ds2_dap_params_states_s ds2_dap_params_states = {
+	.use_cache = true, 
+	.dap_bypass = true,
+	.dap_bypass_type = DAP_HARD_BYPASS, 
+	.device = DEVICE_NONE
+};
 
 static int all_supported_devices = EARPIECE|SPEAKER|WIRED_HEADSET|
 			WIRED_HEADPHONE|BLUETOOTH_SCO|AUX_DIGITAL|
@@ -189,7 +193,7 @@ static int all_supported_devices = EARPIECE|SPEAKER|WIRED_HEADSET|
 			PROXY|FM|FM_TX|DEVICE_NONE|
 			BLUETOOTH_SCO_HEADSET|BLUETOOTH_SCO_CARKIT;
 
-
+#if 0 /* Overriden */
 static void msm_ds2_dap_check_and_update_ramp_wait(int port_id, int copp_idx,
 						   int *ramp_wait)
 {
@@ -229,6 +233,7 @@ end:
 	 */
 	return;
 }
+#endif
 
 static int msm_ds2_dap_set_vspe_vdhe(int dev_map_idx,
 				     bool is_custom_stereo_enabled)
@@ -857,6 +862,7 @@ static int msm_ds2_dap_update_dev_map_port_id(int32_t device_id, int port_id)
 	return 0;
 }
 
+#if 0 /* Overriden */
 static int msm_ds2_dap_handle_bypass_wait(int port_id, int copp_idx,
 					  int wait_time)
 {
@@ -1109,6 +1115,7 @@ end:
 	pr_debug("%s:return rc=%d\n", __func__, rc);
 	return rc;
 }
+#endif
 
 static int msm_ds2_dap_send_end_point(int dev_map_idx, int endp_idx)
 {
@@ -1403,6 +1410,7 @@ static int msm_ds2_dap_handle_commands(u32 cmd, void *arg)
 		ds2_dap_params_states.use_cache = data;
 	break;
 
+#if 0 /* Overriden */
 	case DAP_CMD_SET_BYPASS:
 		pr_debug("%s: bypass %d bypass type %d, data %d\n", __func__,
 			 ds2_dap_params_states.dap_bypass,
@@ -1429,6 +1437,7 @@ static int msm_ds2_dap_handle_commands(u32 cmd, void *arg)
 		pr_debug("%s: bypass type %d", __func__,
 			 ds2_dap_params_states.dap_bypass_type);
 	break;
+#endif
 
 	case DAP_CMD_SET_ACTIVE_DEVICE:
 		pr_debug("%s: DAP_CMD_SET_ACTIVE_DEVICE length %d\n",
