@@ -81,7 +81,7 @@ static int msm_ec_ref_sampling_rate = 5;
 static uint32_t voc_session_id = ALL_SESSION_VSID;
 static int msm_route_ext_ec_ref;
 static bool is_custom_stereo_on;
-static bool is_ds2_on;
+static bool is_ds2_on = true;
 static bool swap_ch;
 static int msm_native_mode = 3;
 
