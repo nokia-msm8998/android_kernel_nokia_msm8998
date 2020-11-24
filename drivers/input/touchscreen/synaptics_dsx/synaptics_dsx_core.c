@@ -3298,9 +3298,9 @@ static int synaptics_rmi4_gpio_setup(int gpio, bool config, int dir, int state)
 {
 	int retval = 0;
 	unsigned char buf[16];
-pr_info("F@TOUCH %s\n",__func__);
+	pr_info("F@TOUCH %s\n",__func__);
 	if (config) {
-		snprintf(buf, PAGE_SIZE, "dsx_gpio_%u\n", gpio);
+		snprintf(buf, sizeof(buf), "dsx_gpio_%u\n", gpio);
 
 		retval = gpio_request(gpio, buf);
 		if (retval) {
@@ -3620,7 +3620,7 @@ pr_info("F@TOUCH %s\n",__func__);
 		}
 	}
 
-	//SW8-DH-Double_Tap+[	
+	//SW8-DH-Double_Tap+[
 	//Add to register 5.5V/-5.5V
 	if ((bdata->ibb_reg_name != NULL) && (*bdata->ibb_reg_name != 0)) {
 		rmi4_data->ibb_reg = regulator_get(rmi4_data->pdev->dev.parent,
@@ -3725,13 +3725,13 @@ static int synaptics_rmi4_enable_ibb_lab_reg(struct synaptics_rmi4_data *rmi4_da
 		bool enable)
 {
 	int retval;
-	
+
 pr_info("F@TOUCH %s, enable = %d\n",__func__, enable);
 	if (!enable) {
 		retval = 0;
 		goto exit;
-	}	
-	
+	}
+
 	if (rmi4_data->ibb_reg) {
 		retval = regulator_enable(rmi4_data->ibb_reg);
 		if (retval < 0) {
@@ -3751,7 +3751,7 @@ pr_info("F@TOUCH %s, enable = %d\n",__func__, enable);
 			goto exit;
 		}
 	}
-	
+
 
 	return 0;
 exit:
@@ -4543,7 +4543,7 @@ pr_info("F@TOUCH %s\n",__func__);
 	/*Win add for proc callback function*/
 	//SW8-DH-Double_Tap+[
 	g_rmi4_data = rmi4_data;
-	
+
 	//SW8-DH-Double_Tap+]
 	return retval;
 
@@ -4992,7 +4992,7 @@ exit:
 			if (exp_fhandler->exp_fn->resume != NULL)
 				exp_fhandler->exp_fn->resume(rmi4_data);
 	}
-	mutex_unlock(&exp_data.mutex);	
+	mutex_unlock(&exp_data.mutex);
 
 	rmi4_data->suspend = false;
 
@@ -5056,7 +5056,7 @@ int touch_double_tap_write_synaptics(unsigned int enable)
 	return 0;
 }
 unsigned int touch_prox_status_read_synaptics(void)
-{	
+{
 	pr_info( "%s, prox_status = %d", __func__, prox_status);
 	return prox_status;
 }

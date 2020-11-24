@@ -99,7 +99,7 @@ static int fih_info_proc_open_hwmodel_show(struct seq_file *m, void *v)
 	switch (fih_hwid_fetch(FIH_HWID_PRJ)) {
 		case FIH_PRJ_A1N:
 			if (fih_hwid_fetch(FIH_HWID_RF) == FIH_BAND_G_850_900_1800_1900_W_1_2_5_8_C_0_T_34_39_L_1_2_3_4_5_7_8_20_28_34_38_39_40_41_SS)
-				strcpy(msg, "A1C"); 
+				strcpy(msg, "A1C");
 			else
 				strcpy(msg, "A1N");
 			break;
@@ -116,27 +116,17 @@ static int fih_info_proc_open_hwmodel_show(struct seq_file *m, void *v)
 
 static int fih_info_proc_open_hwcfg_show(struct seq_file *m, void *v)
 {
-	char msg[256];
-	int len;
 	struct st_hwid_table tb;
 
 	fih_hwid_read(&tb);
-	/* mpp */
-	len = snprintf(msg, PAGE_SIZE, "r1=%d\n", tb.r1);
-	len += snprintf((msg+len), PAGE_SIZE, "r2=%d\n", tb.r2);
-	len += snprintf((msg+len), PAGE_SIZE, "r3=%d\n", tb.r3);
-	/* info */
-	len += snprintf((msg+len), PAGE_SIZE, "prj=%d\n", tb.prj);
-	len += snprintf((msg+len), PAGE_SIZE, "rev=%d\n", tb.rev);
-	len += snprintf((msg+len), PAGE_SIZE, "rf=%d\n", tb.rf);
-	/* device tree */
-	len += snprintf((msg+len), PAGE_SIZE, "dtm=%d\n", tb.dtm);
-	len += snprintf((msg+len), PAGE_SIZE, "dtn=%d\n", tb.dtn);
-	/* driver */
-	len += snprintf((msg+len), PAGE_SIZE, "btn=%d\n", tb.btn);
-	len += snprintf((msg+len), PAGE_SIZE, "uart=%d\n", tb.uart);
-
-	seq_printf(m, "%s\n", msg);
+	/*
+		mpp: r1, r2, r3
+		info: prj, rev, rf
+		device tree: dtm, dtn
+		driver: btn, uart
+	*/
+	seq_printf(m, "r1=%d\nr2=%d\nr3=%d\nprj=%d\nrev=%d\nrf=%d\ndtm=%d\ndtn=%d\nbtn=%d\nuart=%d\n\n",
+		tb.r1, tb.r2, tb.r3, tb.prj, tb.rev, tb.rf, tb.dtm, tb.dtn, tb.btn, tb.uart);
 
 	return 0;
 }
@@ -258,31 +248,31 @@ static const struct file_operations hw_rev_file_ops = {
 static const struct file_operations rf_band_file_ops = {
 	.owner   = THIS_MODULE,
 	.open    = fih_info_proc_open_rf_band,
-	.read    = seq_read 
+	.read    = seq_read
 };
 
 static const struct file_operations hwmodel_file_ops = {
 	.owner   = THIS_MODULE,
 	.open    = fih_info_proc_open_hwmodel,
-	.read    = seq_read 
+	.read    = seq_read
 };
 
 static const struct file_operations hwcfg_file_ops = {
 	.owner   = THIS_MODULE,
 	.open    = fih_info_proc_open_hwcfg,
-	.read    = seq_read 
+	.read    = seq_read
 };
 
 static const struct file_operations simslot_file_ops = {
 	.owner   = THIS_MODULE,
 	.open    = fih_info_proc_open_simslot,
-	.read    = seq_read 
+	.read    = seq_read
 };
 
 static const struct file_operations module_file_ops = {
 	.owner   = THIS_MODULE,
 	.open    = fih_info_proc_open_module,
-	.read    = seq_read 
+	.read    = seq_read
 };
 
 static struct file_operations fqc_xml_file_ops = {
