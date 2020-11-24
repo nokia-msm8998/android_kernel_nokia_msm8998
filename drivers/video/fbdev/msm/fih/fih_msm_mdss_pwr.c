@@ -71,7 +71,7 @@ void fih_mdss_panel_ulps_pwr_parse_dt(struct device_node *np,struct mdss_dsi_ctr
 
 	pinfo->aod_ulps_pwr_feature = of_property_read_bool(np,
 		"fih,aod-ulps-pwr-feature");
-	pr_info("%s:mipi phy power is default %s\n", __func__, 
+	pr_info("%s:mipi phy power is default %s\n", __func__,
 		(pinfo->ulps_suspend_enabled && !pinfo->aod_ulps_pwr_feature)?"on":"off");
 
 	return;
@@ -82,7 +82,7 @@ void mdss_dsi_extra_power_init(struct dsi_shared_data *sdata,struct mdss_panel_i
 	int rc=0;
 	if (pinfo->ulps_suspend_enabled) {
 		/*There are some of panel need to always keep power, when aod enable the power will always keep*/
-		if(!pinfo->panel_id>UNDEFINE_UNKNOW_PANEL || pinfo->aod_power_keep){
+		if(pinfo->panel_id != UNDEFINE_UNKNOW_PANEL || pinfo->aod_power_keep){
 			pr_err("%s: Keep to enable vregs for start\n",
 				__func__);
 			if(pinfo->aod_power_keep_1p8){
