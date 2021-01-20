@@ -3311,6 +3311,10 @@ static int __q6asm_open_write(struct audio_client *ac, uint32_t format,
 	if (ac->perf_mode != LEGACY_PCM_MODE)
 		open.postprocopo_id = ASM_STREAM_POSTPROCOPO_ID_NONE;
 
+	/* Force 24 bit for SA+ */
+	if (open.postprocopo_id == ASM_STREAM_POSTPROC_TOPO_ID_SA_PLUS)
+		open.bits_per_sample = 24;
+
 	pr_debug("%s: perf_mode %d asm_topology 0x%x bps %d\n", __func__,
 		 ac->perf_mode, open.postprocopo_id, open.bits_per_sample);
 
@@ -3596,6 +3600,9 @@ static int __q6asm_open_read_write(struct audio_client *ac, uint32_t rd_format,
 	ac->topology = open.postprocopo_id;
 	ac->app_type = q6asm_get_asm_app_type_cal();
 
+	/* Force 24 bit for SA+ */
+	if (open.postprocopo_id == ASM_STREAM_POSTPROC_TOPO_ID_SA_PLUS)
+		open.bits_per_sample = 24;
 
 	switch (wr_format) {
 	case FORMAT_LINEAR_PCM:
