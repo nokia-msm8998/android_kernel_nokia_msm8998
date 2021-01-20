@@ -57,6 +57,7 @@ struct msm_audio_pp_asphere_state_s {
 	bool  initialized;
 	uint32_t enabled_prev;
 	uint32_t strength_prev;
+	uint32_t mode_prev;
 };
 
 static struct msm_audio_pp_asphere_state_s asphere_state;
@@ -686,12 +687,13 @@ static void msm_qti_pp_asphere_init_state(void)
 		asphere_state.port_id[i] = -1;
 		asphere_state.copp_idx[i] = -1;
 	}
-	asphere_state.enabled = 0;
-	asphere_state.strength = 0;
-	asphere_state.mode = 0;
+	asphere_state.enabled = 1;
+	asphere_state.strength = 600;
+	asphere_state.mode = 2;
 	asphere_state.version = 0;
 	asphere_state.enabled_prev = 0;
 	asphere_state.strength_prev = 0;
+	asphere_state.mode_prev = 0;
 }
 
 static int msm_qti_pp_asphere_send_params(int port_id, int copp_idx, bool force)
@@ -701,15 +703,19 @@ static int msm_qti_pp_asphere_send_params(int port_id, int copp_idx, bool force)
 	u32 param_size = 0;
 	struct param_hdr_v3 param_hdr = {0};
 	bool set_enable = force ||
-			(asphere_state.enabled != asphere_state.enabled_prev);
+		(asphere_state.enabled != asphere_state.enabled_prev);
 	bool set_strength = asphere_state.enabled == 1 && (set_enable ||
 		(asphere_state.strength != asphere_state.strength_prev));
+	bool set_mode = asphere_state.enabled == 1 && (set_enable ||
+		(asphere_state.mode != asphere_state.mode_prev));
 	int param_count = 0;
 	int ret = 0;
 
 	if (set_enable)
 		param_count++;
 	if (set_strength)
+		param_count++;
+	if (set_mode)
 		param_count++;
 
 	if (param_count == 0) {
@@ -719,9 +725,10 @@ static int msm_qti_pp_asphere_send_params(int port_id, int copp_idx, bool force)
 
 	pr_debug("%s: port_id %d, copp_id %d, forced %d, param_count %d\n",
 		 __func__, port_id, copp_idx, force, param_count);
-	pr_debug("%s: enable prev:%u cur:%u, strength prev:%u cur:%u\n",
+	pr_debug("%s: enable prev:%u cur:%u, strength prev:%u cur:%u, mode prev:%u cur:%u\n",
 		__func__, asphere_state.enabled_prev, asphere_state.enabled,
-		asphere_state.strength_prev, asphere_state.strength);
+		asphere_state.strength_prev, asphere_state.strength,
+		asphere_state.mode_prev, asphere_state.mode);
 
 	packed_params_size =
 		param_count * (sizeof(struct param_hdr_v3) + sizeof(uint32_t));
@@ -732,15 +739,29 @@ static int msm_qti_pp_asphere_send_params(int port_id, int copp_idx, bool force)
 	packed_params_size = 0;
 	param_hdr.module_id = AUDPROC_MODULE_ID_AUDIOSPHERE;
 	param_hdr.instance_id = INSTANCE_ID_0;
+	if (set_mode) {
+		/* add mode command */
+		param_hdr.param_id = AUDPROC_PARAM_ID_AUDIOSPHERE_CONFIG_MODE;
+		param_hdr.param_size = sizeof(asphere_state.mode);
+		ret = q6common_pack_pp_params(packed_params + packed_params_size,
+					&param_hdr,
+					(u8 *) &asphere_state.mode,
+					&param_size);
+		if (ret) {
+			pr_err("%s: Failed to pack params, error %d\n",
+			       __func__, ret);
+			goto done;
+		}
+		packed_params_size += param_size;
+	}
 	if (set_strength) {
 		/* add strength command */
 		param_hdr.param_id = AUDPROC_PARAM_ID_AUDIOSPHERE_STRENGTH;
 		param_hdr.param_size = sizeof(asphere_state.strength);
-		ret = q6common_pack_pp_params(packed_params +
-						      packed_params_size,
-					      &param_hdr,
-					      (u8 *) &asphere_state.strength,
-					      &param_size);
+		ret = q6common_pack_pp_params(packed_params + packed_params_size,
+					&param_hdr,
+					(u8 *) &asphere_state.strength,
+					&param_size);
 		if (ret) {
 			pr_err("%s: Failed to pack params, error %d\n",
 			       __func__, ret);
@@ -752,7 +773,7 @@ static int msm_qti_pp_asphere_send_params(int port_id, int copp_idx, bool force)
 		/* add enable command */
 		param_hdr.param_id = AUDPROC_PARAM_ID_AUDIOSPHERE_ENABLE;
 		param_hdr.param_size = sizeof(asphere_state.enabled);
-		q6common_pack_pp_params(packed_params + packed_params_size,
+		ret = q6common_pack_pp_params(packed_params + packed_params_size,
 					&param_hdr,
 					(u8 *) &asphere_state.enabled,
 					&param_size);
@@ -822,42 +843,17 @@ static int msm_qti_pp_asphere_get(struct snd_kcontrol *kcontrol,
 		return -EAGAIN;
 	ucontrol->value.integer.value[0] = asphere_state.enabled;
 	ucontrol->value.integer.value[1] = asphere_state.strength;
-	pr_debug("%s, enable %u, strength %u\n", __func__,
-			asphere_state.enabled, asphere_state.strength);
+	ucontrol->value.integer.value[2] = asphere_state.mode;
+	pr_debug("%s, enable %u, strength %u, mode %u\n", __func__,
+			asphere_state.enabled, asphere_state.strength, asphere_state.mode);
 	return 0;
 }
 
 static int msm_qti_pp_asphere_set(struct snd_kcontrol *kcontrol,
 			struct snd_ctl_elem_value *ucontrol)
 {
-	int32_t enable = ucontrol->value.integer.value[0];
-	int32_t strength = ucontrol->value.integer.value[1];
-	int i;
-
-	pr_debug("%s, enable %u, strength %u\n", __func__, enable, strength);
-
-	msm_qti_pp_asphere_init_state();
-
-	if (enable == 0 || enable == 1) {
-		asphere_state.enabled_prev = asphere_state.enabled;
-		asphere_state.enabled = enable;
-	}
-
-	if (strength >= 0 && strength <= 1000) {
-		asphere_state.strength_prev = asphere_state.strength;
-		asphere_state.strength = strength;
-	}
-
-	if (asphere_state.strength != asphere_state.strength_prev ||
-		asphere_state.enabled != asphere_state.enabled_prev) {
-		for (i = 0; i < AFE_MAX_PORTS; i++) {
-			if (asphere_state.port_id[i] >= 0)
-				msm_qti_pp_asphere_send_params(
-					asphere_state.port_id[i],
-					asphere_state.copp_idx[i],
-					false);
-		}
-	}
+	pr_debug("%s, read-only values: enable %u, strength %u, mode %u\n", __func__,
+		asphere_state.enabled, asphere_state.strength, asphere_state.mode);
 	return 0;
 }
 
@@ -1408,7 +1404,7 @@ static const struct snd_kcontrol_new eq_coeff_mixer_controls[] = {
 
 static const struct snd_kcontrol_new asphere_mixer_controls[] = {
 	SOC_SINGLE_MULTI_EXT("MSM ASphere Set Param", SND_SOC_NOPM, 0,
-	0xFFFFFFFF, 0, 2, msm_qti_pp_asphere_get, msm_qti_pp_asphere_set),
+	0xFFFFFFFF, 0, 3, msm_qti_pp_asphere_get, msm_qti_pp_asphere_set),
 };
 
 static const struct snd_kcontrol_new dtmf_detect_enable_mixer_controls[] = {
