@@ -1,0 +1,177 @@
+[Last updated : 2016.12.19]
+
+###################################################################################################
+# Preview                                                                                         #
+###################################################################################################
+
+The SiW AIT touch module basically consists of display and touch block
+and these two parts area related to each other for mode mngt.
+So, display driver and touch driver shall be connected and
+touch driver supports notifer chain for this mode control
+
+
+###################################################################################################
+# Procedure                                                                                       #
+###################################################################################################
+* Basic flow
+
+       Touch                                      LCD
+         |                                         |
+         |                                         |
+     (1) |----- LCD_EVENT_TOUCH_ESD_DETECTED ----->|
+         |                                         |
+         |                                         |
+         |                                         |
+         |<--------- LCD_EVENT_HW_RESET -----------| (2)
+         |                                         |
+         |                                         | (3) LCD recovery
+         |                                         |
+         |<--------- LCD_EVENT_LCD_MODE -----------| (4)
+         |                                         |
+
+###################################################################################################
+# Base                                                                                            #
+###################################################################################################
+* default sysfs path
+  general : /sys/devices/virtual/input/siw_touch_input/
+  watch   : /sys/devices/virtual/input/siw_ext_watch/
+
+* To use notifier call chain of touch driver in LCD driver,
+  (1) Copy the siw_touch_notify.h([SiW driver source]/include/linux/input/siw_touch_notify.h)
+      to [Kernel Top]/include/linux/input/ folder
+  (2) Use this include in your LCD driver
+      #include <linux/input/siw_touch_notify.h>
+
+###################################################################################################
+# [Touch side] ESD detection                                                                      #
+###################################################################################################
+* Touch sends ESD signal(LCD_EVENT_TOUCH_ESD_DETECTED) via notifier call chain
+  and the LCD driver can receive this.
+
+  <ESD event handler>
+  static int siw_hal_send_esd_notifier(struct device *dev, int type)
+  {
+	...
+	int esd = type;
+	...
+
+	ret = siw_touch_atomic_notifier_call(LCD_EVENT_TOUCH_ESD_DETECTED, (void*)&esd);
+	if (ret)
+		t_dev_err(dev, "check the value, %d\n", ret);
+	...
+  }
+
+
+###################################################################################################
+# [LCD side] ESD recovery                                                                         #
+###################################################################################################
+* Caution
+  Workqueue(or anything that could seperate thread) is requied to avoid mutex deadlock in touch side
+  becuase the upper status check is called in irq handler which is blocked by mutex and
+  the same mutex is also used in notifier callback registered in siw_touch_notifier_call_chain.
+
+* Flow
+  siw_touch_atomic_notifier_call
+  -> lcd_atomic_notifier_callback
+     -> queue_delayed_work via ctrl_pdata->esd_work
+        -> lcd_atomic_notifer_work_func
+           -> lcd_esd_recovery
+
+  <Example - Recovery>
+  /* Recovery Main */
+  static int lcd_esd_recovery(void)
+  {
+	/*
+	 * Step - 1
+	 * Send RESET event to touch driver (ready state)
+	 */
+	siw_touch_notifier_call_chain(LCD_EVENT_HW_RESET, NULL);
+
+
+	/*
+	 * Step - 2
+	 * Perform LCD recovery procedure for ESD
+	 * including nReset control
+	 */
+
+
+	/*
+	 * Step - 3
+	 * Send lcd mode event to touch driver
+	 * In this case, touch reset works automatically
+	 * by the former LCD_EVENT_HW_RESET event
+	 */
+	siw_touch_notifier_call_chain(LCD_EVENT_LCD_MODE, (void *)&panel_mode);
+
+	return 0;
+  }
+
+
+  <Example - How to register notifier call chain>
+  static void lcd_atomic_notifer_work_func(struct work_struct *work)
+  {
+	struct mdss_dsi_ctrl_pdata *ctrl_pdata =
+		container_of(to_delayed_work(work),
+				struct mdss_dsi_ctrl_pdata, esd_work);
+	unsigned long event = ctrl_pdata->notify_event;
+	int data = ctrl_pdata->notify_data;
+	int ret = 0;
+
+	switch (event) {
+	case LCD_EVENT_TOUCH_ESD_DETECTED:
+		pr_err("LCD_EVENT_TOUCH_ESD_DETECTED received\n");
+		ret = lcd_esd_recovery();
+		pr_err("LCD_ESD worked and returned %d\n", ret);
+		break;
+	default:
+		break;
+	}
+  }
+
+  static int lcd_atomic_notifier_callback(struct notifier_block *this,
+					unsigned long event, void *data)
+  {
+	struct mdss_dsi_ctrl_pdata *ctrl_pdata =
+		container_of(this, struct mdss_dsi_ctrl_pdata, atomic_notif);
+
+	ctrl_pdata->notify_event = event;
+	ctrl_pdata->notify_data = *(int *)data;
+
+	queue_delayed_work(ctrl_pdata->wq, &ctrl_pdata->esd_work, 0);
+
+	return 0;
+  }
+
+  int lcd_ctrl_probe(struct platform_device *pdev)
+  {
+	struct mdss_dsi_ctrl_pdata *ctrl_pdata = platform_get_drvdata(pdev);
+
+	ctrl_pdata->wq = create_singlethread_workqueue("lcd_single_wq");
+
+	INIT_DELAYED_WORK(&ctrl_pdata->esd_work, lcd_atomic_notifer_work_func);
+
+	ctrl_pdata->atomic_notif.notifier_call = lcd_atomic_notifier_callback;
+	if (siw_touch_atomic_notifier_register(&ctrl_pdata->atomic_notif) != 0)
+		pr_err("Failed to register callback\n");
+
+	...
+  }
+
+  struct mdss_dsi_ctrl_pdata {
+	...
+	struct workqueue_struct *wq;
+	struct delayed_work esd_work;
+	struct notifier_block atomic_notif;
+	unsigned long notify_event;
+	int notify_data;
+	...
+  };
+
+---------------------------------------------------------------------------------------------------
+
+---------------------------------------------------------------------------------------------------
+
+---------------------------------------------------------------------------------------------------
+
+
+

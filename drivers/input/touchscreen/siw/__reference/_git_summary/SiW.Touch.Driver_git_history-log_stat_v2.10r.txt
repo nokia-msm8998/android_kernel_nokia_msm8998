@@ -1,0 +1,208 @@
+
+
+---------------------------------------------------------------------------------------------------
+
+commit a8c62e510b3cea3cd0b433efbc9c33f6c5a337f8
+Author: Harrison Kim <kimhh@siliconworks.co.kr>
+Date:   Thu Jun 2 16:46:01 2016 +0900
+
+    input: touchscreen: siw: version fix
+    
+    Version 2.10r fixed
+
+ siw_touch.h | 2 +-
+ 1 file changed, 1 insertion(+), 1 deletion(-)
+
+commit 097f23f58b4c043b1ab3ace192e28df784be5e14
+Author: Harrison Kim <kimhh@siliconworks.co.kr>
+Date:   Thu Jun 2 16:32:13 2016 +0900
+
+    input: touchscreen: siw: fix 'rsume irq' control
+
+ siw_touch_irq.c | 10 +++-------
+ 1 file changed, 3 insertions(+), 7 deletions(-)
+
+commit d49dadd0b34e62b542c373131df374c10480b041
+Author: Harrison Kim <kimhh@siliconworks.co.kr>
+Date:   Thu Jun 2 15:55:00 2016 +0900
+
+    input: touchscreen: siw: bug-fix for irq control
+    
+    The enable_irq_wake(...) must be set correctly
+    in order that the knock-on irq can wake the system from sleep.
+    
+    1. Reorganize irq wake control
+       Update siw_touch_enable_irq_wake(...)
+              siw_touch_disable_irq_wake(...)
+       No more use of IRQ_USE_WAKE
+    
+    2. Update irq check status
+       Restore bit15(interrupt_sts) check
+
+ siw_touch_hal.c |  4 ++--
+ siw_touch_irq.c | 28 ++++++++++++++--------------
+ 2 files changed, 16 insertions(+), 16 deletions(-)
+
+commit ea7214b01bf4fc5327e360a12cab4ad518d1442f
+Author: Harrison Kim <kimhh@siliconworks.co.kr>
+Date:   Thu Jun 2 14:01:34 2016 +0900
+
+    input: touchscreen: siw: update tci_debug_type control
+
+ siw_touch_hal.c | 16 +++++++++-------
+ 1 file changed, 9 insertions(+), 7 deletions(-)
+
+commit 4a6e3d6d0a2569abdf25ed836902cc41b382b207
+Author: Harrison Kim <kimhh@siliconworks.co.kr>
+Date:   Thu Jun 2 13:46:53 2016 +0900
+
+    input: touchscreen: siw: add new function
+    
+    Add siw_touch_sys_mfts_lpwg(...) for external interface
+
+ siw_touch_sys.c   | 13 +++++++++++++
+ siw_touch_sys.h   |  2 ++
+ siw_touch_sysfs.c |  2 ++
+ 3 files changed, 17 insertions(+)
+
+commit 213ba196adf60054110c26645f0bc8bd6e95e374
+Author: Harrison Kim <kimhh@siliconworks.co.kr>
+Date:   Thu Jun 2 13:45:20 2016 +0900
+
+    input: touchscreen: siw: update siw_hal_clock(...)
+    
+    Add option for LG4895 to select siw_hal_clock_type_1(...)
+
+ siw_touch_hal.c | 2 +-
+ 1 file changed, 1 insertion(+), 1 deletion(-)
+
+commit b67a7c34765f2dc1cc389c8d6e0694aa2db4250b
+Author: Harrison Kim <kimhh@siliconworks.co.kr>
+Date:   Thu Jun 2 13:00:36 2016 +0900
+
+    input: touchscreen: siw: minor update for DTS parsing
+
+ siw_touch_of.c | 13 +++++++++----
+ 1 file changed, 9 insertions(+), 4 deletions(-)
+
+commit 2884ba4bc784889c18343a2651c9a0ced0cdc5ff
+Author: Harrison Kim <kimhh@siliconworks.co.kr>
+Date:   Thu Jun 2 12:46:18 2016 +0900
+
+    input: touchscreen: siw: enable features
+    
+    1. pin control
+    Enable __SIW_SUPPORT_PINCTRL and add TOUCH_USE_PINCTRL option
+    
+    2. power control
+    Enable __SIW_SUPPORT_PWRCTRL and add TOUCH_USE_PWRCTRL option
+
+ siw_touch.h      |  4 ++++
+ siw_touch_bus.c  | 17 +++++++++++++----
+ siw_touch_cfg.h  |  4 ++--
+ siw_touch_gpio.c | 34 ++++++++++++++++++++++++++++------
+ 4 files changed, 47 insertions(+), 12 deletions(-)
+
+commit 191d196b39c1ed1eefc9df85a44eeeadc5fd906f
+Author: Harrison Kim <kimhh@siliconworks.co.kr>
+Date:   Thu Jun 2 12:44:02 2016 +0900
+
+    input: touchscreen: siw: adjust param for siw_hal_swipe_mode(...)
+
+ siw_touch_hal.c | 9 +++++----
+ 1 file changed, 5 insertions(+), 4 deletions(-)
+
+commit 4f18acad3d45e31fe9789d4acb62063d77e9a691
+Author: Harrison Kim <kimhh@siliconworks.co.kr>
+Date:   Thu Jun 2 12:43:08 2016 +0900
+
+    input: touchscreen: siw: bug-fix for siw_hal_tci_area_set(...)
+
+ siw_touch_hal.c | 8 +++++---
+ 1 file changed, 5 insertions(+), 3 deletions(-)
+
+commit 5b27f50ef8d2ce1311b65f05a30b318246af9c83
+Author: Harrison Kim <kimhh@siliconworks.co.kr>
+Date:   Wed Jun 1 15:40:54 2016 +0900
+
+    input: touchscreen: siw: update irq check status
+
+ siw_touch_hal.c | 27 +++++++++++++++++++--------
+ 1 file changed, 19 insertions(+), 8 deletions(-)
+
+commit 920033b85e09ab4036a743702de8181749155996
+Author: Harrison Kim <kimhh@siliconworks.co.kr>
+Date:   Wed Jun 1 15:40:30 2016 +0900
+
+    input: touchscreen: siw: minor update for debugging
+
+ siw_touch_event.c | 2 +-
+ 1 file changed, 1 insertion(+), 1 deletion(-)
+
+commit 2c2283ba10000f2137205a0520d5d551ad67b50b
+Author: Harrison Kim <kimhh@siliconworks.co.kr>
+Date:   Wed Jun 1 14:28:51 2016 +0900
+
+    input: touchscreen: siw: minor update for debugging
+
+ siw_touch_event.c | 2 +-
+ siw_touch_sys.c   | 2 ++
+ 2 files changed, 3 insertions(+), 1 deletion(-)
+
+commit f082108ba3db1fc04f1cb9bbc763769dc442e13e
+Author: Harrison Kim <kimhh@siliconworks.co.kr>
+Date:   Wed Jun 1 14:27:40 2016 +0900
+
+    input: touchscreen: siw: add a delay control
+    
+    Add 200 msec delay into siw_hal_tc_driving(...)
+
+ siw_touch_hal.c | 6 ++----
+ 1 file changed, 2 insertions(+), 4 deletions(-)
+
+commit abd9cd933342ccb376b28d59e038fda56bef8e79
+Author: Harrison Kim <kimhh@siliconworks.co.kr>
+Date:   Wed Jun 1 14:25:45 2016 +0900
+
+    input: touchscreen: siw: update irq check status
+    
+    Modify siw_hal_check_status:
+    Mark checking bit15(interrupt_sts)
+
+ siw_touch_hal.c | 45 ++++++++++++++++++++++++++-------------------
+ 1 file changed, 26 insertions(+), 19 deletions(-)
+
+commit 54b6634b93b29fe1242354bb489f34a88c8e2ad3
+Author: Harrison Kim <kimhh@siliconworks.co.kr>
+Date:   Wed Jun 1 14:06:18 2016 +0900
+
+    input: touchscreen: siw: update PM control
+    
+    Adjust device PM suspend/resume control
+
+ siw_touch.c         |  4 ++++
+ siw_touch.h         |  3 ++-
+ siw_touch_bus_i2c.c |  3 +++
+ siw_touch_bus_spi.c |  3 +++
+ siw_touch_irq.c     | 22 ++++++++++++++++++++--
+ 5 files changed, 32 insertions(+), 3 deletions(-)
+
+commit 8b2e436ed3b1739eda9b5ac1f6d1511c6ae992d3
+Author: Harrison Kim <kimhh@siliconworks.co.kr>
+Date:   Wed Jun 1 08:18:34 2016 +0900
+
+    input: touchscreen: siw: update WATCH layer
+    
+    Bug-fix for 'set position'
+    
+    * 2.10b begins
+
+ siw_touch.h           | 2 +-
+ siw_touch_hal.c       | 5 ++++-
+ siw_touch_hal_watch.c | 4 ++++
+ 3 files changed, 9 insertions(+), 2 deletions(-)
+
+---------------------------------------------------------------------------------------------------
+
+---------------------------------------------------------------------------------------------------
+
