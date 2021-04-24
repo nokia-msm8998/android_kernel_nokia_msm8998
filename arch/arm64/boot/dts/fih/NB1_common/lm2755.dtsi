@@ -1,0 +1,20 @@
+&i2c_8 {  /* BLSP2 QUP2 (Soft Key LED) */
+	status = "okay";
+		lm2755@18 {
+			compatible = "lm,lm2755";
+			reg = <0x18>;				/*0x18 if ADDR pin is grounded, 0x67 if ADDR pin is tied high*/
+			enable-gpio = <&tlmm 25 0x01>;
+			clock-mode = <0x0>;			/*0x0 for internal, 0x40 for external clock*/
+			charge-pump-mode = <0x0>;	/*0x0 or 0x80*/
+			min-tstep = <0x0>;			/*0x0 ot 0x7*/
+			max-level = <0x1F>;			/*MAX = 32*/
+			d1-led-name = "D1-led";
+			d2-led-name = "D2-led";
+		};
+	};
+
+&soc {
+	i2c_8: i2c@c1b6000 {
+		status = "okay";
+	};
+};

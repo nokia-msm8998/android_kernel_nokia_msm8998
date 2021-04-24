@@ -1,0 +1,5 @@
+&usb3 {
+	fih,redriver-en = <&tlmm 42 0>;
+	fih,redriver-vdd = <&tlmm 21 0>;
+	/* end FIH - NB1-674 */
+};
