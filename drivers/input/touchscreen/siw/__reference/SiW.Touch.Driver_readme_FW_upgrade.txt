@@ -1,0 +1,82 @@
+[Last updated : 2016.12.12]
+
+###################################################################################################
+# Preview                                                                                         #
+###################################################################################################
+
+The SiW Touch Driver supports a kind of manual FW upgrade via sysfs atttr
+and there are two types of path setup.
+- Relative Path : via request_firmware API
+- Absolute Path : via filp_open API
+
+The basic command format for FW upgrade is like this
+# echo [Path type]/target_image.img > /sys/devices/virtual/input/lge_touch/fw_upgrade
+
+
+###################################################################################################
+# Relative Path                                                                                   #
+###################################################################################################
+* For using relative path access, the firmware path shoudl be registered in kernel before build
+  You can find out your own path setup in the file of 'firmware_class.c'
+  
+  <[Kernel Top]/drivers/base/firmware_class.c>
+  static char fw_path_para[256];
+  static const char * const fw_path[] = {      //The case of SiW test kernel
+      fw_path_para,
+      "/lib/firmware/updates/" UTS_RELEASE,
+      "/lib/firmware/updates",
+      "/lib/firmware/" UTS_RELEASE,
+      "/lib/firmware"
+  };
+
+* If your FW file is stored in one of the upper folder list,
+  you have only to type like this without the middle path.
+  
+  # echo target_image.imag > /sys/devices/virtual/input/lge_touch/fw_upgrade
+
+  In this case, the FW upgarde function uses reqiest_firmware API
+  which searches the target file through the registered fw_path folders.
+
+  It has a strong possibility that these folders has read-only permission.
+
+* Tip to avoid read-only restriction
+  You can use the symbolic link if you want to avoid the limit of permission.
+
+  <Example>
+  (1) Make symbolic link in '/lib/firmware/' via ramdisk setup before kernel build
+      /lib/firmware # ln -s /sdcard/firmware sdcard_firmware
+      /lib/firmware # ll
+      lrw-r--r-- root root 2016-12-12 07:11 sdcard_firmware -> /sdcard/firmware
+      
+      > The /sdcard/firmware/ is a write-allowed folder
+
+  (2) After kernel booting, you can find the symbolic link in the root file system on your machine
+
+  (3) Copy the FW file into the /sdcard/firmware/
+
+  (4) Use the command like this
+      # echo /sdcard_firmware/target_image.imag > /sys/devices/virtual/input/lge_touch/fw_upgrade
+
+      > The request_firmware API will find the final target path '/lib/firmware/sdcard/firmware/'
+        combining the base '/lib/firmare' and the symbloic link 'sdcard_firmware'
+
+###################################################################################################
+# Absolute Path                                                                                   #
+###################################################################################################
+* This type uses general filp_open API and you are free to use any folders you want.
+  But, you have to type keyword and the accurate middle path.
+
+  # echo {root}/sdcard/firmware/target_image.img > /sys/devices/virtual/input/lge_touch/fw_upgrade
+  # echo {root}/data/target_image.img > /sys/devices/virtual/input/lge_touch/fw_upgrade
+
+* {root}
+  This is the keyword signal that let the driver know it's absolute path parameter.
+
+---------------------------------------------------------------------------------------------------
+
+---------------------------------------------------------------------------------------------------
+
+---------------------------------------------------------------------------------------------------
+
+
+

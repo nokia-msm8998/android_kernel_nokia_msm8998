@@ -1,0 +1,451 @@
+
+---------------------------------------------------------------------------------------------------
+
+commit e6c4bcbc251098e4c923214c4eadca58e2d7c35c
+Author: Harrison Kim <kimhh@siliconworks.co.kr>
+Date:   Fri Jul 1 13:10:14 2016 +0900
+
+    input: touchscreen: siw: version fix
+    
+    Version 2.12r fixed
+
+ siw_touch.h | 2 +-
+ 1 file changed, 1 insertion(+), 1 deletion(-)
+
+commit 236b73e55314ca05a49bddfda0544a7aa02c1b13
+Author: Harrison Kim <kimhh@siliconworks.co.kr>
+Date:   Thu Jun 30 17:13:14 2016 +0900
+
+    input: touchscreen: siw: update PRD layer
+    
+    Remove DEBUG_TOOL_ENABLE condition
+
+ siw_touch_hal_prd.c | 6 +-----
+ 1 file changed, 1 insertion(+), 5 deletions(-)
+
+commit 04e1187a759d130b18cb0934f7daf8310ef72d3d
+Author: Harrison Kim <kimhh@siliconworks.co.kr>
+Date:   Thu Jun 30 13:50:31 2016 +0900
+
+    input: touchscreen: siw: update check-status
+    
+    Fix wrong log parameter
+
+ siw_touch_hal.c | 2 +-
+ 1 file changed, 1 insertion(+), 1 deletion(-)
+
+commit 1089deabc1e072c675f124bee9103b75e9810973
+Author: Harrison Kim <kimhh@siliconworks.co.kr>
+Date:   Thu Jun 30 11:53:11 2016 +0900
+
+    input: touchscreen: siw: update MISC layer
+    
+    Update siw_misc_read to be able to return the actual data size
+
+ siw_touch_misc.c | 12 +++++++++---
+ 1 file changed, 9 insertions(+), 3 deletions(-)
+
+commit 18817df8e8e78ee34b1e73ea25b6475a15b27923
+Author: Harrison Kim <kimhh@siliconworks.co.kr>
+Date:   Wed Jun 29 20:30:05 2016 +0900
+
+    input: touchscreen: siw: update PRD layer
+    
+    Update prd_show_app():
+    - Improve call procedure of prd_show_get_data_common()
+    - Arrange parameter table via param_table[]
+
+ siw_touch_hal_prd.c | 55 +++++++++++++++++++++++++++++++++++------------------
+ 1 file changed, 36 insertions(+), 19 deletions(-)
+
+commit 0fdf5c83469242193097db246e975ea22cfe3ba1
+Author: Harrison Kim <kimhh@siliconworks.co.kr>
+Date:   Wed Jun 29 19:54:07 2016 +0900
+
+    input: touchscreen: siw: update PRD layer
+    
+    Reorganize prd_show_app(...) and its relalted sub-functions:
+    - Add PRD_SHOW_FLAG_DISABLE_PRT_RAW to control 'prd_print_rawdata'
+      instead of using 'ts->state.debug_tool'
+    - t_prd_info_tool -> t_prd_info_flag with adding flag parameter
+    - Remove 'prd->ts'
+
+ siw_touch_hal_prd.c | 102 +++++++++++++++++++++++++++-------------------------
+ 1 file changed, 53 insertions(+), 49 deletions(-)
+
+commit 28f4a738eaa959e200c7dd9131718ac82d9267a2
+Author: Sungyeal Park <parksy5@siliconworks.co.kr>
+Date:   Wed Jun 29 18:08:43 2016 +0900
+
+    input: touchscreen: siw: update PRD layer
+    
+    Update prd_show_app(...) for debug app
+
+ siw_touch_hal_prd.c | 93 +++++++++++++++++++++++++++++++++--------------------
+ 1 file changed, 58 insertions(+), 35 deletions(-)
+
+commit 07fb0e1b22d9db86db0b03a43369fafc7e3e1705
+Author: Harrison Kim <kimhh@siliconworks.co.kr>
+Date:   Wed Jun 29 16:31:31 2016 +0900
+
+    input: touchscreen: siw: update fw-version control
+    
+    Add 'struct siw_hal_tc_version_bin'
+
+ siw_touch_hal.c | 22 ++++++++++++----------
+ siw_touch_hal.h | 14 +++++++++++++-
+ 2 files changed, 25 insertions(+), 11 deletions(-)
+
+commit 53b468dbe8f388968471aef43c250c5410527834
+Author: Harrison Kim <kimhh@siliconworks.co.kr>
+Date:   Wed Jun 29 13:39:48 2016 +0900
+
+    input: touchscreen: siw: update ic-info control
+    
+    Update siw_hal_ic_info(...) for selective log display
+    - Add siw_hal_do_ic_info(...)
+    - Add t_dev_info_sel(...)
+
+ siw_touch_dbg.h |  6 ++++++
+ siw_touch_hal.c | 21 +++++++++++++--------
+ 2 files changed, 19 insertions(+), 8 deletions(-)
+
+commit 7d5ca1cb877b017a07fcebf915354e7e8024d8c3
+Author: Harrison Kim <kimhh@siliconworks.co.kr>
+Date:   Wed Jun 29 13:38:33 2016 +0900
+
+    input: touchscreen: siw: update fw-version control
+    
+    Add siw_hal_fw_chk_version_ext(...)
+
+ siw_touch_hal.c | 15 +++++++++++++--
+ siw_touch_hal.h | 41 +++++++++++++++++++++++++++++++++++++++++
+ 2 files changed, 54 insertions(+), 2 deletions(-)
+
+commit 7d495472ad61e8f1dfbef88803c8b951b9fa55ac
+Author: Harrison Kim <kimhh@siliconworks.co.kr>
+Date:   Wed Jun 29 13:15:35 2016 +0900
+
+    input: touchscreen: siw: update fw-version control
+    
+    Bug-fix: version extension check (binary)
+
+ siw_touch_hal.c | 7 ++++---
+ 1 file changed, 4 insertions(+), 3 deletions(-)
+
+commit 49110880f282066f0b0a901fa03219018fae3ef4
+Author: Harrison Kim <kimhh@siliconworks.co.kr>
+Date:   Tue Jun 28 17:15:16 2016 +0900
+
+    input: touchscreen: siw: update hal-sysfs control
+    
+    Update _store_reg_ctrl(...)
+
+ siw_touch_hal_sysfs.c | 12 ++++++------
+ 1 file changed, 6 insertions(+), 6 deletions(-)
+
+commit fabcd1e899829fc4545415d365bf8efd34dd9751
+Author: Harrison Kim <kimhh@siliconworks.co.kr>
+Date:   Tue Jun 28 17:14:23 2016 +0900
+
+    input: touchscreen: siw: update MISC layer
+    
+    Minor update for kernel log
+
+ siw_touch_misc.c | 6 +++---
+ 1 file changed, 3 insertions(+), 3 deletions(-)
+
+commit 3f2c4226f4ff131c598c9af76e4662967b0d3963
+Author: Harrison Kim <kimhh@siliconworks.co.kr>
+Date:   Tue Jun 28 16:14:01 2016 +0900
+
+    input: touchscreen: siw: update MISC layer
+    
+    Reduce copy_from_user load in write operation
+
+ siw_touch_misc.c | 24 ++++++++++++++++--------
+ 1 file changed, 16 insertions(+), 8 deletions(-)
+
+commit 35f732a1ec21c2df9fbdf6bffd96d67ef3cab0a6
+Author: Harrison Kim <kimhh@siliconworks.co.kr>
+Date:   Tue Jun 28 16:02:03 2016 +0900
+
+    input: touchscreen: siw: update MISC layer
+    
+    Simplify read/write access control using reg_read/write function
+    because bus lock control issue is expected
+
+ siw_touch_misc.c | 257 +++++++++----------------------------------------------
+ 1 file changed, 39 insertions(+), 218 deletions(-)
+
+commit a952206ce8282ed9d8c1bc4392a4f6ad21e06ab9
+Author: Harrison Kim <kimhh@siliconworks.co.kr>
+Date:   Tue Jun 28 11:34:58 2016 +0900
+
+    input: touchscreen: siw: update fw-version control
+    
+    Update FW version control for extension format
+    : Fix TC_VERSION_EXT address
+    : Update siw_hal_fw_compare(...)
+
+ siw_touch.h           |   2 +-
+ siw_touch_hal.c       | 217 ++++++++++++++++++++++++++++++--------------------
+ siw_touch_hal_reg.h   |   2 +-
+ siw_touch_hal_sysfs.c |   1 +
+ 4 files changed, 133 insertions(+), 89 deletions(-)
+
+commit 1bf6582c334ee2b65ca532ccdd4cfbd7d2b240e8
+Author: Harrison Kim <kimhh@siliconworks.co.kr>
+Date:   Tue Jun 28 08:27:27 2016 +0900
+
+    input: touchscreen: siw: update fw-version control
+    
+    Update FW version control for extension format
+    (from commit-id: 889154aeded0a9584452b7621893d2c43ed14e56)
+    : Add new TC_VERSION_EXT for YYMMDDXX(BCD) format.
+      Maintain the current TC_VERSION as it is
+      and add extension check bit
+      (The address is not fixed, still discussing)
+    : Update struct siw_hal_fw_info
+    : Remove TOUCH_USER_FW_FORMAT_DATE.
+      Automatic control up to version extension
+      instead of manual config.
+
+ siw_touch.h           |  4 +--
+ siw_touch_hal.c       | 84 ++++++++++++++++++++++++++++++---------------------
+ siw_touch_hal.h       | 33 ++++++++++++--------
+ siw_touch_hal_prd.c   | 64 ++++++++-------------------------------
+ siw_touch_hal_reg.h   |  2 ++
+ siw_touch_hal_sysfs.c | 63 ++++++++++----------------------------
+ 6 files changed, 101 insertions(+), 149 deletions(-)
+
+commit 3348fbb5c4d053b44966315a825321c55a5e4001
+Author: Harrison Kim <kimhh@siliconworks.co.kr>
+Date:   Mon Jun 27 14:34:32 2016 +0900
+
+    input: touchscreen: siw: add optional MISC layer
+    
+    Add misc driver layer to support direct bus access in user-space
+
+ Makefile_builtin  |   1 +
+ Makefile_module   |   1 +
+ siw_touch_cfg.h   |   2 +
+ siw_touch_misc.c  | 469 ++++++++++++++++++++++++++++++++++++++++++++++++++++++
+ siw_touch_sysfs.c |  12 ++
+ 5 files changed, 485 insertions(+)
+
+commit abb16e78cffb2106293634569ffae4991fe967e9
+Author: Harrison Kim <kimhh@siliconworks.co.kr>
+Date:   Mon Jun 27 11:04:37 2016 +0900
+
+    input: touchscreen: siw: update SPI control
+    
+    Minor update
+
+ siw_touch_bus_spi.c | 13 ++++++++++---
+ siw_touch_hal.c     |  3 ++-
+ 2 files changed, 12 insertions(+), 4 deletions(-)
+
+commit 88ff43610db9a56ba88ff661308d402e3ad7be6e
+Author: Harrison Kim <kimhh@siliconworks.co.kr>
+Date:   Mon Jun 27 11:01:57 2016 +0900
+
+    input: touchscreen: siw: driver guide
+    
+    Register access table : xlsx -> pdf
+
+ __reference/Driver Reg. Access Table_16.04.22.xlsx      | Bin 20394 -> 0 bytes
+ .../Driver Reg. Access Table_16.04.25 (watch dog).xlsx  | Bin 27138 -> 0 bytes
+ __reference/Driver.Reg.Access.Table_16.04.22.pdf        | Bin 0 -> 52380 bytes
+ .../Driver.Reg.Access.Table_16.05.20_watch.dog.pdf      | Bin 0 -> 97342 bytes
+ 4 files changed, 0 insertions(+), 0 deletions(-)
+
+commit e8eb27d79b6a52f23906cfb11877a971358e5170
+Author: Harrison Kim <kimhh@siliconworks.co.kr>
+Date:   Mon Jun 27 10:50:11 2016 +0900
+
+    input: touchscreen: siw: driver guide (pdf)
+    
+    SiW.Touch.Driver_v2.11.pdf
+
+ __reference/SiW.Touch.Driver_v2.11.pdf | Bin 0 -> 677701 bytes
+ 1 file changed, 0 insertions(+), 0 deletions(-)
+
+commit 889154aeded0a9584452b7621893d2c43ed14e56
+Author: Harrison Kim <kimhh@siliconworks.co.kr>
+Date:   Fri Jun 24 15:04:01 2016 +0900
+
+    input: touchscreen: siw: update fw-upgrade control
+    
+    - Add new TOUCH_USE_FW_FORMAT_DATE flag
+      to support YYMMDDXX version format.
+      : Just basic framework first.
+        Full functionality isn't completed yet.
+    
+    - Add function quirk(fquirks->fwup_check)
+      to support update condition policy variation
+
+ siw_touch.h     |  4 +++
+ siw_touch_hal.c | 85 ++++++++++++++++++++++++++++++++++++++++++++-------------
+ siw_touch_hal.h | 13 +++++++--
+ 3 files changed, 80 insertions(+), 22 deletions(-)
+
+commit 73d643cb40635c6ff9238ed35a4630bebd37f9dc
+Author: Harrison Kim <kimhh@siliconworks.co.kr>
+Date:   Fri Jun 24 14:33:30 2016 +0900
+
+    input: touchscreen: siw: update fw-upgrade control
+    
+    Update version comparison control
+
+ siw_touch_hal.c | 83 ++++++++++++++++++++++++++++++---------------------------
+ 1 file changed, 44 insertions(+), 39 deletions(-)
+
+commit 2e296703d0b9fcd94a1c68de812eba55599bdc09
+Author: Harrison Kim <kimhh@siliconworks.co.kr>
+Date:   Wed Jun 22 11:26:11 2016 +0900
+
+    input: touchscreen: siw: Update sysfs control for ABT/PRD layer
+    
+    Add prd_app & remove abt_monitor (internal use for debugging)
+
+ siw_touch_cfg.h     |  62 ---------
+ siw_touch_hal_abt.c | 386 ----------------------------------------------------
+ siw_touch_hal_prd.c | 155 +++++++++++++++++++++
+ 3 files changed, 155 insertions(+), 448 deletions(-)
+
+commit 130a69d38c80233a55fc60eb659b07dbf1093754
+Author: Harrison Kim <kimhh@siliconworks.co.kr>
+Date:   Wed Jun 22 10:39:51 2016 +0900
+
+    input: touchscreen: siw: update register control
+    
+    Add new register variables:
+    PRD_IC_AIT_START_REG -> reg->prd_ic_ait_start_reg
+    PRD_IC_AIT_DATA_READYSTATUS -> reg->prd_ic_ait_data_readystatus
+
+ siw_touch_hal.c       |  2 ++
+ siw_touch_hal_prd.c   | 26 ++++++++++++--------------
+ siw_touch_hal_reg.h   |  6 ++++++
+ siw_touch_hal_sysfs.c |  2 ++
+ 4 files changed, 22 insertions(+), 14 deletions(-)
+
+commit bfaffca861433f772d933fc63a72b30b4e2ef2cd
+Author: Harrison Kim <kimhh@siliconworks.co.kr>
+Date:   Tue Jun 21 15:40:00 2016 +0900
+
+    input: touchscreen: siw: update sysfs
+    
+    debug_tool_t is same as debug_tool, no more specific addition.
+    This is made just for K5 phone test due to permission limit
+    caused by init.rc environment
+
+ siw_touch_sysfs.c | 4 ++++
+ 1 file changed, 4 insertions(+)
+
+commit 276d78deb864956c6b81609dc272bc38563c6f6b
+Author: Harrison Kim <kimhh@siliconworks.co.kr>
+Date:   Tue Jun 21 15:39:10 2016 +0900
+
+    input: touchscreen: siw: update ABT layer
+    
+    Add dbg_offset_base for LG4895
+
+ siw_touch_hal_abt.c | 3 +++
+ 1 file changed, 3 insertions(+)
+
+commit f244ca05648ee80b8b02b94c37cf33a68404f3dc
+Author: Harrison Kim <kimhh@siliconworks.co.kr>
+Date:   Tue Jun 21 14:39:46 2016 +0900
+
+    input: touchscreen: siw: update ABT layer
+    
+    - Update abt_store_app(...)
+    - Add 'abt->dbg_offset_base' & remove DBG_BUF_OFFSET
+
+ siw_touch_hal_abt.c | 34 +++++++++++++++++++++++++---------
+ 1 file changed, 25 insertions(+), 9 deletions(-)
+
+commit 286c6850d2290f8e2206bba73a20dd7840d430be
+Author: Harrison Kim <kimhh@siliconworks.co.kr>
+Date:   Fri Jun 17 17:41:36 2016 +0900
+
+    input: touchscreen: siw: fix module build error for siw-mon
+
+ mon/Makefile_module | 3 +++
+ 1 file changed, 3 insertions(+)
+
+commit 8c60a07ca5901a49b7cccc41cbd3a065b722b0ed
+Author: Harrison Kim <kimhh@siliconworks.co.kr>
+Date:   Fri Jun 17 17:18:53 2016 +0900
+
+    input: touchscreen: siw: adjust some logs for debugging
+
+ siw_touch_hal.c     | 26 +++++++++++++++++++++++---
+ siw_touch_hal_abt.c |  6 +++++-
+ 2 files changed, 28 insertions(+), 4 deletions(-)
+
+commit 5d964d0af8b0f1ce1801b23d55e8fd97912a4cf4
+Author: Harrison Kim <kimhh@siliconworks.co.kr>
+Date:   Fri Jun 17 14:43:35 2016 +0900
+
+    input: touchscreen: siw: add build option
+    
+    Add __SIW_CONFIG_NET for network communication
+
+ siw_touch_cfg.h     |  4 ++++
+ siw_touch_hal_abt.c | 46 ++++++++++++++++++++++++++++++++++++++++------
+ 2 files changed, 44 insertions(+), 6 deletions(-)
+
+commit 34a171c8ed54a6071eef91f5856976376f64f4d8
+Author: Harrison Kim <kimhh@siliconworks.co.kr>
+Date:   Fri Jun 17 13:17:54 2016 +0900
+
+    input: touchscreen: siw: add chip name to show info
+    
+    Add chip name log into siw_hal_get_cmd_version(...)
+
+ siw_touch_hal.c | 40 ++++++++++++++++++++++++----------------
+ 1 file changed, 24 insertions(+), 16 deletions(-)
+
+commit 7db1d77dc21d09124d1e96eba8acd6f2e79dbbdd
+Author: Harrison Kim <kimhh@siliconworks.co.kr>
+Date:   Fri Jun 17 09:28:40 2016 +0900
+
+    input: touchscreen: siw: update fw-upgrade control
+    
+    Adjust sub-functions and log messages
+
+ siw_touch_hal.c | 52 ++++++++++++++++++++++++++++++++--------------------
+ 1 file changed, 32 insertions(+), 20 deletions(-)
+
+commit 2b1865a8558366fd045c2692d071b739d424654e
+Author: Harrison Kim <kimhh@siliconworks.co.kr>
+Date:   Thu Jun 16 12:30:37 2016 +0900
+
+    input: touchscreen: siw: update build option
+    
+    Adjust enabling condition for __SIW_CONFIG_FB
+
+ siw_touch_cfg.h | 4 +---
+ 1 file changed, 1 insertion(+), 3 deletions(-)
+
+commit 31c1168a4cbd39380d4f4acd7178479a695f5de8
+Author: Harrison Kim <kimhh@siliconworks.co.kr>
+Date:   Thu Jun 16 10:36:51 2016 +0900
+
+    input: touchscreen: siw: update notifier
+    
+    Update notifier and some log control
+
+ siw_touch.c        | 6 ++++++
+ siw_touch.h        | 2 +-
+ siw_touch_hal.c    | 7 +++++++
+ siw_touch_notify.c | 5 +++++
+ siw_touch_sysfs.c  | 6 +-----
+ 5 files changed, 20 insertions(+), 6 deletions(-)
+
+---------------------------------------------------------------------------------------------------
+
+---------------------------------------------------------------------------------------------------
+
