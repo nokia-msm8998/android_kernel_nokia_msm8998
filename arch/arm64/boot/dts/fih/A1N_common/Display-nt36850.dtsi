@@ -161,8 +161,8 @@
 			};
 	};
 	qcom,panel-lab-supply-entries {
-			ddress-cells = <1>;
-			ize-cells = <0>;
+			#address-cells = <1>;
+			#size-cells = <0>;
 			qcom,panel-lab-supply-entry@0 {
 					reg = <0>;
 					qcom,supply-name = "lab";
@@ -173,8 +173,8 @@
 			};
 	};
 	qcom,panel-ibb-supply-entries {
-			ddress-cells = <1>;
-			ize-cells = <0>;
+			#address-cells = <1>;
+			#size-cells = <0>;
 			qcom,panel-ibb-supply-entry@0 {
 					reg = <3>;
 					qcom,supply-name = "ibb";
