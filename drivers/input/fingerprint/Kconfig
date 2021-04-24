@@ -1,4 +1,4 @@
-menu "Nokia M690 M490 Fingerprints"
+menu "Nokia Fingerprints"
 
 config SILEAD_FP
 	tristate "silead fingerprint drivers"
@@ -20,5 +20,14 @@ config CDFINGER_FP
        help
 		  Say Y here if you want to use Cdfinger fingerprint soc drivers.
 
+# Configuration for FPC
+config FINGER_PRINT
+        bool "Finger Print Driver"
+        default n
+        ---help---
+          This is a Finger Print Drive
 
 endmenu
+
+source "drivers/input/fingerprint/goodix_gfx18m/Kconfig"
+source "drivers/input/fingerprint/goodix_gf5288/Kconfig"
