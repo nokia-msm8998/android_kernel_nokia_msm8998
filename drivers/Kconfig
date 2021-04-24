@@ -215,4 +215,7 @@ source "drivers/sensors/Kconfig"
 source "drivers/tee/Kconfig"
 
 source "drivers/gud/Kconfig"
+
+source "drivers/fih/Kconfig"
+
 endmenu
