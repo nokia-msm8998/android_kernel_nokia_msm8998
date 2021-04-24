@@ -1,0 +1,53 @@
+//touch-related part only
+
+/ {
+	//...
+
+	soc {
+		//...
+
+		eintc: eintc@10005000 {
+			compatible = "mediatek,mt-eic";
+			reg = <0x10005000 0x1000>;
+			interrupts = <GIC_SPI 153 IRQ_TYPE_LEVEL_HIGH>;
+			#interrupt-cells = <2>;
+			interrupt-controller;
+			mediatek,max_eint_num = <213>;
+			mediatek,mapping_table_entry = <0>;
+
+			mediatek,debtime_setting_entry = <10>;
+			mediatek,debtime_setting_array = <0 125>, <1 250>, <2 500>, <3 1000>, <4 16000>, <5 32000>, <6 64000>, <7 128000>, <8 256000>, <9 512000>;
+		};
+		//...
+
+		syscfg_pctl_a: syscfg_pctl_a@10211000 {
+			compatible = "mediatek,mt6735-pctl-a-syscfg", "syscon";
+			reg = <0 10211000 0 1000>;
+		};
+
+		pio: pinctrl@10211000 {
+			compatible = "mediatek,mt6735-pinctrl";
+			reg = <0 10211000 0 1000>;
+			mediatek,pctl-regmap = <&syscfg_pctl_a>;
+			pins-are-numbered;
+			gpio-controller;
+			#gpio-cells = <2>;
+		};
+		//...
+
+		i2c1:i2c@11008000 {
+			compatible = "mediatek,mt6735-i2c";
+			cell-index = <1>;
+			reg = <0x11008000 0x1000>;
+			interrupts = <GIC_SPI 85 IRQ_TYPE_LEVEL_LOW>,
+					<GIC_SPI 100 IRQ_TYPE_LEVEL_LOW>;
+			def_speed = <100>;
+			clocks = <&perisys PERI_I2C1>, <&perisys PERI_APDMA>;
+			clock-names = "i2c1-main", "i2c1-dma";
+			clock-frequency = <13600>;
+			clock-div = <1>;
+		};
+		//...
+	};
+	//...
+};

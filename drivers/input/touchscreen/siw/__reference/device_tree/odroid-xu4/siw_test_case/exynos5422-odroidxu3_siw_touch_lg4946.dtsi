@@ -1,0 +1,72 @@
+/*
+ * SiW Touch device tree source for Odroid-XU4 (Samsung Exynos5422)
+ *
+ * Copyright (c) 2016 Silicon Works - http://www.siliconworks.co.kr
+ *
+ * This program is free software; you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License version 2 as
+ * published by the Free Software Foundation.
+*/
+#include <dt-bindings/gpio/gpio.h>
+
+&spi_1 {					// indicates parent device : SPI_1 master block
+	status = "okay";
+	samsung,spi-src-clk = <0>;		//clk source indicator : sci->src_clk_nr -> '0' on spi_busclk0
+	num-cs = <1>;
+
+	lg4946@0 {
+		status = "okay";
+	//	#address-cells = <1>;
+	//	#size-cells = <0>;
+		compatible = "siw,lg4946";
+		reg = <0>;		//chip select indicator : spi->chip_select
+		spi-max-frequency = <10000000>;
+
+		interrupt-parent = <&gpx1>;	// interrupt source : GPIO group 'gpx1'
+		interrupts = <6 0x02>;		// index 6(0~7) in gpx1 external interrupts
+		irqflags = <0x2002>;		// IRQF_ONESHOT(0x2000) | IRQF_TRIGGER_FALLING(0x2)
+
+		chip_flags = <0>;
+
+		reset-gpio = <&gpx1 7 GPIO_ACTIVE_LOW>;	// index 7 in gpx1
+		irq-gpio = <&gpx1 6 GPIO_ACTIVE_LOW>;	// index 6 in gpx1
+
+		// Caps
+		max_x = <1440>;
+		max_y = <2560>;
+		max_pressure = <0xff>;
+		max_width = <15>;
+		max_orientation = <1>;
+		max_id = <10>;
+
+		// role
+		hw_reset_delay = <210>;
+		sw_reset_delay = <90>;
+		use_lpwg = <1>;
+		use_lpwg_test = <1>;
+
+		// firmware
+		use_firmware = <1>;
+		use_fw_upgrade = <1>;
+		fw_image = "siw/lg4946/L0W49P1_1_13.img";	// in android -> /lib/firmware/siw/...
+	//	panel_spec = "siw/lg4946/ph1_limit.txt";
+	//	panel_spec_mfts = "siw/lg4946/ph1_limit_mfts.txt";
+
+		//absoulte path
+		font_image = "/sdcard/siw/lg4946_font_data.bin";
+
+		prd_in_file = "/sdcard/siw/lg4946_test_spec_V0.1.txt";
+		prd_in_file_m = "/sdcard/siw/lg4946_test_spec_mfts_V0.1.txt";
+		prd_out_file = "/sdcard/siw/touch_self_test.txt";
+
+		controller-data {
+			cs-gpio = <&gpa2 5 GPIO_ACTIVE_LOW>;
+			samsung,spi-feedback-delay = <0>;
+			samsung,spi-chip-select-mode = <0>;	//MANUAL_CS_MODE = 0, AUTO_CS_MODE = 1,
+		};
+	};
+};
+
+
+
+

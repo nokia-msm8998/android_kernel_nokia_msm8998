@@ -1,0 +1,70 @@
+/*
+ * SiW Touch device tree source for Odroid-XU4 (Samsung Exynos5422)
+ *
+ * Copyright (c) 2016 Silicon Works - http://www.siliconworks.co.kr
+ *
+ * This program is free software; you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License version 2 as
+ * published by the Free Software Foundation.
+*/
+#include <dt-bindings/gpio/gpio.h>
+
+/{
+/*
+	//GPIO default setup for lg4894 IRQn & RSTn
+	pinctrl@13400000 {
+		touch_irq: touch-irq {
+			samsung,pins = "gpx1-6";
+			// 0 = input, 1 = output
+			samsung,pin-function = <0>;
+			// 0 = disable, 1 = pull dn, 2 = reserved, 3 = pull up
+			samsung,pin-pud = <3>;
+		};
+
+		touch_reset: touch-reset {
+			samsung,pins = "gpx1-7";
+			samsung,pin-function = <1>;
+			samsung,pin-pud = <0>;
+		};
+	};
+*/
+
+	/*
+	 * add more pin configuration for I2C SC/SDA to pinctrl@14010000
+	 * this area is alreay defined in exynos5422-pinctrl.dtsi
+	 */
+	pinctrl@14010000 {
+		i2c1_bus: i2c1-bus {
+			/* gpb3-3 : SCL, gpb3-2 : SDA */
+			samsung,pins = "gpb3-3", "gpb3-2";
+			samsung,pin-function = <2>;
+			samsung,pin-pud = <3>;
+			samsung,pin-drv = <3>;
+		};
+	};
+
+	/*
+	 * enable I2C@12C70000 adapter
+	 */
+	i2c_1: i2c@12C70000 {
+		compatible = "samsung,s3c2440-i2c";
+		reg = <0x12C70000 0x1000>;
+		interrupts = <0 57 0>;
+		#address-cells = <1>;
+		#size-cells = <0>;
+		pinctrl-names = "default";
+		pinctrl-0 = <&i2c1_bus>;
+		clocks = <&clock 1493>, <&clock 1493>;
+		clock-names = "rate_i2c", "gate_i2c";
+	};
+};
+
+//#include "exynos5422-odroidxu3_siw_touch_lg4894.dtsi"
+//#include "exynos5422-odroidxu3_siw_touch_lg4895.dtsi"
+//#include "exynos5422-odroidxu3_siw_touch_lg4946.dtsi"
+//#include "exynos5422-odroidxu3_siw_touch_sw1828.dtsi"
+#include "exynos5422-odroidxu3_siw_touch_sw49407.dtsi"
+
+
+
+
