@@ -1,0 +1,459 @@
+
+---------------------------------------------------------------------------------------------------
+ 
+commit 63e1b6720c4d9415d0a7df236f5924d5f5cec2c8
+Author: Harrison Kim <kimhh@siliconworks.co.kr>
+Date:   Mon Jul 18 21:10:57 2016 +0900
+
+    input: touchscreen: siw: version fix
+    
+    Version 2.13r fixed
+
+ siw_touch.h | 2 +-
+ 1 file changed, 1 insertion(+), 1 deletion(-)
+
+commit 3893afdabf8e6bf1ce4fc9b24907c0cffd402235
+Author: Harrison Kim <kimhh@siliconworks.co.kr>
+Date:   Mon Jul 18 20:49:48 2016 +0900
+
+    input: touchscreen: siw: update Watch layer
+    
+    Update for LG4946 watch control
+
+ siw_touch_hal.c       |   4 +-
+ siw_touch_hal_watch.c | 307 ++++++++++++++++++++++++++++++--------------------
+ 2 files changed, 185 insertions(+), 126 deletions(-)
+
+commit 1008dfb4f2e7defe334bc77cfbdd5070562b4ed7
+Author: Harrison Kim <kimhh@siliconworks.co.kr>
+Date:   Mon Jul 18 20:45:57 2016 +0900
+
+    input: touchscreen: siw: update HAL layer
+    
+    Update FW upgrade control
+
+ siw_touch_hal.c | 25 ++++++++++++++++++-------
+ siw_touch_hal.h |  1 -
+ 2 files changed, 18 insertions(+), 8 deletions(-)
+
+commit 9658c77a79e134794f0a92210e67d70ade953855
+Author: Harrison Kim <kimhh@siliconworks.co.kr>
+Date:   Mon Jul 18 20:42:58 2016 +0900
+
+    input: touchscreen: siw: update HAL layer
+    
+    Update some kernel logs
+
+ siw_touch_hal.c | 15 ++++++++++++---
+ 1 file changed, 12 insertions(+), 3 deletions(-)
+
+commit 58ae0a1e51bc364766ee5a2c3e03e5c9ffd44d2d
+Author: Harrison Kim <kimhh@siliconworks.co.kr>
+Date:   Fri Jul 15 14:04:02 2016 +0900
+
+    input: touchscreen: siw: update MISC layer
+    
+    Update for ARM64 compatibility
+
+ siw_touch_misc.c | 6 +++---
+ 1 file changed, 3 insertions(+), 3 deletions(-)
+
+commit 2fd85257e61df41a03011820c0595f62f64e5ac8
+Author: Harrison Kim <kimhh@siliconworks.co.kr>
+Date:   Fri Jul 15 14:03:31 2016 +0900
+
+    input: touchscreen: siw: update configration
+    
+    Add __SIW_SUPPORT_UEVENT to disable unnecessary operation
+
+ siw_touch_cfg.h   |  6 ++++++
+ siw_touch_event.c | 16 ++++++++++++++++
+ 2 files changed, 22 insertions(+)
+
+commit 06d0a2eac6ad6bbe50c9f28a2929fdfcddab0837
+Author: Harrison Kim <kimhh@siliconworks.co.kr>
+Date:   Thu Jul 14 16:33:55 2016 +0900
+
+    input: touchscreen: siw: update Watch layer
+    
+    Bug fix for ext_watch_get_mode & ext_watch_set_mode
+
+ siw_touch_hal_watch.c | 91 +++++++++++++++++++++++++++------------------------
+ 1 file changed, 48 insertions(+), 43 deletions(-)
+
+commit 048a4c98f77fae0b5c51daa45217d27c884eff82
+Author: Harrison Kim <kimhh@siliconworks.co.kr>
+Date:   Thu Jul 14 14:38:17 2016 +0900
+
+    input: touchscreen: siw: update LG4946 control
+    
+    Reorganize siw_hal_check_mode(...) in HAL layer
+    to seperate sub-controls for easy mngt.
+    
+    Add LCD_MODE_BIT_U2_UNBLANK into mode configuration
+
+ siw_touch_hal.c | 106 ++++++++++++++++++++++++++++++++++++++++++++++++--------
+ touch_lg4946.c  |   1 +
+ 2 files changed, 93 insertions(+), 14 deletions(-)
+
+commit e4f59f9cea667e9efe0b045312b16eca205a0001
+Author: Harrison Kim <kimhh@siliconworks.co.kr>
+Date:   Thu Jul 14 11:08:19 2016 +0900
+
+    input: touchscreen: siw: update HAL layer
+    
+    Add siw_hal_trigger_gpio_reset(...)
+    to ensure initial reset signal 'low -> high'
+
+ siw_touch_hal.c | 11 +++++++++++
+ 1 file changed, 11 insertions(+)
+
+commit 7c683641db9eeaa50a7ef40bed330ae0fd91016e
+Author: Harrison Kim <kimhh@siliconworks.co.kr>
+Date:   Thu Jul 14 09:20:17 2016 +0900
+
+    input: touchscreen: siw: update HAL layer
+    
+    Add basic rw test on chip
+    - siw_hal_ic_test(...)
+    - SPR_CHIP_TEST & reg->spr_chip_test
+
+ siw_touch_hal.c     | 83 +++++++++++++++++++++++++++++++++++++++++++++++++++++
+ siw_touch_hal_reg.h |  3 ++
+ 2 files changed, 86 insertions(+)
+
+commit a26637eb88b69e0d37bd01c4f0be1b06611aa12a
+Author: Harrison Kim <kimhh@siliconworks.co.kr>
+Date:   Thu Jul 14 09:17:12 2016 +0900
+
+    input: touchscreen: siw: update HAL layer
+    
+    Update version check
+    - Add conditions for LG4895/LG4946
+
+ siw_touch_hal.c | 61 ++++++++++++++++++++++++++++++++++-----------------------
+ 1 file changed, 37 insertions(+), 24 deletions(-)
+
+commit 8dcba5906a883201f2dcaf9b13dd85ff6e8038f7
+Author: Harrison Kim <kimhh@siliconworks.co.kr>
+Date:   Wed Jul 13 08:34:58 2016 +0900
+
+    input: touchscreen: siw: update MON layer
+    
+    Update for ARM64 compatibility related to submit_ops
+
+ mon/siw_touch_mon.c |  4 ++--
+ siw_touch.h         |  6 +++---
+ siw_touch_hal.c     | 14 +++++++-------
+ siw_touch_hal_abt.c |  4 ++--
+ 4 files changed, 14 insertions(+), 14 deletions(-)
+
+commit 214c3bf27606cb496eb608f5577e7b397e8393df
+Author: Harrison Kim <kimhh@siliconworks.co.kr>
+Date:   Wed Jul 13 07:31:20 2016 +0900
+
+    input: touchscreen: siw: update MON layer
+    
+    Update for ARM64 compatibility
+
+ mon/siw_touch_mon.c     | 4 ++--
+ mon/siw_touch_mon.h     | 2 +-
+ mon/siw_touch_mon_prt.c | 2 +-
+ 3 files changed, 4 insertions(+), 4 deletions(-)
+
+commit 7b8c78d95e776b9a8d93df3f1a4d497b21f5c923
+Author: Harrison Kim <kimhh@siliconworks.co.kr>
+Date:   Tue Jul 12 18:23:44 2016 +0900
+
+    input: touchscreen: siw: update Watch layer
+    
+    Adjust WATCH_MAX_RW_SIZE to avoid bus buffer overflow
+
+ siw_touch_hal_watch.c | 2 +-
+ 1 file changed, 1 insertion(+), 1 deletion(-)
+
+commit ae160527a5750b9c1a174d26bd9a0872c1427046
+Author: Harrison Kim <kimhh@siliconworks.co.kr>
+Date:   Tue Jul 12 17:12:10 2016 +0900
+
+    input: touchscreen: siw: update PRD layer
+    
+    Add __PRD_TYPE_L3 for LG4946
+
+ siw_touch_hal_prd.c | 15 ++++++++++++++-
+ 1 file changed, 14 insertions(+), 1 deletion(-)
+
+commit ad01e0f7cbf8da5fe179cad9fd0fe66c724a1e6e
+Author: Harrison Kim <kimhh@siliconworks.co.kr>
+Date:   Tue Jul 12 16:49:19 2016 +0900
+
+    input: touchscreen: siw: update Watch layer
+    
+    Bug fix for store_ext_watch_rtc_onoff
+
+ siw_touch_hal_watch.c | 2 +-
+ 1 file changed, 1 insertion(+), 1 deletion(-)
+
+commit 7f1091061a0efa8d497013402fd13034e98178ff
+Author: Harrison Kim <kimhh@siliconworks.co.kr>
+Date:   Tue Jul 12 13:53:49 2016 +0900
+
+    input: touchscreen: siw: update MON layer
+    
+    Update for ARM64 compatibility
+
+ mon/siw_touch_mon.c     | 4 ++--
+ mon/siw_touch_mon.h     | 2 +-
+ mon/siw_touch_mon_prt.c | 4 ++--
+ 3 files changed, 5 insertions(+), 5 deletions(-)
+
+commit ed435ad0c4fb2e9c371c4e938fc839dd89c574b9
+Author: Harrison Kim <kimhh@siliconworks.co.kr>
+Date:   Tue Jul 12 13:53:22 2016 +0900
+
+    input: touchscreen: siw: update PRD layer
+    
+    Update for ARM64 compatibility
+
+ siw_touch_hal_prd.c | 2 +-
+ 1 file changed, 1 insertion(+), 1 deletion(-)
+
+commit af52d5a6c7f58546c016866f89ef131f6f198692
+Author: Harrison Kim <kimhh@siliconworks.co.kr>
+Date:   Tue Jul 12 13:52:59 2016 +0900
+
+    input: touchscreen: siw: update ABT layer
+    
+    Update for ARM64 compatibility
+
+ siw_touch_hal_abt.c | 28 ++++++++++++++--------------
+ 1 file changed, 14 insertions(+), 14 deletions(-)
+
+commit bc73d846b683434a94f299556b506cecad869e2b
+Author: Harrison Kim <kimhh@siliconworks.co.kr>
+Date:   Tue Jul 12 13:52:37 2016 +0900
+
+    input: touchscreen: siw: update HAL layer
+    
+    Update for ARM64 compatibility
+
+ siw_touch_hal.c | 2 +-
+ siw_touch_hal.h | 2 +-
+ 2 files changed, 2 insertions(+), 2 deletions(-)
+
+commit 186db4651d1421036e4071f67a4766e303cffaa7
+Author: Harrison Kim <kimhh@siliconworks.co.kr>
+Date:   Tue Jul 12 13:51:18 2016 +0900
+
+    input: touchscreen: siw: update bus control
+    
+    Update for ARM64 compatibility
+
+ siw_touch.h         |  2 +-
+ siw_touch_bus.c     | 16 ++++++++--------
+ siw_touch_bus_i2c.c |  2 +-
+ siw_touch_bus_spi.c |  2 +-
+ 4 files changed, 11 insertions(+), 11 deletions(-)
+
+commit ce5e6d01b97fc21df72fe2600083c8b912b74387
+Author: Harrison Kim <kimhh@siliconworks.co.kr>
+Date:   Tue Jul 12 09:56:05 2016 +0900
+
+    input: touchscreen: siw: update HAL layer
+    
+    Reorganize init-reset-retry control:
+    - Remove reset control inside siw_hal_ic_info_abnormal
+      because siw_hal_init controls the reset
+    - Add CHIP_INIT_RETRY_MAX
+
+ siw_touch_hal.c | 9 +++++----
+ siw_touch_hal.h | 4 ++++
+ 2 files changed, 9 insertions(+), 4 deletions(-)
+
+commit 41d4dae102ef3c602dc56a2126a6eb12dc00e89c
+Author: Harrison Kim <kimhh@siliconworks.co.kr>
+Date:   Tue Jul 12 09:16:04 2016 +0900
+
+    input: touchscreen: siw: update Watch layer
+    
+    Preliminary setup-stage for LG4946 verification
+    : Add type(watch->type) and flag(watch->flag) for easy variation mngt.
+
+ siw_touch_hal_watch.c | 163 +++++++++++++++++++++++++-------------------------
+ 1 file changed, 83 insertions(+), 80 deletions(-)
+
+commit 87bf0238fb4f117acb65cff9150bd45116bd502c
+Author: Harrison Kim <kimhh@siliconworks.co.kr>
+Date:   Mon Jul 11 17:42:06 2016 +0900
+
+    input: touchscreen: siw: update Watch layer
+    
+    Preliminary setup-stage for LG4946 verification
+
+ siw_touch_hal_watch.c | 33 ++++++++++++++++++++++++++++++++-
+ 1 file changed, 32 insertions(+), 1 deletion(-)
+
+commit 49617d63227cff29a571dcf0d9208ec043144bb9
+Author: Harrison Kim <kimhh@siliconworks.co.kr>
+Date:   Mon Jul 11 14:00:33 2016 +0900
+
+    input: touchscreen: siw: update Watch layer
+    
+    Preliminary setup-stage for LG4946 verification
+
+ siw_touch_hal_watch.c | 246 ++++++++++++++++++++++++++++++++++++++------------
+ 1 file changed, 189 insertions(+), 57 deletions(-)
+
+commit 459c948327ddaa2798b33122f719224714c62b58
+Author: Harrison Kim <kimhh@siliconworks.co.kr>
+Date:   Mon Jul 11 12:57:03 2016 +0900
+
+    input: touchscreen: siw: update Watch layer
+    
+    Preliminary setup-stage for LG4946 verification
+
+ siw_touch_hal_watch.c | 124 +++++++++++++++++++++++++++++++++++++-------------
+ 1 file changed, 93 insertions(+), 31 deletions(-)
+
+commit 5f8143330c74b93a6a4403a24972bd1f364f7051
+Author: Harrison Kim <kimhh@siliconworks.co.kr>
+Date:   Mon Jul 11 08:38:13 2016 +0900
+
+    input: touchscreen: siw: update Watch layer
+    
+    Rename definition to prevent confusion
+
+ siw_touch_hal_watch.c | 86 ++++++++++++++++++++++++++++-----------------------
+ 1 file changed, 47 insertions(+), 39 deletions(-)
+
+commit 246d1faedabde931548e6aa882a922027b5c36d7
+Author: Harrison Kim <kimhh@siliconworks.co.kr>
+Date:   Sat Jul 9 17:29:10 2016 +0900
+
+    input: touchscreen: siw: update LG4946 control
+    
+    Preparatory setup-stage for LG4946 verification
+    - Add option for CRC size
+
+ siw_touch_hal_watch.c | 12 ++++++++++--
+ 1 file changed, 10 insertions(+), 2 deletions(-)
+
+commit 216561bd6a97a7d4ea8229524a35e2bb0822b5ed
+Author: Harrison Kim <kimhh@siliconworks.co.kr>
+Date:   Sat Jul 9 17:11:45 2016 +0900
+
+    input: touchscreen: siw: update LG4946 control
+    
+    Preparatory setup-stage for LG4946 verification
+
+ siw_touch_hal_watch.c | 67 ++++++++++++++++++++++++++++++++-------------------
+ siw_touch_sys.c       | 19 ++++++++++++---
+ touch_lg4946.c        | 51 +++++++++++++++++++++------------------
+ 3 files changed, 84 insertions(+), 53 deletions(-)
+
+commit 9be447cf1fc44ab0be4755caacf814e7c825a99e
+Author: Harrison Kim <kimhh@siliconworks.co.kr>
+Date:   Sat Jul 9 15:21:30 2016 +0900
+
+    input: touchscreen: siw: update MISC control
+    
+    Bug-fix for when __SIW_SUPPORT_MISC disabled
+
+ siw_touch_sysfs.c | 3 ++-
+ 1 file changed, 2 insertions(+), 1 deletion(-)
+
+commit 6e342751e0603bbe836952411dbbf0983976d9e9
+Author: Harrison Kim <kimhh@siliconworks.co.kr>
+Date:   Sat Jul 9 14:01:45 2016 +0900
+
+    input: touchscreen: siw: minor update
+
+ siw_touch_cfg.h | 13 ++++++-------
+ touch_lg4895.c  |  2 +-
+ touch_sw1828.c  |  2 +-
+ 3 files changed, 8 insertions(+), 9 deletions(-)
+
+commit 8e61a742fb5a67aed97eb44e7ae67bd994b68dd7
+Author: Harrison Kim <kimhh@siliconworks.co.kr>
+Date:   Fri Jul 8 08:42:58 2016 +0900
+
+    input: touchscreen: siw: add debug flag
+    
+    Add debug flag for test, not normal usage:
+    - DBG_FLAG_SKIP_IEVENT
+    - DBG_FLAG_SKIP_UEVENT
+
+ siw_touch_dbg.h   |  3 +++
+ siw_touch_event.c | 24 ++++++++++++++++++++----
+ siw_touch_sysfs.c | 11 +++++------
+ 3 files changed, 28 insertions(+), 10 deletions(-)
+
+commit 6cd55a61631620c98f77e01cca8ac87b01b04671
+Author: Harrison Kim <kimhh@siliconworks.co.kr>
+Date:   Thu Jul 7 15:19:29 2016 +0900
+
+    input: touchscreen: siw: update Makefile_module
+    
+    Minor update for comment
+
+ Makefile_module | 2 +-
+ 1 file changed, 1 insertion(+), 1 deletion(-)
+
+commit 8a63f2fe51afb73e59f498bb7c6feec4539bc15f
+Author: Harrison Kim <kimhh@siliconworks.co.kr>
+Date:   Thu Jul 7 11:39:19 2016 +0900
+
+    input: touchscreen: siw: update PRD layer
+    
+    Reorganize prd_app sysfs
+    - Divide the former prd_app into prd_app_xxx
+    - Remove store function avoiding shell permission conflict
+    - Update sub-functions which extract raw data
+    
+    Fix wrong quirk control
+
+ siw_touch.h         |   5 +
+ siw_touch_hal_prd.c | 510 ++++++++++++++++++++++++++++------------------------
+ 2 files changed, 283 insertions(+), 232 deletions(-)
+
+commit 89b0f1885549191c16c2ae1b0c9d78d68d2ac76c
+Author: Harrison Kim <kimhh@siliconworks.co.kr>
+Date:   Thu Jul 7 11:38:51 2016 +0900
+
+    input: touchscreen: siw: update HAL(sysfs) layer
+    
+    Add reset_hw & reset_sw attr to support reset control
+    by cat command to avoid write permission conflict
+
+ siw_touch_hal_sysfs.c | 32 +++++++++++++++++++++++++-------
+ 1 file changed, 25 insertions(+), 7 deletions(-)
+
+commit 03f40bbf644723bd945d71ecf675db5cb6db7a79
+Author: Harrison Kim <kimhh@siliconworks.co.kr>
+Date:   Mon Jul 4 14:11:33 2016 +0900
+
+    input: touchscreen: siw: update HAL layer
+    
+    Remove siw_hal_get_cmd_atcmd_version(...) and
+    merge its operation into siw_hal_get_cmd_version(...) using flag
+
+ siw_touch_hal.c | 131 +++++++++++++++++++++++++++-----------------------------
+ 1 file changed, 64 insertions(+), 67 deletions(-)
+
+commit b4f5eb4215748f750c22cb5ceff9729644015d4a
+Author: Harrison Kim <kimhh@siliconworks.co.kr>
+Date:   Fri Jul 1 16:24:29 2016 +0900
+
+    input: touchscreen: siw: update PRD layer
+    
+    Update prd_show_app/prd_store_app:
+    - Add prd_app_flag to support external flag mngt
+    - Add PRD_SHOW_FLAG_DISABLE_START_FW flag
+
+ siw_touch.h         |  2 +-
+ siw_touch_hal_prd.c | 24 ++++++++++++++++++------
+ 2 files changed, 19 insertions(+), 7 deletions(-)
+
+---------------------------------------------------------------------------------------------------
+
+---------------------------------------------------------------------------------------------------

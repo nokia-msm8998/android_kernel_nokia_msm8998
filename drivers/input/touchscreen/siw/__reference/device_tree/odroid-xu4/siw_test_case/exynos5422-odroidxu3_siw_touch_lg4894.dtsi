@@ -1,0 +1,57 @@
+/*
+ * SiW Touch device tree source for Odroid-XU4 (Samsung Exynos5422)
+ *
+ * Copyright (c) 2016 Silicon Works - http://www.siliconworks.co.kr
+ *
+ * This program is free software; you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License version 2 as
+ * published by the Free Software Foundation.
+*/
+#include <dt-bindings/gpio/gpio.h>
+
+&i2c_1 {					// indicates parent device : I2C_1 adapter block
+	lg4894@28 {				// define new client device(lg4894), slave addr is 0x28
+		status = "okay";
+		compatible = "siw,lg4894";	// compatible name (see touch_lg4894.c)
+		reg = <0x28>;				// slave addr. : 0x28
+		interrupt-parent = <&gpx1>;	// interrupt source : GPIO group 'gpx1'
+		interrupts = <6 0x02>;		// index 6(0~7) in gpx1 external interrupts
+		irqflags = <0x2002>;		// IRQF_ONESHOT(0x2000) | IRQF_TRIGGER_FALLING(0x2)
+
+		chip_flags = <0x100>;		// TOUCH_USE_MON_THREAD
+
+		reset-gpio = <&gpx1 7 GPIO_ACTIVE_LOW>;	// index 7 in gpx1
+		irq-gpio = <&gpx1 6 GPIO_ACTIVE_LOW>;	// index 6 in gpx1
+
+		// Caps
+		max_x = <720>;
+		max_y = <1280>;
+		max_pressure = <0xff>;
+		max_width = <15>;
+		max_orientation = <1>;
+		max_id = <10>;
+
+		// role
+		hw_reset_delay = <210>;
+		sw_reset_delay = <90>;
+		use_lpwg = <1>;
+		use_lpwg_test = <1>;
+
+		// firmware
+		use_firmware = <1>;		// enable firmware control
+		use_fw_upgrade = <1>;		// auto-update during driver initialization
+		fw_image = "siw/lg4894/L0W53K6P_0_45.img";	// in android -> /lib/firmware/siw/...
+	//	panel_spec = "siw/lg4894/ph1_limit.txt";
+	//	panel_spec_mfts = "siw/lg4894/ph1_limit_mfts.txt";
+
+		//absoulte path
+		prd_in_file = "/sdcard/siw/lg4894_test_spec_V0.1.txt";
+		prd_in_file_m = "/sdcard/siw/lg4894_test_spec_mfts_V0.1.txt";
+		prd_out_file = "/sdcard/siw/touch_self_test.txt";
+	};
+};
+
+
+
+
+

@@ -1,0 +1,413 @@
+
+---------------------------------------------------------------------------------------------------
+
+commit 73143a2ef186a7949a669fafa9b515bc7c349e36
+Author: Harrison Kim <kimhh@siliconworks.co.kr>
+Date:   Mon Sep 26 09:01:47 2016 +0900
+
+    input: touchscreen: siw: version fix - v2.15r
+    
+    Version 2.15r fixed
+
+ siw_touch.h |    2 +-
+ 1 file changed, 1 insertion(+), 1 deletion(-)
+
+commit 9264ea3f3e70eb91ef4bd5137926475f19f9dfff
+Author: Harrison Kim <kimhh@siliconworks.co.kr>
+Date:   Wed Sep 21 14:18:49 2016 +0900
+
+    input: touchscreen: siw: update Core layer - adjust second_screen option
+    
+    The option of second_screen is removed from siw_touch_pdata,
+    it's controlled within the PRD layer instead.
+
+ siw_touch.h           |   21 +++++++++++++++++++++
+ siw_touch_hal_watch.c |  108 +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++---------------------------
+ 2 files changed, 102 insertions(+), 27 deletions(-)
+
+commit 9264ea3f3e70eb91ef4bd5137926475f19f9dfff
+Author: Harrison Kim <kimhh@siliconworks.co.kr>
+Date:   Wed Sep 21 14:18:49 2016 +0900
+
+    input: touchscreen: siw: update Core layer - adjust second_screen option
+    
+    The option of second_screen is removed from siw_touch_pdata,
+    it's controlled within the PRD layer instead.
+
+ siw_touch.h    |   14 --------------
+ touch_lg4895.c |    7 -------
+ touch_lg4946.c |    2 --
+ 3 files changed, 23 deletions(-)
+
+commit 139fd41d85050d68fd15b26fc03fc21fd3329a61
+Author: Harrison Kim <kimhh@siliconworks.co.kr>
+Date:   Thu Sep 22 08:21:41 2016 +0900
+
+    input: touchscreen: siw: update PRD layer - Full Refactoring
+    
+    [Dynamic Buffer Management]
+    
+    This patch enables the dynamic buffer allocation for the raw-data buffers in PRD layer,
+    which follows a suitable parameter configuration found in internal parameter tables.
+    : The PRD parameters contain a wide variety
+      because they depends on not only chipset type but also product id variation.
+      Thus the former startegy based on static definition isn't enough for flexibility/compatibility.
+
+ siw_touch_hal_prd.c | 1646 ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++--------------------------------------------------
+ 1 file changed, 1096 insertions(+), 550 deletions(-)
+
+commit 1e407fbd157e839408882eb8ce1fe2cd5be44460
+Author: Harrison Kim <kimhh@siliconworks.co.kr>
+Date:   Thu Sep 22 07:44:30 2016 +0900
+
+    input: touchscreen: siw: update HAL layer - add siw_hal_chipset_check
+    
+    Add a new preceding procedure(siw_hal_chipset_check) into siw_hal_probe
+    before IC init stage(siw_hal_init)
+    - siw_hal_get_product_id
+      : to get reference value to cope with product variation
+    - siw_hal_ic_test
+      : to verify basic bus r/w test
+      : position moved: siw_hal_init -> siw_hal_chipset_check
+    * siw_hal_ic_info_abnormal removed
+
+ siw_touch_hal.c |  261 ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++----------------------------------------------------
+ 1 file changed, 173 insertions(+), 88 deletions(-)
+
+commit 66d4b8f1cc5a41e510b93caddaf94fcb6f3fec05
+Author: Harrison Kim <kimhh@siliconworks.co.kr>
+Date:   Thu Sep 22 11:54:50 2016 +0900
+
+    input: touchscreen: siw: update BUS layer - bug-fix for buffer release
+    
+    Update siw_touch_bus_free_buffer(...) to fix wrong function usage
+    : siw_touch_buf_alloc -> siw_touch_buf_free
+    
+    * fix some printk format for buffer address
+
+ siw_touch_bus.c |   19 +++++++++++--------
+ 1 file changed, 11 insertions(+), 8 deletions(-)
+
+commit 31ee06b5c9c57188ec266048629b1bc687dc8d88
+Author: Harrison Kim <kimhh@siliconworks.co.kr>
+Date:   Wed Sep 21 18:15:54 2016 +0900
+
+    input: touchscreen: siw: update Watch layer - add NULL pointer check
+    
+    Bug-fix for release function to avoid NULL pointer error
+
+ siw_touch_hal_watch.c |   10 ++++++----
+ 1 file changed, 6 insertions(+), 4 deletions(-)
+
+commit f848138426414d10fa07b8285bebf1b2aa694f22
+Author: Harrison Kim <kimhh@siliconworks.co.kr>
+Date:   Wed Sep 21 18:22:19 2016 +0900
+
+    input: touchscreen: siw: update ABT layer - add NULL pointer check
+    
+    Bug-fix for release function to avoid NULL pointer error
+
+ siw_touch_hal_abt.c |    4 ++++
+ 1 file changed, 4 insertions(+)
+
+commit 17b17133e42d47a6e7616f2db9736053ad45430a
+Author: Harrison Kim <kimhh@siliconworks.co.kr>
+Date:   Mon Sep 19 13:06:21 2016 +0900
+
+    input: touchscreen: siw: update PRD layer - add dynamic debug-offset
+    
+    Add base framework for dynamic debug-offset control
+    : struct siw_hal_prd_img_offset & prd_do_offset_tune(...)
+    : prd_cmd_tune(...) modified
+
+ siw_touch_hal_prd.c |  203 +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++-------------------------
+ 1 file changed, 170 insertions(+), 33 deletions(-)
+
+commit d0653532be118645360baf8cfad72734d93de4fc
+Author: Harrison Kim <kimhh@siliconworks.co.kr>
+Date:   Mon Sep 19 07:53:12 2016 +0900
+
+    input: touchscreen: siw: update HAL layer - ic-info check
+    
+    Update siw_hal_ic_info_ver_check(...) for easy expansion
+
+ siw_touch_hal.c |   67 ++++++++++++++++++++++++++++++++++++-------------------------------
+ 1 file changed, 36 insertions(+), 31 deletions(-)
+
+commit ffbf6d236f18cf86467c2daa80aafdcae54ff521
+Author: Harrison Kim <kimhh@siliconworks.co.kr>
+Date:   Mon Sep 12 15:01:35 2016 +0900
+
+    input: touchscreen: siw: update Of(DTS) layer - add __weak control
+    
+    Use __weak attribute instead of 'extern' seperation for better convenience
+
+ siw_touch_of.c |   21 +++++++++++++++------
+ 1 file changed, 15 insertions(+), 6 deletions(-)
+
+commit eba81cf47770da20ce13b0e8fdfd9824f2db51bf
+Author: Harrison Kim <kimhh@siliconworks.co.kr>
+Date:   Mon Sep 12 14:58:20 2016 +0900
+
+    input: touchscreen: siw: update HAL layer - bug-fix for ABT
+    
+    Fix function type
+
+ siw_touch_hal.c |    2 +-
+ 1 file changed, 1 insertion(+), 1 deletion(-)
+
+commit 42bf06db0cf85f2fc03e82bfd867b4d191425ce0
+Author: Harrison Kim <kimhh@siliconworks.co.kr>
+Date:   Fri Sep 9 17:32:59 2016 +0900
+
+    input: touchscreen: siw: update Watch layer - activate siw_hal_watch_rtc_on
+    
+    Activate siw_hal_watch_rtc_on to restart rtc
+
+ siw_touch_hal_watch.c |   13 ++++++++++---
+ 1 file changed, 10 insertions(+), 3 deletions(-)
+
+commit d3fc3760326dbbfb22f54aa45677f5e0121796ad
+Author: Harrison Kim <kimhh@siliconworks.co.kr>
+Date:   Mon Sep 12 08:48:11 2016 +0900
+
+    input: touchscreen: siw: update HAL layer - add siw_hal_watch_rtc_on
+    
+    Add siw_hal_watch_rtc_on into reset control
+
+ siw_touch_hal.c |    8 +++++++-
+ 1 file changed, 7 insertions(+), 1 deletion(-)
+
+commit 9a90ec5b1658a208c199757f288a64d9df51ad41
+Author: Harrison Kim <kimhh@siliconworks.co.kr>
+Date:   Mon Sep 12 08:25:06 2016 +0900
+
+    input: touchscreen: siw: update HAL layer - add __weak control
+    
+    Use __weak attribute instead of 'extern' seperation for better convenience
+
+ siw_touch_hal.c |  127 ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++-----------------------------------------------
+ 1 file changed, 80 insertions(+), 47 deletions(-)
+
+commit f86735c4c21f7bcc83d29d60453e3d3044d8f962
+Author: Harrison Kim <kimhh@siliconworks.co.kr>
+Date:   Fri Sep 9 15:08:40 2016 +0900
+
+    input: touchscreen: siw: include: update global header file & bug-fix
+    
+    1. Modify LCD mode definitions to avoid name duplication error
+       : bug-fix for previous commit
+         (https://github.com/siw-touch/touch/commit/e00fc0209aa1ec063ac682c13e701504c31fb6de)
+    2. Add NOTIFY_DEBUG_OPTION (for preliminary)
+
+ include/linux/input/siw_touch_notify.h |   18 ++++++++++--------
+ 1 file changed, 10 insertions(+), 8 deletions(-)
+
+commit 92c05685a3a5eed8b7301d373511c76b516c8399
+Author: Sungyeal Park <parksy5@siliconworks.co.kr>
+Date:   Wed Sep 7 16:06:44 2016 +0900
+
+    input: touchscreen: siw: update PRD layer - adjust SW1828 params
+    
+    Adjust SW1828 configuration parameters
+
+ siw_touch_hal_prd.c |   10 +++++-----
+ 1 file changed, 5 insertions(+), 5 deletions(-)
+
+commit 33a0b2f3bc9b3b1c8e570df27d936c1da2bb67d9
+Author: Sungyeal Park <parksy5@siliconworks.co.kr>
+Date:   Wed Sep 7 14:04:35 2016 +0900
+
+    input: touchscreen: siw: update PRD layer - add debug-command tuning
+    
+    Add tuning operation based on based on chip-type and product-id
+    : struct siw_hal_prd_cmd_old & prd_cmd_tune(...)
+
+ siw_touch_hal_prd.c |   52 ++++++++++++++++++++++++++++++++++++++++++++++++++++
+ 1 file changed, 52 insertions(+)
+
+commit 2203d443a430b0249fc49c51691260bb7fec5c75
+Author: Sungyeal Park <parksy5@siliconworks.co.kr>
+Date:   Wed Sep 7 09:23:24 2016 +0900
+
+    input: touchscreen: siw: update PRD layer - add dynamic debug-command
+    
+    Add base framework for dynamic debug-command control
+    : struct siw_hal_prd_img_cmd & prd_cmd_setup(...)
+
+ siw_touch_hal_prd.c |   86 +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++-----------------
+ 1 file changed, 69 insertions(+), 17 deletions(-)
+
+commit f5c4dd81f9de413cbc04ce0cee957fa01bb367d9
+Author: Sungyeal Park <parksy5@siliconworks.co.kr>
+Date:   Tue Sep 6 13:16:32 2016 +0900
+
+    input: touchscreen: siw: update PRD layer - add dynamic sysfs scheme
+    
+    Add dynamic sysfs setup control to cope with variable chipset capability
+    by ignoring unsupported attrs
+
+ siw_touch_hal_prd.c |  125 ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++---
+ 1 file changed, 122 insertions(+), 3 deletions(-)
+
+commit 7b87c0378caac39a89b1456439a7258e2b34a6b5
+Author: Harrison Kim <kimhh@siliconworks.co.kr>
+Date:   Tue Sep 6 10:37:34 2016 +0900
+
+    input: touchscreen: siw: update Core(sysfs) layer - add dbg_notify
+    
+    Add test path for notifier emulation(debugging)
+
+ siw_touch_notify.c |    3 +--
+ siw_touch_sysfs.c  |   29 +++++++++++++++++++++++++++++
+ 2 files changed, 30 insertions(+), 2 deletions(-)
+
+commit a6dc6b3809fccb23da39a490606b165e47f79e08
+Author: Harrison Kim <kimhh@siliconworks.co.kr>
+Date:   Tue Sep 6 10:36:40 2016 +0900
+
+    input: touchscreen: siw: update Core(sysfs) layer - adjust lpwg_notify
+    
+    Adjust operation conditions
+
+ siw_touch_sysfs.c |   18 +++++++++++++++---
+ 1 file changed, 15 insertions(+), 3 deletions(-)
+
+commit d487c1c5e4d1a4afdd478e4815896ae4c7f014ff
+Author: Harrison Kim <kimhh@siliconworks.co.kr>
+Date:   Mon Sep 5 16:34:38 2016 +0900
+
+    input: touchscreen: siw: update SIWMON layer - modify kconfig
+    
+    Add dependency setup
+
+ mon/Kconfig_builtin |    1 +
+ 1 file changed, 1 insertion(+)
+
+commit 3badd308f16691ffbfa4d8ce586ecc4cdf6df667
+Author: Harrison Kim <kimhh@siliconworks.co.kr>
+Date:   Mon Sep 5 10:58:13 2016 +0900
+
+    input: touchscreen: siw: update HAL layer - update header file
+    
+    Remove siw_hal_xfer_rx_seq/tx_seq
+
+ siw_touch_hal.h |    6 +-----
+ 1 file changed, 1 insertion(+), 5 deletions(-)
+
+commit e3ab8c5b1797d3f61a800d6e2163e462230b3061
+Author: Harrison Kim <kimhh@siliconworks.co.kr>
+Date:   Mon Sep 5 09:03:24 2016 +0900
+
+    input: touchscreen: siw: update DTS ref. - add LG4946 setup example
+
+ __reference/device_tree/odroid-xu4/siw_test_case/exynos5422-odroidxu3_siw_touch.dtsi |   54 ++++++++++++++++++++++++++++++++++++++++++++++++++++++
+ 1 file changed, 54 insertions(+)
+
+commit c8f6cf81a48cb1e535bb6340a5abd5392a535efe
+Author: Harrison Kim <kimhh@siliconworks.co.kr>
+Date:   Mon Sep 5 09:01:19 2016 +0900
+
+    input: touchscreen: siw: update LG4895 control - screen size
+    
+    Fix the screen vertical size - CHIP_MAX_Y
+    : 1280 -> 1360(1280 + 80)
+      (DTS should also follow this value)
+
+ __reference/device_tree/odroid-xu4/siw_test_case/exynos5422-odroidxu3_siw_touch.dtsi |    2 +-
+ touch_lg4895.c                                                                       |    2 +-
+ 2 files changed, 2 insertions(+), 2 deletions(-)
+
+commit 6454a04b7862ef84fcfc072ab0e7db1fd0823961
+Author: Harrison Kim <kimhh@siliconworks.co.kr>
+Date:   Sat Sep 3 08:35:34 2016 +0900
+
+    input: touchscreen: siw: update Watch layer - adjust xfer declaration
+    
+    Remove a confusing point about 'tx->xfer' statement
+
+ siw_touch_hal_watch.c |   66 ++++++++++++++++++++++++++++++------------------------------------
+ 1 file changed, 30 insertions(+), 36 deletions(-)
+
+commit 764e49eab92e41dad383966e798eb67e56f8a79c
+Author: Harrison Kim <kimhh@siliconworks.co.kr>
+Date:   Fri Sep 2 08:47:46 2016 +0900
+
+    input: touchscreen: siw: update Watch layer - LG4895 option flag
+
+    
+    Update option flag for mode control
+    : All mode procedures for LG4895 is handled by DSI side
+
+ siw_touch_hal_watch.c |    4 +++-
+ 1 file changed, 3 insertions(+), 1 deletion(-)
+
+commit 57c50734a5b75c6b35c6952bdb22b64e788a08d1
+Author: Harrison Kim <kimhh@siliconworks.co.kr>
+Date:   Sat Sep 3 16:31:03 2016 +0900
+
+    input: touchscreen: siw: update HAL layer - revise xfer usage & bug-fix
+    
+    Remove siw_hal_xfer_rx_seq/tx_seq
+    because using siw_hal_reg_read/write is simple
+    
+    * bug-fix (limited to chipsets that support U2 mode such as LG4895, LG4946)
+      siw_hal_swipe_mode should not use siw_hal_xfer_tx_seq
+      because the current max xfer number is 10
+      which is less than the array size of swipe_data, 11.
+      Without this patch, the last swipe_data[11](y-coordinate)
+      can't be transfered properly.
+
+ siw_touch_hal.c |   72 ++----------------------------------------------------------------------
+ 1 file changed, 2 insertions(+), 70 deletions(-)
+
+commit 2288c8372cbebb96b15c73d8ba1414b9a227aaae
+Author: Harrison Kim <kimhh@siliconworks.co.kr>
+Date:   Sat Sep 3 08:30:42 2016 +0900
+
+    input: touchscreen: siw: update HAL layer - adjust xfer declaration
+    
+    Remove a confusing point about 'tx->xfer' statement
+
+ siw_touch_hal.c |   38 ++++++++++++++++++--------------------
+ 1 file changed, 18 insertions(+), 20 deletions(-)
+
+commit 46065aba083e3fb129a453ebabda90efc13cbaa6
+Author: Harrison Kim <kimhh@siliconworks.co.kr>
+Date:   Sat Sep 3 08:24:59 2016 +0900
+
+    input: touchscreen: siw: update HAL layer - revise xfer control
+    
+    - Revise siw_hal_xfer_msg
+      Remove __siw_hal_xfer_msg for it seems to be meaningless
+    
+    - Mutex control
+      It's safer to keep bus lock state until siw_hal_xfer_msg is completed
+      because the actual xfer data is a member of ts struct, not a local variable.
+
+ siw_touch_hal.c |   30 ++++++++++++------------------
+ 1 file changed, 12 insertions(+), 18 deletions(-)
+
+commit 0133d50ddacea65f90150d86d467750dd0363c10
+Author: Harrison Kim <kimhh@siliconworks.co.kr>
+Date:   Fri Sep 2 14:37:23 2016 +0900
+
+    input: touchscreen: siw: update HAL layer - add log
+    
+    Add log message for debugging
+
+ siw_touch_hal.c |    9 +++++++++
+ 1 file changed, 9 insertions(+)
+
+commit 14b2bd57f8fc84831cd3af1d0cbb06c2ec2d334d
+Author: Harrison Kim <kimhh@siliconworks.co.kr>
+Date:   Fri Sep 2 08:47:05 2016 +0900
+
+    input: touchscreen: siw: version 2.15b begins
+
+ siw_touch.h |    2 +-
+ 1 file changed, 1 insertion(+), 1 deletion(-)
+
+---------------------------------------------------------------------------------------------------
+
+---------------------------------------------------------------------------------------------------

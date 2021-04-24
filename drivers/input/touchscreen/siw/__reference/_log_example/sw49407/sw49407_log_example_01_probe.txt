@@ -1,0 +1,116 @@
+
+---------------------------------------------------------------------------------------------------
+
+//insmod ssw49407.ko
+
+[28998.447182] [c3] siw_touch: SW49407 driver init - v2.16b
+[28998.451236] [c3] siw_touch spi1.0: dev bus probe : 12d30000.spi/spi1/spi1.0
+[28998.458042] [c3] siw_touch spi1.0: max finger : 10
+[28998.462776] [c3] siw_touch spi1.0: chip type  : 0x0407
+[28998.467884] [c3] siw_touch spi1.0: chip id    : 4947
+[28998.472829] [c3] siw_touch spi1.0: chip name  : SW49407
+[28998.478064] [c3] siw_touch spi1.0: drv name   : siw_touch
+[28998.483424] [c3] siw_touch spi1.0: idrv name  : siw_touch_input
+[28998.489316] [c3] siw_touch spi1.0: watch name : siw_ext_watch
+[28998.495041] [c3] siw_touch spi1.0: spi alloc: 5 Mhz, mode 0, bpw 8
+[28998.501211] [c3] siw_touch spi1.0: SiW Touch Probe
+[28998.505976] [c3] siw_touch spi1.0: SW49407 quirks = 0x10010001
+[28998.511783] [c3] siw_touch spi1.0: SW49407 ops is NULL : default ops selected
+[28998.519029] [c6] siw_touch spi1.0: SW49407 reg quirks: [0] 0041h -> 0045h
+[28998.525691] [c6] siw_touch spi1.0: SW49407 reg quirks: [1] 0078h -> 007Dh
+[28998.532456] [c6] siw_touch spi1.0: SW49407 reg quirks: [2] 0242h -> 025Ch
+[28998.539229] [c6] siw_touch spi1.0: SW49407 reg quirks: [3] 0244h -> 025Eh
+[28998.545975] [c6] siw_touch spi1.0: SW49407 reg quirks: [4] 0245h -> 025Fh
+[28998.552742] [c6] siw_touch spi1.0: SW49407 reg quirks: [5] 02F9h -> 0266h
+[28998.559510] [c6] siw_touch spi1.0: SW49407 reg quirks: [6] 0247h -> 027Fh
+[28998.566277] [c6] siw_touch spi1.0: SW49407 reg quirks: [7] 0300h -> 0FD0h
+[28998.573048] [c6] siw_touch spi1.0: SW49407 reg quirks: [8] 007Bh -> 0082h
+[28998.579812] [c6] siw_touch spi1.0: SW49407 reg quirks: [9] 0301h -> 0FD1h
+[28998.586580] [c6] siw_touch spi1.0: SW49407 reg quirks: [10] 0303h -> 0FD3h
+[28998.593435] [c6] siw_touch spi1.0: SW49407 reg quirks: [11] 007Ch -> 0083h
+[28998.600288] [c6] siw_touch spi1.0: SW49407 reg quirks: [12] 0C64h -> 0F04h
+[28998.607152] [c6] siw_touch spi1.0: SW49407 reg quirks: ...
+[28998.612614] [c6] siw_touch spi1.0: SW49407 reg quirks: t 53, m 0
+[28998.618606] [c6] siw_touch spi1.0: of gpio  : reset-gpio(0x1), 23
+[28998.624670] [c6] siw_touch spi1.0: of gpio  : irq-gpio, 22
+[28998.630156] [c6] siw_touch spi1.0: irqflags(of) = 0x00002002 (0x00002002, 0x00002002)
+[28998.637946] [c6] siw_touch spi1.0: flags(of) = 0x00000000 (0x00000000, 0x00000000)
+[28998.645518] [c6] siw_touch spi1.0: of string[1/1] : siw/sw49407/L1L57P1_1_21.img
+[28998.652873] [c6] siw_touch spi1.0: of_string : panel_spec not found
+[28998.659116] [c6] siw_touch spi1.0: of_string : panel_spec_mfts not found
+[28998.665797] [c6] siw_touch spi1.0: of_string : font_image not found
+[28998.672048] [c6] siw_touch spi1.0: of_string : prd_in_file, /sdcard/siw/sw49407_test_spec_V0.1.txt
+[28998.680983] [c6] siw_touch spi1.0: prd file setup: /sdcard/siw/prd_in.txt -> /sdcard/siw/sw49407_test_spec_V0.1.txt
+[28998.691396] [c6] siw_touch spi1.0: of_string : prd_in_file_m, /sdcard/siw/sw49407_test_spec_mfts_V0.1.txt
+[28998.700940] [c6] siw_touch spi1.0: prd file setup: /sdcard/siw/prd_in_mfts.txt -> /sdcard/siw/sw49407_test_spec_mfts_V0.1.txt
+[28998.712230] [c6] siw_touch spi1.0: of_string : prd_out_file, /sdcard/siw/touch_self_test.txt
+[28998.720637] [c6] siw_touch spi1.0: prd file setup: /sdcard/siw/prd_out.txt -> /sdcard/siw/touch_self_test.txt
+[28998.730528] [c6] siw_touch spi1.0: of_string : prd_out_file_mo_aat not found
+[28998.737558] [c6] siw_touch spi1.0: of_string : prd_out_file_mo_mfo not found
+[28998.744591] [c6] siw_touch spi1.0: of_string : prd_out_file_mo_mfl not found
+[28998.751610] [c6] siw_touch spi1.0: of_string : prd_out_file_mo_mcv not found
+[28998.758641] [c6] siw_touch spi1.0: caps max_x           = 1440
+[28998.764454] [c6] siw_touch spi1.0: caps max_y           = 2720
+[28998.770309] [c6] siw_touch spi1.0: spi init: 5 Mhz, mode 0, bpw 8, cs 0 (spi1)
+[28998.778554] [c6] siw_touch spi1.0: trigger gpio reset
+[28999.002403] [c0] input: siw_touch_input as /devices/virtual/input/input19
+[28999.008570] [c0] input input19: input device[spi1/spi1.0 - siw_touch_input] registered (1440, 2720, 255, 15, 15, 1, 10)
+[28999.018827] [c0] siw_touch spi1.0: threaded irq request done(512, siw_touch, 0x2002)
+[28999.026338] [c0] siw_touch spi1.0: irq(512) disabled
+[28999.032920] [c0] siw_touch spi1.0: spi1.0-prd : param: row 32, col 18
+[28999.039388] [c2] siw_touch spi1.0: spi1.0-prd : debug offset: F1Ch(1)
+[28999.044437] [c2] siw_touch spi1.0: spi1.0-prd : debug offset: 104Eh(2)
+[28999.050929] [c2] siw_touch spi1.0: spi1.0-prd : debug offset: 1180h(4)
+[28999.057423] [c2] siw_touch spi1.0: spi1.0-prd : debug offset: 12E8h(5)
+[28999.063920] [c2] siw_touch spi1.0: spi1.0-prd : debug offset: CCFh(7)
+[28999.070350] [c2] siw_touch spi1.0: spi1.0-prd : cmd type: PRD_CMD_TYPE_1
+[28999.077030] [c2] siw_touch spi1.0: spi1.0-prd : sysfs flag: 1FFFFh (0h)
+[28999.083611] [c2] siw_touch spi1.0: spi1.0-prd : buffer allocted: dcfbb000(3616)
+[28999.091226] [c5] siw_touch spi1.0: watch: font_preload: font info - file
+[28999.097584] [c5] siw_touch spi1.0: watch: font_preload: watch_font_image not defined
+[28999.106007] [c5] siw_touch spi1.0: siw misc register done (36)
+[28999.111153] [c5] siw_touch spi1.0: probe(normal) done
+[28999.318211] [c1] siw_touch spi1.0: [T] chip id 4947, version v0.01 (0x04090001h, 0xFF)
+[28999.324727] [c1] siw_touch spi1.0: [T] product id L1L57P1, flash boot idle(done), crc ok (0x00000044)
+[28999.333962] [c1] siw_touch spi1.0: [SW49407] IC info is good: 9, 4
+[28999.340519] [c1] siw_touch spi1.0: lpwg resume: mode 0, screen 1
+[28999.346035] [c1] siw_touch spi1.0: lpwg resume: screen
+[28999.351304] [c1] siw_touch spi1.0: lpwg_control mode = 0
+[28999.356682] [c1] siw_touch spi1.0: current driving mode is U3
+[28999.362335] [c1] siw_touch spi1.0: DDI Display Mode[0021h] = 0x00000003
+[28999.369029] [c1] siw_touch spi1.0: TC Driving[0C03h] wr 0x00000185
+[28999.397396] [c1] siw_touch spi1.0: lpwg resume(1, 0): lcd_mode 3, driving_mode 3
+[28999.403354] [c1] siw_touch spi1.0: SW49407 init done
+[28999.408292] [c1] siw_touch spi1.0: clr IRQS_PENDING(512)
+[28999.413604] [c1] siw_touch spi1.0: irq(512) enabled
+[28999.418460] [c1] siw_touch spi1.0: irq(512) wake enabled
+[28999.423741] [c1] siw_touch spi1.0: Touch F/W upgrade triggered
+[28999.429575] [c1] siw_touch spi1.0: FW upgrade work func
+[28999.434790] [c1] siw_touch spi1.0: irq(512) wake disabled
+[28999.440145] [c1] siw_touch spi1.0: irq(512) disabled
+[28999.445078] [c1] siw_touch spi1.0: fw type: FW_TYPE_1
+[28999.450229] [c5] siw_touch spi1.0: getting fw from file
+[28999.455339] [c5] siw_touch spi1.0: target fw: siw/sw49407/L1L57P1_1_21.img (rel)
+[28999.465575] [c5] siw_touch spi1.0: can't find fw: siw/sw49407/L1L57P1_1_21.img
+[28999.471396] [c5] siw_touch spi1.0: FW upgrade halted, -2
+[28999.477750] [c5] siw_touch spi1.0: [T] chip id 4947, version v0.01 (0x04090001h, 0xFF)
+[28999.484534] [c5] siw_touch spi1.0: [T] product id L1L57P1, flash boot idle(done), crc ok (0x00000044)
+[28999.493759] [c5] siw_touch spi1.0: [SW49407] IC info is good: 9, 4
+[28999.500468] [c5] siw_touch spi1.0: lpwg resume: mode 0, screen 1
+[28999.505876] [c5] siw_touch spi1.0: lpwg resume: screen
+[28999.511127] [c5] siw_touch spi1.0: lpwg_control mode = 0
+[28999.516606] [c5] siw_touch spi1.0: current driving mode is U3
+[28999.522276] [c5] siw_touch spi1.0: DDI Display Mode[0021h] = 0x00000003
+[28999.528813] [c5] siw_touch spi1.0: TC Driving[0C03h] wr 0x00000185
+[28999.557479] [c5] siw_touch spi1.0: lpwg resume(1, 0): lcd_mode 3, driving_mode 3
+[28999.563424] [c5] siw_touch spi1.0: SW49407 init done
+[28999.568361] [c5] siw_touch spi1.0: clr IRQS_PENDING(512)
+[28999.573656] [c5] siw_touch spi1.0: irq(512) enabled
+[28999.578526] [c5] siw_touch spi1.0: irq(512) wake enabled
+
+---------------------------------------------------------------------------------------------------
+
+---------------------------------------------------------------------------------------------------
+
+---------------------------------------------------------------------------------------------------
+

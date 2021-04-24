@@ -1,0 +1,77 @@
+
+---------------------------------------------------------------------------------------------------
+
+//echo 9 1 0 0 0 > /sys/devices/virtual/input/siw_touch_input/lpwg_notify
+[16816.117605] [c3] siw_touch spi1.0: LPWG_UPDATE_ALL: mode[1], screen[OFF], sensor[NEAR], qcover[OPEN]
+[16816.125318] [c3] siw_touch spi1.0: lpwg resume: mode 1, screen 0
+[16816.131280] [c3] siw_touch spi1.0: lpwg resume: partial
+[16816.136486] [c3] siw_touch spi1.0: TCI1-type:4
+[16816.141545] [c3] siw_touch spi1.0: lpwg_control mode = 1
+[16816.146375] [c3] siw_touch spi1.0: current driving mode is U3_PARTIAL
+[16816.152816] [c0] siw_touch spi1.0: DDI Display Mode[0021h] = 0x00000003
+[16816.159420] [c0] siw_touch spi1.0: TC Driving[0C03h] wr 0x00000385
+[16816.187191] [c2] siw_touch spi1.0: lpwg resume(1, 0): lcd_mode 3, driving_mode 4
+
+---------------------------------------------------------------------------------------------------
+
+//config_timesync
+[16827.792504] [c0] siw_touch spi1.0: watch: get system time
+[16827.798207] [c2] siw_touch spi1.0: watch: rtc off
+[16827.802956] [c2] siw_touch spi1.0: watch: set time : 16:47:32, clk[32764 Hz], cnt 815
+[16827.810552] [c2] siw_touch spi1.0: watch: rtc on
+[16827.815229] [c2] siw_touch spi1.0: watch: state[02B2h, 0092h] display 12:00:45, rtc 16:47:32
+[16827.823500] [c2] siw_touch spi1.0: watch: display[0C17h] : off
+
+//config_fontposition
+[16828.330271] [c4] siw_touch spi1.0: watch: watch area: sx 1092, ex 1380, sy 0, ey 160
+[16828.337908] [c4] siw_touch spi1.0: watch: watch position: h10x 0, h1x 66, m10x 156, m1x 222, c1x 132
+[16828.346995] [c4] siw_touch spi1.0: notify: WATCH_POS_UPDATE(32)
+
+//config_fonteffect
+[16828.855758] [c4] siw_touch spi1.0: watch: 24h mode off, zero dispaly off, HH:MM type, 12:00 mode
+[16828.864515] [c4] siw_touch spi1.0: watch: blink area [1224 , 1248] period 500 ms, watch display off
+
+//config_fontproperty
+[16829.376514] [c1] siw_touch spi1.0: watch: lut[7] 1:FF0000 2:00FF00 3:FFFF00 4:0000FF 5:FF00FF 6:00FFFF 7:FFFFFF
+[16829.386511] [c1] siw_touch spi1.0: notify: WATCH_LUT_UPDATE(33)
+
+//config_fontonoff
+[16829.893653] [c1] siw_touch spi1.0: watch: set mode(dcst): watch_ctrl 0080h
+[16829.900398] [c1] siw_touch spi1.0: watch: set mode(dcst): watch_area_x 564444h
+[16829.907594] [c0] siw_touch spi1.0: watch: set mode(dcst): watch_area_y 0A0000h
+[16829.914902] [c1] siw_touch spi1.0: watch: set mode(dcst): blink_area 4E04C8h
+[16829.921825] [c1] siw_touch spi1.0: watch: set mode(dcst): lut 0000FFh
+[16829.928170] [c1] siw_touch spi1.0: watch: set mode(dcst): lut 00FF00h
+[16829.934560] [c1] siw_touch spi1.0: watch: set mode(dcst): lut 00FFFFh
+[16829.941076] [c1] siw_touch spi1.0: watch: set mode(dcst): lut FF0000h
+[16829.947613] [c1] siw_touch spi1.0: watch: set mode(dcst): lut FF00FFh
+[16829.953875] [c1] siw_touch spi1.0: watch: set mode(dcst): lut FFFF00h
+[16829.960388] [c1] siw_touch spi1.0: watch: set mode(dcst): lut FFFFFFh
+[16829.966699] [c1] siw_touch spi1.0: watch: set mode(dcst): done
+[16829.972447] [c1] siw_touch spi1.0: watch: set position: done
+[16829.978047] [c1] siw_touch spi1.0: watch: display[0C17h] : on
+[16829.983586] [c1] siw_touch spi1.0: watch: Power ON(1)
+
+---------------------------------------------------------------------------------------------------
+
+//Touch Mode : U3 -> U2
+[16966.442697] [c2] siw_touch spi1.0: notify: lcd_event: lcd mode
+[16966.448517] [c2] siw_touch spi1.0: lcd_mode: 2 (prev: 3)
+[16966.453807] [c2] siw_touch spi1.0: U2 mode change
+[16966.458525] [c0] siw_touch spi1.0: notify: event FB(Eh), value 1h
+[16966.464689] [c0] siw_touch spi1.0: touch core pm suspend start
+[16966.470905] [c0] siw_touch spi1.0: watch: state[02B2h, 0092h] display 16:49:51, rtc 16:49:51
+[16966.479037] [c0] siw_touch spi1.0: lpwg suspend: mode 1, screen 0
+[16966.486332] [c2] siw_touch spi1.0: TCI1-type:4
+[16966.489750] [c2] siw_touch spi1.0: lpwg_control mode = 1
+[16966.494901] [c2] siw_touch spi1.0: swipe enabled
+[16966.702213] [c2] siw_touch spi1.0: current driving mode is U2
+[16966.706738] [c2] siw_touch spi1.0: DDI Display Mode[0021h] = 0x00000002
+[16966.713391] [c2] siw_touch spi1.0: TC Driving[0C03h] wr 0x00000101
+[16966.742452] [c2] siw_touch spi1.0: lpwg suspend(1, 0): lcd_mode 2, driving_mode 2
+[16966.748509] [c2] siw_touch spi1.0: touch core pm suspend end(0)
+
+---------------------------------------------------------------------------------------------------
+
+---------------------------------------------------------------------------------------------------
+
