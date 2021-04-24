@@ -70,4 +70,8 @@ struct msm_ois_ctrl_t {
 	struct msm_ois_board_info *oboard_info;
 };
 
+#ifdef CONFIG_FIH_NB1
+uint32_t fih_read_reg(int addr);/* MM-MC-PortingOisFunction-00+ */
+#endif
+
 #endif

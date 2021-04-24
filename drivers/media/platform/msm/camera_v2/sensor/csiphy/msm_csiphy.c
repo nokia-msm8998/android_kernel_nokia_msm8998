@@ -761,6 +761,17 @@ static int msm_csiphy_2phase_lane_config_v50(
 		}
 	}
 	msm_csiphy_cphy_irq_config(csiphy_dev, csiphy_params);
+
+	#ifdef CONFIG_FIH_NB1
+	/*QCT-Mark, suggestion, case: 02861099*/
+	msm_camera_io_w(0x4, csiphybase + 0X24);
+	msm_camera_io_w(0x4, csiphybase + 0X224);
+	msm_camera_io_w(0x4, csiphybase + 0X424);
+	msm_camera_io_w(0x4, csiphybase + 0X624);
+	msm_camera_io_w(0x4, csiphybase + 0X724);
+	/*QCT-Mark, suggestion, case: 02861099*/
+	#endif
+
 	return 0;
 }
 
