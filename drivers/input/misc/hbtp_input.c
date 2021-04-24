@@ -92,6 +92,10 @@ struct hbtp_data {
 	bool init_completion_done_once;
 	s16 ROI[MAX_ROI_SIZE];
 	s16 accelBuffer[MAX_ACCEL_SIZE];
+#if defined(CONFIG_FIH_NB1) || defined(CONFIG_FIH_A1N)
+	bool afe_force_power_on;
+	bool regulator_enabled;
+#endif
 };
 
 static struct hbtp_data *hbtp;
@@ -409,6 +413,13 @@ static int hbtp_pdev_power_on(struct hbtp_data *hbtp, bool on)
 	if (!on)
 		goto reg_off;
 
+#if defined(CONFIG_FIH_NB1) || defined(CONFIG_FIH_A1N)
+	if (hbtp->regulator_enabled) {
+		pr_debug("%s: regulator already enabled\n", __func__);
+		return 0;
+	}
+#endif
+
 	if (hbtp->vcc_ana) {
 		ret = reg_set_load_check(hbtp->vcc_ana,
 			hbtp->afe_load_ua);
@@ -452,9 +463,19 @@ static int hbtp_pdev_power_on(struct hbtp_data *hbtp, bool on)
 		}
 	}
 
+#if defined(CONFIG_FIH_NB1) || defined(CONFIG_FIH_A1N)
+	hbtp->regulator_enabled = true;
+#endif
 	return 0;
 
 reg_off:
+#if defined(CONFIG_FIH_NB1) || defined(CONFIG_FIH_A1N)
+	if (!hbtp->regulator_enabled) {
+		pr_debug("%s: regulator not enabled\n", __func__);
+		return 0;
+	}
+#endif
+
 	if (hbtp->vcc_dig) {
 		reg_set_load_check(hbtp->vcc_dig, 0);
 		regulator_disable(hbtp->vcc_dig);
@@ -471,6 +492,10 @@ reg_off:
 		reg_set_load_check(hbtp->vcc_ana, 0);
 		regulator_disable(hbtp->vcc_ana);
 	}
+
+#if defined(CONFIG_FIH_NB1) || defined(CONFIG_FIH_A1N)
+	hbtp->regulator_enabled = false;
+#endif
 	return 0;
 }
 
@@ -975,6 +1000,11 @@ static int hbtp_parse_dt(struct device *dev)
 			hbtp->power_on_delay, hbtp->power_off_delay);
 	}
 
+#if defined(CONFIG_FIH_NB1) || defined(CONFIG_FIH_A1N)
+	hbtp->afe_force_power_on =
+		of_property_read_bool(np, "qcom,afe-force-power-on");
+#endif
+
 	prop = of_find_property(np, "qcom,display-resolution", NULL);
 	if (prop != NULL) {
 		if (!prop->value)
@@ -1307,13 +1337,27 @@ static int hbtp_fb_early_resume(struct hbtp_data *ts)
 
 	pr_debug("%s: hbtp_fb_early_resume\n", __func__);
 
+#if defined(CONFIG_FIH_NB1) || defined(CONFIG_FIH_A1N)
+	if (ts->pdev && (ts->power_sync_enabled || ts->afe_force_power_on)) {
+#else
 	if (ts->pdev && ts->power_sync_enabled) {
+#endif
 		pr_debug("%s: power_sync is enabled\n", __func__);
+
+#if defined(CONFIG_FIH_NB1) || defined(CONFIG_FIH_A1N)
+		if (!ts->power_suspended &&
+		   (ts->afe_force_power_on == false)) {
+#else
 		if (!ts->power_suspended) {
+#endif
 			pr_err("%s: power is not suspended\n", __func__);
 			mutex_unlock(&hbtp->mutex);
 			return 0;
 		}
+#if defined(CONFIG_FIH_NB1) || defined(CONFIG_FIH_A1N)
+		if (ts->afe_force_power_on)
+			ts->afe_force_power_on = false;
+#endif
 		rc = hbtp_pdev_power_on(ts, true);
 		if (rc) {
 			pr_err("%s: failed to enable panel power\n", __func__);
