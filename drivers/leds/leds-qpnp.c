@@ -345,6 +345,10 @@ static u8 gpio_debug_regs[] = {
 	0x40, 0x41, 0x42, 0x45, 0x46,
 };
 
+#ifdef CONFIG_FIH_NB1
+struct qpnp_led_data *g_green_led, *g_blue_led;
+#endif
+
 /**
  *  pwm_config_data - pwm configuration data
  *  @lut_params - lut parameters to be used by pwm driver
@@ -1729,6 +1733,7 @@ static int qpnp_rgb_set(struct qpnp_led_data *led)
 			led->rgb_cfg->pwm_cfg->mode =
 				led->rgb_cfg->pwm_cfg->default_mode;
 		if (led->rgb_cfg->pwm_cfg->mode == PWM_MODE) {
+			#ifndef CONFIG_FIH_NB1
 			rc = pwm_change_mode(led->rgb_cfg->pwm_cfg->pwm_dev,
 					PM_PWM_MODE_PWM);
 			if (rc < 0) {
@@ -1737,6 +1742,7 @@ static int qpnp_rgb_set(struct qpnp_led_data *led)
 					rc);
 				return rc;
 			}
+			#endif
 			period_us = led->rgb_cfg->pwm_cfg->pwm_period_us;
 			if (period_us > INT_MAX / NSEC_PER_USEC) {
 				duty_us = (period_us * led->cdev.brightness) /
@@ -1881,8 +1887,21 @@ static void qpnp_led_work(struct work_struct *work)
 {
 	struct qpnp_led_data *led = container_of(work,
 					struct qpnp_led_data, work);
-
+#ifdef CONFIG_FIH_NB1
+		//This is NB1 button-backlight
+		if(QPNP_ID_RGB_RED == led->id)
+		{
+			if((g_green_led != NULL) && (g_blue_led != NULL))
+			{
+				g_green_led->cdev.brightness = led->cdev.brightness;
+				g_blue_led->cdev.brightness = led->cdev.brightness;
+				__qpnp_led_work(g_green_led, g_green_led->cdev.brightness);
+				__qpnp_led_work(g_blue_led, g_blue_led->cdev.brightness);
+			}
+		}
+#else
 	__qpnp_led_work(led, led->cdev.brightness);
+#endif
 }
 
 static int qpnp_led_set_max_brightness(struct qpnp_led_data *led)
@@ -3249,12 +3268,19 @@ static int qpnp_get_common_configs(struct qpnp_led_data *led,
 	const char *temp_string;
 
 	led->cdev.default_trigger = LED_TRIGGER_DEFAULT;
-	rc = of_property_read_string(node, "linux,default-trigger",
-		&temp_string);
-	if (!rc)
-		led->cdev.default_trigger = temp_string;
-	else if (rc != -EINVAL)
-		return rc;
+#ifdef CONFIG_CHECK_FTM
+	if(strstr(saved_command_line, "androidboot.mode=2") == NULL) { //Not FTM Mode
+#endif
+		rc = of_property_read_string(node, "linux,default-trigger",
+			&temp_string);
+		if (!rc)
+			led->cdev.default_trigger = temp_string;
+		else if (rc != -EINVAL)
+			return rc;
+#ifdef CONFIG_CHECK_FTM
+	}
+#endif
+	dev_info(&led->pdev->dev, "linux,default-trigger=%s\n", led->cdev.default_trigger);
 
 	led->default_on = false;
 	rc = of_property_read_string(node, "qcom,default-state",
@@ -4305,6 +4331,13 @@ static int qpnp_leds_probe(struct platform_device *pdev)
 			led->cdev.brightness = LED_OFF;
 
 		parsed_leds++;
+
+#ifdef CONFIG_FIH_NB1
+		if(QPNP_ID_RGB_GREEN == led->id)
+			g_green_led = led;
+		else if(QPNP_ID_RGB_BLUE == led->id)
+			g_blue_led = led;
+#endif
 	}
 	dev_set_drvdata(&pdev->dev, led_array);
 	return 0;
