@@ -1,0 +1,87 @@
+/* Copyright (c) 2016, The Linux Foundation. All rights reserved.
+ *
+ * This program is free software; you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License version 2 and
+ * only version 2 as published by the Free Software Foundation.
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ */
+
+qcom,NB1_ATL_3090mah_39K {
+	qcom, = <24>;
+	/* #Itech_B00826LF_3000mAh_ver1660_averaged_MasterSlave_Jul20th2016*/
+	qcom,max-voltage-uv = <4400000>;
+	qcom,fg-cc-cv-threshold-mv = <4390>;
+	qcom,nom-batt-capacity-mah = <3090>;
+	qcom,fastchg-current-ma = <3000>;
+	qcom,batt-id-kohm = <39>;
+	qcom,battery-beta = <3450>;
+	qcom,battery-type = "NB1_ATL_3090mah_39K";
+	qcom,checksum = <0x7351>;
+	qcom,gui-version = "PMI8998GUI - 2.0.0.57";
+	/* Battery Tuning */
+	qcom,fg-jeita-thresholds = <0 15 45 55>;
+	fih,jeita-full-capacity-warm-en;
+	/* [END] */
+	qcom,fg-profile-data = [
+		 77 1F A5 05
+		 86 0A 34 06
+		 90 1D E5 FD
+		 AA 12 D0 1D
+		 BA 18 CF 22
+		 C3 45 6B 52
+		 57 00 00 00
+		 11 00 00 00
+		 00 00 43 C5
+		 99 C4 D8 C2
+		 19 00 08 00
+		 16 E3 BF ED
+		 B6 06 FA F2
+		 12 02 5C 13
+		 54 00 6E 32
+		 19 06 09 20
+		 27 00 14 00
+		 CA 1F 7D 05
+		 98 0A 53 FC
+		 65 1D 4E EA
+		 B8 0A 14 15
+		 3F 19 D8 22
+		 7F 45 FD 52
+		 54 00 00 00
+		 0D 00 00 00
+		 00 00 B6 CD
+		 13 AB FB BC
+		 16 00 00 00
+		 F9 EA BF ED
+		 1C 07 81 EB
+		 0E EB C3 0A
+		 84 EB A6 1A
+		 AE 33 CC FF
+		 07 10 00 00
+		 28 0C 66 46
+		 16 00 40 00
+		 CB 01 0A FA
+		 FF 00 00 00
+		 00 00 00 00
+		 00 00 00 00
+		 00 00 00 00
+		 00 00 00 00
+		 00 00 00 00
+		 00 00 00 00
+		 00 00 00 00
+		 00 00 00 00
+		 00 00 00 00
+		 00 00 00 00
+		 00 00 00 00
+		 00 00 00 00
+		 00 00 00 00
+		 00 00 00 00
+		 00 00 00 00
+		 00 00 00 00
+		 00 00 00 00
+		 00 00 00 00
+	];
+};
