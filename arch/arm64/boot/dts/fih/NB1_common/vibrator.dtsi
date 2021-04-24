@@ -1,0 +1,13 @@
+&pmi8998_haptics {
+	status = "okay";
+	qcom,vmax-mv = <2200>;
+	qcom,weak-vmax-mv = <1200>;
+	qcom,ilim-ma = <400>;
+	qcom,wave-shape = "sine";
+	qcom,wave-play-rate-us = <4878>;
+	qcom,en-brake;
+	qcom,brake-pattern = [03 02 10 00];
+	qcom,lra-auto-res-mode = "none";
+	/delete-property/ qcom,lra-high-z;
+	/delete-property/ qcom,lra-res-cal-period;
+};

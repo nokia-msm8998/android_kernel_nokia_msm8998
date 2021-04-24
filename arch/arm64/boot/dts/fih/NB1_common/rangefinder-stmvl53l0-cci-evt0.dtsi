@@ -1,0 +1,68 @@
+/* pinctrl portion */
+&soc {
+	tlmm: pinctrl@03400000 {
+		/* MM-AL-RangeFinderPorting-00+{ */
+		pmx_vl53l0: pmx_vl53l0{
+			vl53l0_active: vl53l0_active{
+				mux {
+						pins = "gpio126", "gpio63"/* temp. solution */;
+						function = "gpio";
+				};
+				config {
+						pins = "gpio126", "gpio63"/* temp. solution */;
+						drive-strength = <8>; /* 8 mA */
+						bias-disable; /* no pull */ /* MM-AL-RangeFinderPorting-01* */
+						output-high;
+				};
+			};
+			vl53l0_suspend: vl53l0_suspend {
+				mux {
+						pins = "gpio126";
+						function = "gpio";
+				};
+				config {
+						pins = "gpio126";
+						drive-strength = <2>; /* 2 mA */
+						/* MM-AL-RangeFinderPorting-01*{ */
+						bias-disable; /* no pull */
+						input-enable;
+						/* MM-AL-RangeFinderPorting-01*} */
+				};
+			};
+		};
+		/* MM-AL-RangeFinderPorting-00+} */
+
+	};
+};
+
+
+/* regulator portion */
+&pm8998_l19 {
+	regulator-min-microvolt = <3000000>;
+	regulator-max-microvolt = <3000000>;
+};
+
+&cci {
+	/delete-node/qcom,tof@0;
+
+	/* MM-AL-RangeFinderPorting-00+{ */
+	stmvl53l0@0	{
+		cell-index = <0>;
+		reg = <0x52>;
+		compatible = "st,stmvl53l0";
+		qcom,cci-master = <0>;
+		cam_tof-supply = <&pm8998_l19>;
+		cam_vio-supply = <&pm8998_s4>;
+		qcom,cam-vreg-name= "cam_vio", "cam_tof";
+		qcom,cam-vreg-min-voltage = <1800000 3000000>;
+		qcom,cam-vreg-max-voltage = <1800000 3000000>;
+		qcom,cam-vreg-op-mode = <105000 100000>;
+		qcom,xshut-reset-gpio= <&tlmm 126 0>;
+		qcom,interupt-gpio= <&tlmm 26 0>;
+		stm,irq-gpio = <&tlmm 26 0x2008>;
+		pinctrl-names =  "vl53l0_default", "vl53l0_sleep";
+		pinctrl-0 = <&vl53l0_active>;
+		pinctrl-1 = <&vl53l0_suspend>;
+	};
+	/* MM-AL-RangeFinderPorting-00+} */
+};
