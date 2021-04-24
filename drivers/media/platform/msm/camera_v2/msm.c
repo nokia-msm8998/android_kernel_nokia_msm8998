@@ -574,7 +574,7 @@ static inline int __msm_sd_close_subdevs(struct msm_sd_subdev *msm_sd,
 {
 	struct v4l2_subdev *sd;
 	sd = &msm_sd->sd;
-	pr_debug("%s: Shutting down subdev %s", __func__, sd->name);
+	pr_info("%s: Shutting down subdev %s", __func__, sd->name); /* MM-MC-Fix-TOF-deinit-deadlock-00+ */
 
 	v4l2_subdev_call(sd, core, ioctl, MSM_SD_SHUTDOWN, sd_close);
 	v4l2_subdev_call(sd, core, s_power, 0);

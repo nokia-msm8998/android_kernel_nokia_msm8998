@@ -16,6 +16,11 @@
 #include "msm_sd.h"
 #include "msm_actuator.h"
 #include "msm_cci.h"
+/* MM-JF-add-BBS-log-00+{ */
+#if defined(CONFIG_FIH_NB1) || defined(CONFIG_FIH_A1N)
+#include "../fih_camera_bbs.h"  //fihtdc,derekcwwu add
+#endif
+/* MM-JF-add-BBS-log-00+} */
 
 DEFINE_MSM_MUTEX(msm_actuator_mutex);
 
@@ -39,6 +44,13 @@ static struct msm_actuator msm_vcm_actuator_table;
 static struct msm_actuator msm_piezo_actuator_table;
 static struct msm_actuator msm_hvcm_actuator_table;
 static struct msm_actuator msm_bivcm_actuator_table;
+
+/* MM-JF-add-BBS-log-00+{ */
+#if defined(CONFIG_FIH_NB1) || defined(CONFIG_FIH_A1N)
+extern int fih_camera_bbs_set(int id,int master,unsigned short sid,int module);//fihtdc,derekcwwu add
+extern void fih_camera_bbs_by_cci(int master,int sid,int error_code);//fihtdc,derekcwwu add
+#endif
+/* MM-JF-add-BBS-log-00+} */
 
 static struct i2c_driver msm_actuator_i2c_driver;
 static struct msm_actuator *actuators[] = {
@@ -842,6 +854,19 @@ static int32_t msm_actuator_park_lens(struct msm_actuator_ctrl_t *a_ctrl)
 		a_ctrl->park_lens.max_step = a_ctrl->max_code_size;
 
 	next_lens_pos = a_ctrl->step_position_table[a_ctrl->curr_step_pos];
+
+    /* MM-MC-FixCameraCloseOver10s-00+{ */
+    //DAC data size is 10 bits, value = 0~1024 
+    if ((next_lens_pos < 0)||(next_lens_pos > 1024))
+    {
+        int new_lens_pos = 0;
+        if (next_lens_pos > 1024)
+            new_lens_pos = 1024;
+        pr_err("Cam_%d: Change next_lens_pos from %d to %d \n", a_ctrl->cam_name, next_lens_pos, new_lens_pos);
+        next_lens_pos = new_lens_pos;
+    }
+    /* MM-MC-FixCameraCloseOver10s-00+} */
+
 	while (next_lens_pos) {
 		/* conditions which help to reduce park lens time */
 		if (next_lens_pos > (a_ctrl->park_lens.max_step *
@@ -1323,6 +1348,11 @@ static int32_t msm_actuator_set_param(struct msm_actuator_ctrl_t *a_ctrl,
 		cci_client->cci_i2c_master = a_ctrl->cci_master;
 		cci_client->i2c_freq_mode =
 			set_info->actuator_params.i2c_freq_mode;
+		/* MM-JF-add-BBS-log-00+{ */
+		#if defined(CONFIG_FIH_NB1) || defined(CONFIG_FIH_A1N)
+		fih_camera_bbs_set((int)a_ctrl->pdev->id,cci_client->cci_i2c_master,(unsigned short)cci_client->sid,FIH_BBS_CAMERA_MODULE_ACTUATOR);//fihtdc,derekcwwu add
+		#endif
+		/* MM-JF-add-BBS-log-00+} */
 	} else {
 		a_ctrl->i2c_client.client->addr =
 			set_info->actuator_params.i2c_addr;
@@ -1489,7 +1519,15 @@ static int32_t msm_actuator_config(struct msm_actuator_ctrl_t *a_ctrl,
 	case CFG_ACTUATOR_POWERDOWN:
 		rc = msm_actuator_power_down(a_ctrl);
 		if (rc < 0)
+		/* MM-JF-add-BBS-log-00+{ */
+		{
 			pr_err("msm_actuator_power_down failed %d\n", rc);
+			#if defined(CONFIG_FIH_NB1) || defined(CONFIG_FIH_A1N)
+			fih_camera_bbs_by_cci(a_ctrl->i2c_client.cci_client->cci_i2c_master,
+                               a_ctrl->i2c_client.cci_client->sid,FIH_BBS_CAMERA_ERRORCODE_POWER_DW);
+			#endif
+		}
+		/* MM-JF-add-BBS-log-00+} */
 		break;
 
 	case CFG_SET_POSITION:
@@ -1504,7 +1542,15 @@ static int32_t msm_actuator_config(struct msm_actuator_ctrl_t *a_ctrl,
 	case CFG_ACTUATOR_POWERUP:
 		rc = msm_actuator_power_up(a_ctrl);
 		if (rc < 0)
+		/* MM-JF-add-BBS-log-00+{ */
+		{
 			pr_err("Failed actuator power up%d\n", rc);
+			#if defined(CONFIG_FIH_NB1) || defined(CONFIG_FIH_A1N)
+			fih_camera_bbs_by_cci(a_ctrl->i2c_client.cci_client->cci_i2c_master,
+                               a_ctrl->i2c_client.cci_client->sid,FIH_BBS_CAMERA_ERRORCODE_POWER_UP);
+			#endif
+		}
+		/* MM-JF-add-BBS-log-00+} */
 		break;
 
 	default:
