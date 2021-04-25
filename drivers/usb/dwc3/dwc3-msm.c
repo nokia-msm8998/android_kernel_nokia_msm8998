@@ -298,6 +298,71 @@ struct dwc3_msm {
 static void dwc3_pwr_event_handler(struct dwc3_msm *mdwc);
 static int dwc3_msm_gadget_vbus_draw(struct dwc3_msm *mdwc, unsigned mA);
 
+#ifdef CONFIG_FIH_NB1
+static int mRedriver_vdd_gpio = 0;
+static int mRedriver_en_gpio = 0;
+
+int fihGetUsbRedriverGpio(struct platform_device *pdev){
+	struct device_node *node = pdev->dev.of_node;
+	struct device *dev = &pdev->dev;
+
+	if(mRedriver_vdd_gpio == 0){
+		mRedriver_vdd_gpio = of_get_named_gpio(node,"fih,redriver-vdd", 0);
+		if(gpio_is_valid(mRedriver_vdd_gpio)
+			&& (!devm_gpio_request(dev, mRedriver_vdd_gpio,
+			"fih,redriver-vdd"))) {
+			dev_info(dev, "fih,redriver-vdd gpio:%d\n", mRedriver_vdd_gpio);
+		}
+		else{
+			return -1;
+		}
+	}
+	if(mRedriver_en_gpio == 0){
+		mRedriver_en_gpio = of_get_named_gpio(node,"fih,redriver-en", 0);
+		if(gpio_is_valid(mRedriver_en_gpio)
+			&& (!devm_gpio_request(dev, mRedriver_en_gpio,
+			"fih,redriver-en"))) {
+			dev_info(dev, "fih,redriver-en gpio:%d\n", mRedriver_en_gpio);
+		}
+		else{
+			return -1;
+		}
+	}
+	return 0;
+}
+
+int fihSetUsbRedriverGpio(struct device *dev, int highLow){
+	if(!gpio_is_valid(mRedriver_vdd_gpio) || !gpio_is_valid(mRedriver_en_gpio)){
+		dev_err(dev, "redriver gpio is invalid\n");
+		return -1;
+	}
+
+	gpio_direction_output(mRedriver_vdd_gpio, highLow);
+	gpio_direction_output(mRedriver_en_gpio, highLow);
+
+	return 0;
+}
+#endif
+/* end FIH - NB1-53 */
+
+#if defined(CONFIG_FIH_NB1) || defined(CONFIG_FIH_A1N)
+int dumpTypeCSts(struct dwc3 *dwc)
+{
+	union power_supply_propval pval = {0};
+	struct power_supply	*usb_psy;
+	dev_err(dwc->dev, "%s:\n", __func__);
+	usb_psy = power_supply_get_by_name("usb");
+	if(!usb_psy){
+		dev_err(dwc->dev, "%s:can't find usb_psy\n", __func__);
+		return -ENODEV;
+	}
+	power_supply_get_property(usb_psy, POWER_SUPPLY_PROP_TYPEC_MODE, &pval);
+
+	return 0;
+}
+#endif
+/* end FIH - NB1-680 */
+
 /**
  *
  * Read register with debug info.
@@ -2234,6 +2299,11 @@ static int dwc3_msm_suspend(struct dwc3_msm *mdwc, bool hibernation)
 		mdwc->lpm_flags |= MDWC3_ASYNC_IRQ_WAKE_CAPABILITY;
 	}
 
+#ifdef CONFIG_FIH_NB1
+	fihSetUsbRedriverGpio(mdwc->dev, 0);
+#endif
+/* end FIH - NB1-720 */
+
 	dev_info(mdwc->dev, "DWC3 in low power mode\n");
 	dbg_event(0xFF, "Ctl Sus", atomic_read(&dwc->in_lpm));
 
@@ -2255,6 +2325,12 @@ static int dwc3_msm_resume(struct dwc3_msm *mdwc)
 	dev_dbg(mdwc->dev, "%s: exiting lpm\n", __func__);
 
 	mutex_lock(&mdwc->suspend_resume_mutex);
+
+#ifdef CONFIG_FIH_NB1
+	fihSetUsbRedriverGpio(mdwc->dev, 1);
+#endif
+/* end FIH - NB1-720 */
+
 	if (!atomic_read(&dwc->in_lpm)) {
 		dev_dbg(mdwc->dev, "%s: Already resumed\n", __func__);
 		mutex_unlock(&mdwc->suspend_resume_mutex);
@@ -2310,9 +2386,11 @@ static int dwc3_msm_resume(struct dwc3_msm *mdwc)
 	clk_set_rate(mdwc->core_clk, core_clk_rate);
 	clk_prepare_enable(mdwc->core_clk);
 
+	// QC patch
 	/* set Memory core: ON, Memory periphery: ON */
 	clk_set_flags(mdwc->core_clk, CLKFLAG_RETAIN_MEM);
 	clk_set_flags(mdwc->core_clk, CLKFLAG_RETAIN_PERIPH);
+	/* end FIH - NB1-634 */
 
 	clk_prepare_enable(mdwc->utmi_clk);
 	if (mdwc->bus_aggr_clk)
@@ -3221,6 +3299,14 @@ static int dwc3_msm_probe(struct platform_device *pdev)
 			}
 		}
 	}
+
+#ifdef CONFIG_FIH_NB1
+	if(fihGetUsbRedriverGpio(pdev) == 0){
+		fihSetUsbRedriverGpio(&pdev->dev, 0);
+	}
+#endif
+/* end FIH - NB1-53 */
+/* end FIH - NB1-868 */
 
 	ext_hub_reset_gpio = of_get_named_gpio(node,
 					"qcom,ext-hub-reset-gpio", 0);
