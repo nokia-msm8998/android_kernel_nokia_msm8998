@@ -235,23 +235,35 @@ int msm_ipc_router_bind(struct socket *sock, struct sockaddr *uaddr,
 		return -EINVAL;
 
 	if (!check_permissions()) {
+/* FIH: just workaround before fix root cause */
+#if 0
 		IPC_RTR_ERR("%s: %s Do not have permissions\n",
 			__func__, current->comm);
+#endif
 		return -EPERM;
 	}
 
 	if (!uaddr_len) {
+/* FIH: just workaround before fix root cause */
+#if 0
 		IPC_RTR_ERR("%s: Invalid address length\n", __func__);
+#endif
 		return -EINVAL;
 	}
 
 	if (addr->family != AF_MSM_IPC) {
+/* FIH: just workaround before fix root cause */
+#if 0
 		IPC_RTR_ERR("%s: Address family is incorrect\n", __func__);
+#endif
 		return -EAFNOSUPPORT;
 	}
 
 	if (addr->address.addrtype != MSM_IPC_ADDR_NAME) {
+/* FIH: just workaround before fix root cause */
+#if 0
 		IPC_RTR_ERR("%s: Address type is incorrect\n", __func__);
+#endif
 		return -EINVAL;
 	}
 
