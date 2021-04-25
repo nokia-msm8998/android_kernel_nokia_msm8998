@@ -423,21 +423,6 @@ static int mdss_dp_clk_init(struct mdss_dp_drv_pdata *dp_drv,
 			dp_drv->pixel_parent = NULL;
 		}
 
-		dp_drv->pixel_clk_two_div = devm_clk_get(dev,
-			"pixel_clk_two_div");
-		if (IS_ERR(dp_drv->pixel_clk_two_div)) {
-			pr_debug("%s: Unable to get DP pixel two div clk\n",
-				__func__);
-			dp_drv->pixel_clk_two_div = NULL;
-		}
-
-		dp_drv->pixel_clk_four_div = devm_clk_get(dev,
-			"pixel_clk_four_div");
-		if (IS_ERR(dp_drv->pixel_clk_four_div)) {
-			pr_debug("%s: Unable to get DP pixel four div clk\n",
-				__func__);
-			dp_drv->pixel_clk_four_div = NULL;
-		}
 	} else {
 		if (dp_drv->pixel_parent)
 			devm_clk_put(dev, dp_drv->pixel_parent);
