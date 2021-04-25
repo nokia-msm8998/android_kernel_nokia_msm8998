@@ -28,12 +28,51 @@
 #include "mdss_debug.h"
 #include "mdss_livedisplay.h"
 
+#ifdef CONFIG_TOUCHSCREEN_SIW
+#include "../../../include/linux/input/siw_touch_notify.h" //SW8-Touch_Notify-00+
+#include "../../../fih/fih_touch.h"//SW8-DH-TP_vendor-00+
+extern struct fih_touch_cb touch_cb;
+#endif
+
+#if defined(CONFIG_FIH_NB1) || defined(CONFIG_FIH_A1N)
+#ifdef CONFIG_AOD_FEATURE
+#include "fih/fih_msm_mdss_aod.h"
+#endif
+
+#ifdef CONFIG_PANEL_POWER_CONTROL_FEATURE
+#include "fih/fih_msm_mdss_pwr.h"
+#endif
+
+#ifdef CONFIG_FIH_PANEL_FEATURE
+#include "fih/fih_mdss_global.h"
+#endif
+
+#ifdef CONFIG_PANEL_COLOR_MANAGERIAL
+#include "fih/fih_mdss_color_managerial.h"
+#endif
+
+#endif
 #define DT_CMD_HDR 6
 #define DEFAULT_MDP_TRANSFER_TIME 14000
 
 #define VSYNC_DELAY msecs_to_jiffies(17)
 
+#if defined(CONFIG_FIH_NB1) || defined(CONFIG_FIH_A1N)
+static int previous_bl_level = 0;
+#endif
+//SW5-DH-Disable_touch_irq_before_Display_off+[
+#if defined(CONFIG_FIH_NB1)
+extern int synaptics_rmi4_disable_irq(void);
+#endif
+//SW5-DH-Disable_touch_irq_before_Display_off+]
+
+
 DEFINE_LED_TRIGGER(bl_led_trigger);
+
+#define BBOX_LCM_GPIO_FAIL 		do {printk("BBox;%s: LCM GPIO fail\n", __func__); printk("BBox::UEC;0::1\n");} while (0);
+#define BBOX_LCM_DISPLA_ON_FAIL	do {printk("BBox;%s: LCM Display on fail\n", __func__); printk("BBox::UEC;0::2\n");} while (0);
+#define BBOX_LCM_DISPLA_OFF_FAIL	do {printk("BBox;%s: LCM Display off fail\n", __func__); printk("BBox::UEC;0::3\n");} while (0);
+#define BBOX_LCM_INITIAL_FAIL	do {printk("BBox;%s: Panel Command Parse fail!\n", __func__); printk("BBox::UEC;0::7\n");} while (0);
 
 void mdss_dsi_panel_pwm_cfg(struct mdss_dsi_ctrl_pdata *ctrl)
 {
@@ -181,17 +220,22 @@ static void mdss_dsi_panel_apply_settings(struct mdss_dsi_ctrl_pdata *ctrl,
 	mdss_dsi_cmdlist_put(ctrl, &cmdreq);
 }
 
-
-void mdss_dsi_panel_cmds_send(struct mdss_dsi_ctrl_pdata *ctrl,
+#ifdef CONFIG_AOD_FEATURE
+int mdss_dsi_panel_cmds_send(struct mdss_dsi_ctrl_pdata *ctrl,
 			struct dsi_panel_cmds *pcmds, u32 flags)
+#else
+static int mdss_dsi_panel_cmds_send(struct mdss_dsi_ctrl_pdata *ctrl,
+			struct dsi_panel_cmds *pcmds, u32 flags)
+#endif
 {
 	struct dcs_cmd_req cmdreq;
 	struct mdss_panel_info *pinfo;
+	int len = 1;
 
 	pinfo = &(ctrl->panel_data.panel_info);
 	if (pinfo->dcs_cmd_by_left) {
 		if (ctrl->ndx != DSI_CTRL_LEFT)
-			return;
+			return len;
 	}
 
 	memset(&cmdreq, 0, sizeof(cmdreq));
@@ -208,7 +252,9 @@ void mdss_dsi_panel_cmds_send(struct mdss_dsi_ctrl_pdata *ctrl,
 	cmdreq.rlen = 0;
 	cmdreq.cb = NULL;
 
-	mdss_dsi_cmdlist_put(ctrl, &cmdreq);
+	len = mdss_dsi_cmdlist_put(ctrl, &cmdreq);
+
+	return len;
 }
 
 static char led_pwm1[2] = {0x51, 0x0};	/* DTYPE_DCS_WRITE1 */
@@ -257,6 +303,7 @@ static int mdss_dsi_request_gpios(struct mdss_dsi_ctrl_pdata *ctrl_pdata)
 		if (rc) {
 			pr_err("request disp_en gpio failed, rc=%d\n",
 				       rc);
+			BBOX_LCM_GPIO_FAIL
 			goto disp_en_gpio_err;
 		}
 	}
@@ -264,8 +311,10 @@ static int mdss_dsi_request_gpios(struct mdss_dsi_ctrl_pdata *ctrl_pdata)
 	if (rc) {
 		pr_err("request reset gpio failed, rc=%d\n",
 			rc);
+		BBOX_LCM_GPIO_FAIL
 		goto rst_gpio_err;
 	}
+
 	if (gpio_is_valid(ctrl_pdata->avdd_en_gpio)) {
 		rc = gpio_request(ctrl_pdata->avdd_en_gpio,
 						"avdd_enable");
@@ -275,11 +324,13 @@ static int mdss_dsi_request_gpios(struct mdss_dsi_ctrl_pdata *ctrl_pdata)
 			goto avdd_en_gpio_err;
 		}
 	}
+
 	if (gpio_is_valid(ctrl_pdata->lcd_mode_sel_gpio)) {
 		rc = gpio_request(ctrl_pdata->lcd_mode_sel_gpio, "mode_sel");
 		if (rc) {
 			pr_err("request dsc/dual mode gpio failed,rc=%d\n",
 								rc);
+			BBOX_LCM_GPIO_FAIL
 			goto lcd_mode_sel_gpio_err;
 		}
 	}
@@ -408,7 +459,6 @@ int mdss_dsi_panel_reset(struct mdss_panel_data *pdata, int enable)
 	}
 
 	pr_debug("%s: enable = %d\n", __func__, enable);
-
 	if (enable) {
 		rc = mdss_dsi_request_gpios(ctrl_pdata);
 		if (rc) {
@@ -437,8 +487,18 @@ int mdss_dsi_panel_reset(struct mdss_panel_data *pdata, int enable)
 			}
 
 			for (i = 0; i < pdata->panel_info.rst_seq_len; ++i) {
+				//SW8-DH-Double_Tap-00*[
+				#ifdef CONFIG_TOUCHSCREEN_SIW
+				if (touch_cb.touch_vendor_id_read != NULL){
+					if ((touch_cb.touch_vendor_id_read() == LGD) || ((touch_cb.touch_vendor_id_read() == JDI)&& !touch_cb.touch_double_tap_read())){
+						gpio_set_value((ctrl_pdata->rst_gpio),	pdata->panel_info.rst_seq[i]);
+					}
+				}
+				#else
 				gpio_set_value((ctrl_pdata->rst_gpio),
 					pdata->panel_info.rst_seq[i]);
+				#endif
+				//SW8-DH-Double_Tap-00*]
 				if (pdata->panel_info.rst_seq[++i])
 					usleep_range(pinfo->rst_seq[i] * 1000, pinfo->rst_seq[i] * 1000);
 			}
@@ -497,7 +557,37 @@ int mdss_dsi_panel_reset(struct mdss_panel_data *pdata, int enable)
 			gpio_set_value((ctrl_pdata->disp_en_gpio), 0);
 			gpio_free(ctrl_pdata->disp_en_gpio);
 		}
-		gpio_set_value((ctrl_pdata->rst_gpio), 0);
+		#ifdef CONFIG_TOUCHSCREEN_SIW
+		//Debug, keep reset high during suspend
+		// Keep RESET high during suspend for NB1 LGD panel and JDI panel with double tap enabled
+		if (touch_cb.touch_vendor_id_read != NULL){
+			//Pull Reset down in two cases
+			//1. AOD & double tap both off
+			//2. AOD on & double tap off => AOD timout
+			if(touch_cb.touch_vendor_id_read() == LGD) {
+				if(!touch_cb.touch_double_tap_read())
+				{
+					if(!fih_get_glance() || (fih_get_glance()  && (pinfo->aod_screen_timeout)))
+					{
+						pr_info(" %s %d, pull Reset down\n", __func__, __LINE__);
+						gpio_set_value((ctrl_pdata->rst_gpio), 0);//SW8-DH-Touch-Notify-00-
+					}
+				}
+				else
+					pr_info(" %s %d, Keep Reset high\n", __func__, __LINE__);
+			}
+			else if(touch_cb.touch_vendor_id_read() == JDI){
+				if(touch_cb.touch_double_tap_read() == 0){
+					pr_info(" %s %d, pull Reset down\n", __func__, __LINE__);
+					gpio_set_value((ctrl_pdata->rst_gpio), 0);//SW8-DH-Touch-Notify-00-
+				}
+				else
+					pr_info(" %s %d, Keep Reset high\n", __func__, __LINE__);
+			}
+		}
+		#else
+			gpio_set_value((ctrl_pdata->rst_gpio), 0);
+		#endif
 		gpio_free(ctrl_pdata->rst_gpio);
 		if (gpio_is_valid(ctrl_pdata->lcd_mode_sel_gpio)) {
 			gpio_set_value(ctrl_pdata->lcd_mode_sel_gpio, 0);
@@ -875,6 +965,9 @@ static void mdss_dsi_panel_bl_ctrl(struct mdss_panel_data *pdata,
 	if ((bl_level < pdata->panel_info.bl_min) && (bl_level != 0))
 		bl_level = pdata->panel_info.bl_min;
 
+	if(pdata->high_brightness_mode&& bl_level==pdata->panel_info.bl_max){
+		bl_level=0xFF;
+	}
 	/* enable the backlight gpio if present */
 	mdss_dsi_bl_gpio_ctrl(pdata, bl_level);
 
@@ -914,15 +1007,34 @@ static void mdss_dsi_panel_bl_ctrl(struct mdss_panel_data *pdata,
 			__func__);
 		break;
 	}
+
+#if defined(CONFIG_FIH_NB1) || defined(CONFIG_FIH_A1N)
+	/*Show brightness level when suspend and resume*/
+	if ((bl_level == 0) || ((previous_bl_level == 0) && (bl_level != 0))){
+		pr_err("%s: level=%d\n", __func__, bl_level);
+	}
+	previous_bl_level = bl_level;
+#ifdef CONFIG_AOD_FEATURE
+	mdss_bl_backup(pdata,previous_bl_level);
+#endif
+
+#endif
+
 }
 
+//Resume
 static int mdss_dsi_panel_on(struct mdss_panel_data *pdata)
 {
 	struct mdss_dsi_ctrl_pdata *ctrl = NULL;
 	struct mdss_panel_info *pinfo;
 	struct dsi_panel_cmds *on_cmds;
-	int ret = 0;
-
+	int len = 1;
+	int res = -EPERM;
+#ifdef CONFIG_FIH_NB1
+	#ifdef CONFIG_TOUCHSCREEN_SIW
+	int panel_mode = LCD_EVENT_LCD_MODE_U3; //SW8-DH-Touch-Notify-00+
+	#endif
+#endif
 	if (pdata == NULL) {
 		pr_err("%s: Invalid input data\n", __func__);
 		return -EINVAL;
@@ -932,7 +1044,11 @@ static int mdss_dsi_panel_on(struct mdss_panel_data *pdata)
 	ctrl = container_of(pdata, struct mdss_dsi_ctrl_pdata,
 				panel_data);
 
-	pr_debug("%s: ndx=%d\n", __func__, ctrl->ndx);
+	pr_info("%s: ndx=%d\n", __func__, ctrl->ndx);
+
+#ifdef CONFIG_AOD_FEATURE
+	mdss_cleaup_aod_flag(pdata);
+#endif
 
 	if (pinfo->dcs_cmd_by_left) {
 		if (ctrl->ndx != DSI_CTRL_LEFT)
@@ -948,8 +1064,32 @@ static int mdss_dsi_panel_on(struct mdss_panel_data *pdata)
 	pr_debug("%s: ndx=%d cmd_cnt=%d\n", __func__,
 				ctrl->ndx, on_cmds->cmd_cnt);
 
+#ifdef CONFIG_FIH_NB1
+	#ifdef CONFIG_TOUCHSCREEN_SIW
+	if ((touch_cb.touch_vendor_id_read != NULL) &&(touch_cb.touch_vendor_id_read() == LGD)){
+		if (ctrl->ndx == DSI_CTRL_0) {
+			pr_info(" %s %s -> U3, Step 3 : Set diplay mode to U3\n", __func__, fih_get_aod()? "U2":"U0");
+		}
+	}
+	#endif
+#endif
+
 	if (on_cmds->cmd_cnt)
-		mdss_dsi_panel_cmds_send(ctrl, on_cmds, CMD_REQ_COMMIT);
+	{
+		len = mdss_dsi_panel_cmds_send(ctrl, on_cmds, CMD_REQ_COMMIT);
+
+		pr_debug("%s:len=%d\n", __func__,len);
+
+		if((pinfo->panel_id == LGD_LH530QH1_WQXGA_CMD_PANEL && ctrl->ndx == DSI_CTRL_1) ||
+			(pinfo->panel_id != LGD_LH530QH1_WQXGA_CMD_PANEL))
+		{
+			if (!len)
+			{
+				pr_err("%s:goto fail len=%d\n", __func__,len);
+				goto cmds_fail;
+			}
+		}
+	}
 
 	if (pinfo->compression_mode == COMPRESSION_DSC)
 		mdss_dsi_panel_dsc_pps_send(ctrl, pinfo);
@@ -959,14 +1099,32 @@ static int mdss_dsi_panel_on(struct mdss_panel_data *pdata)
 
 	/* Ensure low persistence mode is set as before */
 	mdss_dsi_panel_apply_display_setting(pdata, pinfo->persist_mode);
+	//SW8-DH-Touch-Notify-00+[
+#ifdef CONFIG_FIH_NB1
+	#ifdef CONFIG_TOUCHSCREEN_SIW
+	if ((touch_cb.touch_vendor_id_read != NULL) &&(touch_cb.touch_vendor_id_read() == LGD)){
+		if (ctrl->ndx == DSI_CTRL_0) {
+			pr_info("%s %s -> U3, Step 4 : Change lcd_mode to U3 via notifier \n", __func__, fih_get_aod()? "U2":"U0");
+			siw_touch_notifier_call_chain(LCD_EVENT_LCD_MODE, (void *)&panel_mode);
+			pr_debug("%s: dsi_on from panel low power state\n", __func__);
+		}
+	}
+	#endif
+#endif
+	//SW8-DH-Touch-Notify-00+
+
 
 	if (pdata->event_handler)
 		pdata->event_handler(pdata, MDSS_EVENT_UPDATE_LIVEDISPLAY,
 				(void *)(unsigned long) MODE_UPDATE_ALL);
 
 end:
-	pr_debug("%s:-\n", __func__);
-	return ret;
+	pr_info("%s:-\n", __func__);
+	return 0;
+
+cmds_fail:
+	BBOX_LCM_DISPLA_ON_FAIL
+	return res;
 }
 
 static int mdss_dsi_post_panel_on(struct mdss_panel_data *pdata)
@@ -1012,7 +1170,13 @@ static int mdss_dsi_panel_off(struct mdss_panel_data *pdata)
 {
 	struct mdss_dsi_ctrl_pdata *ctrl = NULL;
 	struct mdss_panel_info *pinfo;
-
+	int res = -EPERM;
+	int len = 1;
+#ifdef CONFIG_FIH_NB1
+	#ifdef CONFIG_TOUCHSCREEN_SIW
+	int panel_mode = LCD_EVENT_LCD_MODE_U0; //SW8-DH-Touch-Notify-00+
+	#endif
+#endif
 	if (pdata == NULL) {
 		pr_err("%s: Invalid input data\n", __func__);
 		return -EINVAL;
@@ -1022,24 +1186,83 @@ static int mdss_dsi_panel_off(struct mdss_panel_data *pdata)
 	ctrl = container_of(pdata, struct mdss_dsi_ctrl_pdata,
 				panel_data);
 
-	pr_debug("%s: ctrl=%pK ndx=%d\n", __func__, ctrl, ctrl->ndx);
+	pr_info("%s: ctrl=%pK ndx=%d\n", __func__, ctrl, ctrl->ndx);
 
 	if (pinfo->dcs_cmd_by_left) {
 		if (ctrl->ndx != DSI_CTRL_LEFT)
 			goto end;
 	}
+#ifdef CONFIG_FIH_NB1
+	#ifdef CONFIG_TOUCHSCREEN_SIW
+	if ((touch_cb.touch_vendor_id_read != NULL) &&(touch_cb.touch_vendor_id_read() == LGD)){
+		//SW8-DH-Double_Tap_workaround+[
+		if(ctrl->ndx == DSI_CTRL_0){
+		pr_info("%s, U3 -> %s , Step 1 : LPWG setup\n", __func__, fih_get_aod()? "U2":"U0");
+		siw_hal_lpwg_FIH(9, 1, 0, 1, 0);
+		//SW8-DH-Double_Tap_workaround+]
+		pr_info("%s, U3 -> %s, Step 2 : Set diplay mode to U0\n", __func__, fih_get_aod()? "U2":"U0");
+		}
+	}
+	//SW5-DH-Disable_touch_irq_before_Display_off+[
+	if ((touch_cb.touch_vendor_id_read != NULL) &&(touch_cb.touch_vendor_id_read() == JDI)){
+		if(ctrl->ndx == DSI_CTRL_0){
+			pr_info("%s, Disable touch interrtupt\n", __func__);
+			synaptics_rmi4_disable_irq();
+		}
+	}
+	//SW5-DH-Disable_touch_irq_before_Display_off+]
+	#endif
+#endif
+
+#if defined(CONFIG_FIH_NB1) || defined(CONFIG_FIH_A1N)
+	#ifdef CONFIG_AOD_FEATURE
+		/*If The the the system have been enter AOD and still panel off chnage panel to normal on mode then off*/
+		mdss_aod_resume_config(pdata);
+	#endif
+#endif
 
 	if (ctrl->off_cmds.cmd_cnt)
-		mdss_dsi_panel_cmds_send(ctrl, &ctrl->off_cmds, CMD_REQ_COMMIT);
+	{
+		len = mdss_dsi_panel_cmds_send(ctrl, &ctrl->off_cmds, CMD_REQ_COMMIT);
+		pr_debug("%s:len=%d\n", __func__,len);
+
+		//for NB1 LGD panel, it should be only checked while DSI_CTRL_1
+		if((pinfo->panel_id == LGD_LH530QH1_WQXGA_CMD_PANEL && ctrl->ndx == DSI_CTRL_1) ||
+			(pinfo->panel_id != LGD_LH530QH1_WQXGA_CMD_PANEL))
+		{
+			if (!len)
+			{
+				pr_err("%s:goto fail len=%d\n", __func__,len);
+				goto cmds_fail;
+			}
+		}
+	}
 
 	if (ctrl->ds_registered && pinfo->is_pluggable) {
 		mdss_dba_utils_video_off(pinfo->dba_data);
 		mdss_dba_utils_hdcp_enable(pinfo->dba_data, false);
 	}
 
+#ifdef CONFIG_FIH_NB1
+	//SW8-DH-Touch-Notify-00+[
+	#ifdef CONFIG_TOUCHSCREEN_SIW
+	if ((touch_cb.touch_vendor_id_read != NULL) &&(touch_cb.touch_vendor_id_read() == LGD)){
+		if(ctrl->ndx == DSI_CTRL_0){
+			pr_info("%s , U3 -> %s, Step 3 : Change lcd_mode to %s via notifier\n", __func__, fih_get_aod()? "U2":"U0", fih_get_aod()? "U2":"U0");
+			siw_touch_notifier_call_chain(LCD_EVENT_LCD_MODE, (void *)&panel_mode);
+		}
+	}
+	#endif
+	//SW8-DH-Touch-Notify-00+]
+#endif
+
 end:
 	pr_debug("%s:-\n", __func__);
 	return 0;
+
+cmds_fail:
+	BBOX_LCM_DISPLA_OFF_FAIL
+	return res;
 }
 
 static int mdss_dsi_panel_low_power_config(struct mdss_panel_data *pdata,
@@ -1047,6 +1270,7 @@ static int mdss_dsi_panel_low_power_config(struct mdss_panel_data *pdata,
 {
 	struct mdss_dsi_ctrl_pdata *ctrl = NULL;
 	struct mdss_panel_info *pinfo;
+
 
 	if (pdata == NULL) {
 		pr_err("%s: Invalid input data\n", __func__);
@@ -1059,10 +1283,12 @@ static int mdss_dsi_panel_low_power_config(struct mdss_panel_data *pdata,
 
 	pr_debug("%s: ctrl=%pK ndx=%d enable=%d\n", __func__, ctrl, ctrl->ndx,
 		enable);
-
+#if defined(CONFIG_FIH_NB1) || defined(CONFIG_FIH_A1N)
+	#ifdef CONFIG_AOD_FEATURE
+	fih_mdss_lp_config(pdata,enable,ctrl->ndx);
+	#endif
+#endif
 	/* Any panel specific low power commands/config */
-
-	pr_debug("%s:-\n", __func__);
 	return 0;
 }
 
@@ -1127,9 +1353,13 @@ static void mdss_dsi_parse_trigger(struct device_node *np, char *trigger,
 	}
 }
 
-
+#ifdef CONFIG_AOD_FEATURE
+int mdss_dsi_parse_dcs_cmds(struct device_node *np,
+		struct dsi_panel_cmds *pcmds, char *cmd_key, char *link_key)
+#else
 static int mdss_dsi_parse_dcs_cmds(struct device_node *np,
 		struct dsi_panel_cmds *pcmds, char *cmd_key, char *link_key)
+#endif
 {
 	const char *data;
 	int blen = 0, len;
@@ -1374,8 +1604,11 @@ void mdss_dsi_panel_dsc_pps_send(struct mdss_dsi_ctrl_pdata *ctrl,
 
 	pcmds.cmd_cnt = 1;
 	pcmds.cmds = &cmd;
+	#ifdef CONFIG_FIH_A1N
+	pcmds.link_state = DSI_HS_MODE;
+	#else
 	pcmds.link_state = DSI_LP_MODE;
-
+	#endif
 	mdss_dsi_panel_cmds_send(ctrl, &pcmds, CMD_REQ_COMMIT);
 }
 
@@ -2197,6 +2430,10 @@ static int mdss_dsi_parse_panel_features(struct device_node *np,
 	pr_info("%s: ulps during suspend feature %s", __func__,
 		(pinfo->ulps_suspend_enabled ? "enabled" : "disabled"));
 
+#ifdef CONFIG_PANEL_POWER_CONTROL_FEATURE
+	fih_mdss_panel_ulps_pwr_parse_dt(np,ctrl);
+#endif
+
 	mdss_dsi_parse_dms_config(np, ctrl);
 
 	pinfo->panel_ack_disabled = pinfo->sim_panel_mode ?
@@ -2492,7 +2729,11 @@ int mdss_dsi_panel_timing_switch(struct mdss_dsi_ctrl_pdata *ctrl,
 
 	ctrl->on_cmds = pt->on_cmds;
 	ctrl->post_panel_on_cmds = pt->post_panel_on_cmds;
-
+	#if defined(CONFIG_FIH_NB1) || defined(CONFIG_FIH_A1N)
+	#ifdef CONFIG_AOD_FEATURE
+	fih_mdss_dsi_panel_aod_exit_register(ctrl,pt);
+	#endif
+	#endif
 	ctrl->panel_data.current_timing = timing;
 	if (!timing->clk_rate)
 		ctrl->refresh_clk_rate = true;
@@ -2641,6 +2882,11 @@ static int  mdss_dsi_panel_config_res_properties(struct device_node *np,
 		"qcom,mdss-dsi-timing-switch-command",
 		"qcom,mdss-dsi-timing-switch-command-state");
 
+#if defined(CONFIG_FIH_NB1) || defined(CONFIG_FIH_A1N)
+#ifdef CONFIG_AOD_FEATURE
+	fih_mdss_dsi_panel_config_aod_res_properties(np,pt);
+#endif
+#endif
 	rc = mdss_dsi_parse_topology_config(np, pt, panel_data, default_timing);
 	if (rc) {
 		pr_err("%s: parsing compression params failed. rc:%d\n",
@@ -2744,12 +2990,60 @@ static int mdss_panel_parse_dt(struct device_node *np,
 	if (mdss_dsi_is_hw_config_split(ctrl_pdata->shared_data))
 		pinfo->is_split_display = true;
 
+#if defined(CONFIG_FIH_NB1) || defined(CONFIG_FIH_A1N)
+#ifdef CONFIG_PANEL_POWER_CONTROL_FEATURE
+	fih_mdss_panel_parse_dt(np,ctrl_pdata);
+#else
+	rc = of_property_read_u32(np, "fih,panel-id", &tmp);
+	pinfo->panel_id = !rc ? tmp : UNDEFINE_UNKNOW_PANEL;
+	pr_info("%s:fih,panel-id =%d\n", __func__, tmp);
+
+
+	pinfo->aod_power_keep = of_property_read_bool(np,
+		"fih,always_display_power_keep");
+	pr_info("%s:Always on power keeping =%d\n", __func__, pinfo->aod_power_keep);
+
+	if(pinfo->aod_power_keep)
+	{
+		pinfo->aod_power_keep_1p8= of_property_read_bool(np,
+			"fih,always_display_power_keep-1p8");
+
+		pr_info("%s:keep 1P8V is %s\n", __func__, pinfo->aod_power_keep_1p8?"on":"off");
+
+		pinfo->aod_power_keep_3p3= of_property_read_bool(np,
+			"fih,always_display_power_keep-3p3");
+		pr_info("%s:keep 3P3V is %s\n", __func__, pinfo->aod_power_keep_3p3?"on":"off");
+
+		pinfo->aod_power_keep_lab= of_property_read_bool(np,
+			"fih,always_display_power_keep-lab");
+		pr_info("%s:keep LAB is %s\n", __func__, pinfo->aod_power_keep_lab?"on":"off");
+
+		pinfo->aod_power_keep_ibb= of_property_read_bool(np,
+			"fih,always_display_power_keep-ibb");
+		pr_info("%s:keep IBB is %s\n", __func__, pinfo->aod_power_keep_ibb?"on":"off");
+
+	}
+#endif
+
+#ifdef CONFIG_FIH_PANEL_FEATURE
+	fih_mdss_panel_feature_parse_dt(np,ctrl_pdata);
+
+#endif
+
+#endif
 	rc = of_property_read_u32(np,
 		"qcom,mdss-pan-physical-width-dimension", &tmp);
 	pinfo->physical_width = (!rc ? tmp : 0);
 	rc = of_property_read_u32(np,
 		"qcom,mdss-pan-physical-height-dimension", &tmp);
 	pinfo->physical_height = (!rc ? tmp : 0);
+
+	rc = of_property_read_u32(np,
+		"qcom,mdss-pan-physical-width-dimension-full", &tmp);
+	pinfo->physical_width_full = (!rc ? tmp : 0);
+	rc = of_property_read_u32(np,
+		"qcom,mdss-pan-physical-height-dimension-full", &tmp);
+	pinfo->physical_height_full = (!rc ? tmp : 0);
 
 	rc = of_property_read_u32(np, "qcom,mdss-dsi-bpp", &tmp);
 	if (rc) {
@@ -2943,6 +3237,11 @@ static int mdss_panel_parse_dt(struct device_node *np,
 	mdss_dsi_parse_dcs_cmds(np, &ctrl_pdata->off_cmds,
 		"qcom,mdss-dsi-off-command", "qcom,mdss-dsi-off-command-state");
 
+#if defined(CONFIG_FIH_NB1) || defined(CONFIG_FIH_A1N)
+#ifdef CONFIG_AOD_FEATURE
+	fih_mdss_dsi_panel_config_aod_parse_dt(np,ctrl_pdata);
+#endif
+#endif
 	rc = of_property_read_u32(np, "qcom,adjust-timer-wakeup-ms", &tmp);
 	pinfo->adjust_timer_delay_ms = (!rc ? tmp : 0);
 
@@ -2989,6 +3288,7 @@ static int mdss_panel_parse_dt(struct device_node *np,
 	return 0;
 
 error:
+	BBOX_LCM_INITIAL_FAIL
 	return -EINVAL;
 }
 

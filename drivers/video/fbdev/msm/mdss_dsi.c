@@ -11,6 +11,7 @@
  *
  */
 
+#include <linux/kernel.h>
 #include <linux/module.h>
 #include <linux/interrupt.h>
 #include <linux/spinlock.h>
@@ -36,6 +37,27 @@
 #include "mdss_dba_utils.h"
 #include "mdss_livedisplay.h"
 
+#ifdef CONFIG_TOUCHSCREEN_SIW
+#include "../../../include/linux/input/siw_touch_notify.h" //SW8-DH-Touch-Notify-00+
+#include "../../../fih/fih_touch.h"//SW8-DH-TP_vendor-00+
+extern struct fih_touch_cb touch_cb;
+#endif
+#if defined(CONFIG_FIH_NB1) || defined(CONFIG_FIH_A1N)
+#ifdef CONFIG_AOD_FEATURE
+#include "fih/fih_msm_mdss_aod.h"
+#endif
+#ifdef CONFIG_PANEL_POWER_CONTROL_FEATURE
+#include "fih/fih_msm_mdss_pwr.h"
+#endif
+
+#ifdef CONFIG_FIH_PANEL_FEATURE
+#include "fih/fih_mdss_global.h"
+#endif
+
+#endif
+
+
+#define XO_CLK_RATE	19200000
 #define CMDLINE_DSI_CTL_NUM_STRING_LEN 2
 
 /* Master structure to hold all the information about the DSI/panel */
@@ -45,6 +67,28 @@ static struct mdss_dsi_data *mdss_dsi_res;
 #define DSI_ENABLE_PC_LATENCY PM_QOS_DEFAULT_VALUE
 
 static struct pm_qos_request mdss_dsi_pm_qos_request;
+
+#ifndef CONFIG_AOD_FEATURE
+unsigned int fih_get_panel_id(void){return 0;}
+int fih_set_aod(int enable){return 0;}
+int fih_get_aod(void){return 0;}
+int fih_get_blank_mode(void){return 0;}
+int fih_set_blank_mode(int mode){return 0;}
+int fih_get_aod_wled_state(void){return 0;}
+int fih_set_aod_wled_state(int enable){return 0;}
+EXPORT_SYMBOL(fih_set_aod);
+EXPORT_SYMBOL(fih_get_aod);
+EXPORT_SYMBOL(fih_get_panel_id);
+EXPORT_SYMBOL(fih_set_aod_wled_state);
+EXPORT_SYMBOL(fih_get_aod_wled_state);
+EXPORT_SYMBOL(fih_set_blank_mode);
+EXPORT_SYMBOL(fih_get_blank_mode);
+#endif
+#if defined(CONFIG_AOD_FEATURE)
+#if defined(CONFIG_FIH_NB1)||defined(CONFIG_FIH_A1N)
+extern bool exit_aod_set_bl;
+#endif
+#endif
 
 void mdss_dump_dsi_debug_bus(u32 bus_dump_flag,
 	u32 **dump_mem)
@@ -186,10 +230,19 @@ static void mdss_dsi_pm_qos_update_request(int val)
 	pm_qos_update_request(&mdss_dsi_pm_qos_request, val);
 }
 
+#ifdef CONFIG_PANEL_POWER_CONTROL_FEATURE
+int mdss_dsi_pinctrl_set_state(struct mdss_dsi_ctrl_pdata *ctrl_pdata,
+					bool active);
+#else
 static int mdss_dsi_pinctrl_set_state(struct mdss_dsi_ctrl_pdata *ctrl_pdata,
 					bool active);
+#endif
 
+#ifdef CONFIG_AOD_FEATURE
+struct mdss_dsi_ctrl_pdata *mdss_dsi_get_ctrl(u32 ctrl_id)
+#else
 static struct mdss_dsi_ctrl_pdata *mdss_dsi_get_ctrl(u32 ctrl_id)
+#endif
 {
 	if (ctrl_id >= DSI_CTRL_MAX || !mdss_dsi_res)
 		return NULL;
@@ -368,6 +421,7 @@ static int mdss_dsi_panel_power_off(struct mdss_panel_data *pdata)
 {
 	int ret = 0;
 	struct mdss_dsi_ctrl_pdata *ctrl_pdata = NULL;
+	struct mdss_panel_info *pinfo;
 
 	if (pdata == NULL) {
 		pr_err("%s: Invalid input data\n", __func__);
@@ -377,6 +431,12 @@ static int mdss_dsi_panel_power_off(struct mdss_panel_data *pdata)
 
 	ctrl_pdata = container_of(pdata, struct mdss_dsi_ctrl_pdata,
 				panel_data);
+	pinfo = &pdata->panel_info;
+#ifdef CONFIG_FIH_NB1
+#ifdef CONFIG_PANEL_POWER_CONTROL_FEATURE
+	mdss_dsi_extra_panel_power_off(pdata);
+#endif
+#else
 
 	ret = mdss_dsi_panel_reset(pdata, 0);
 	if (ret) {
@@ -393,7 +453,7 @@ static int mdss_dsi_panel_power_off(struct mdss_panel_data *pdata)
 	if (ret)
 		pr_err("%s: failed to disable vregs for %s\n",
 			__func__, __mdss_dsi_pm_name(DSI_PANEL_PM));
-
+#endif
 end:
 	return ret;
 }
@@ -402,15 +462,23 @@ static int mdss_dsi_panel_power_on(struct mdss_panel_data *pdata)
 {
 	int ret = 0;
 	struct mdss_dsi_ctrl_pdata *ctrl_pdata = NULL;
+	struct mdss_panel_info *pinfo;
 
 	if (pdata == NULL) {
 		pr_err("%s: Invalid input data\n", __func__);
 		return -EINVAL;
 	}
+	pr_err("%s: Panel gpio reset. \n",__func__);
 
 	ctrl_pdata = container_of(pdata, struct mdss_dsi_ctrl_pdata,
 				panel_data);
+	pinfo = &pdata->panel_info;
 
+#ifdef CONFIG_FIH_NB1
+#ifdef CONFIG_PANEL_POWER_CONTROL_FEATURE
+	mdss_dsi_extra_panel_power_on(pdata);
+#endif
+#else
 	ret = msm_dss_enable_vreg(
 		ctrl_pdata->panel_power_data.vreg_config,
 		ctrl_pdata->panel_power_data.num_vreg, 1);
@@ -419,7 +487,7 @@ static int mdss_dsi_panel_power_on(struct mdss_panel_data *pdata)
 			__func__, __mdss_dsi_pm_name(DSI_PANEL_PM));
 		return ret;
 	}
-
+#endif
 	/*
 	 * If continuous splash screen feature is enabled, then we need to
 	 * request all the GPIOs that have already been configured in the
@@ -443,6 +511,7 @@ static int mdss_dsi_panel_power_on(struct mdss_panel_data *pdata)
 static int mdss_dsi_panel_power_lp(struct mdss_panel_data *pdata, int enable)
 {
 	/* Panel power control when entering/exiting lp mode */
+	pr_info("%s: enable(%d)\n",__func__,enable);
 	return 0;
 }
 
@@ -451,6 +520,7 @@ static int mdss_dsi_panel_power_ctrl(struct mdss_panel_data *pdata,
 {
 	int ret = 0;
 	struct mdss_panel_info *pinfo;
+	pr_info("%s %d, power_state = %d\n", __func__, __LINE__, power_state);
 
 	if (pdata == NULL) {
 		pr_err("%s: Invalid input data\n", __func__);
@@ -1313,6 +1383,7 @@ static int mdss_dsi_off(struct mdss_panel_data *pdata, int power_state)
 				panel_data);
 
 	panel_info = &ctrl_pdata->panel_data.panel_info;
+	pr_info("%s+:\n", __func__);
 
 	pr_debug("%s+: ctrl=%pK ndx=%d power_state=%d\n",
 		__func__, ctrl_pdata, ctrl_pdata->ndx, power_state);
@@ -1491,6 +1562,7 @@ int mdss_dsi_on(struct mdss_panel_data *pdata)
 		pr_err("%s: Invalid input data\n", __func__);
 		return -EINVAL;
 	}
+	pr_info("%s %d+\n", __func__, __LINE__);
 
 	ctrl_pdata = container_of(pdata, struct mdss_dsi_ctrl_pdata,
 				panel_data);
@@ -1505,6 +1577,21 @@ int mdss_dsi_on(struct mdss_panel_data *pdata)
 	pinfo = &pdata->panel_info;
 	mipi = &pdata->panel_info.mipi;
 
+#ifdef CONFIG_FIH_NB1
+#ifdef CONFIG_TOUCHSCREEN_SIW
+	if((touch_cb.touch_vendor_id_read != NULL) && (touch_cb.touch_vendor_id_read() == LGD)){
+		if (ctrl_pdata->ndx == DSI_CTRL_0) { 
+			//lpwg control must be preceed to panel power on
+			//SW8-DH-Double_Tap_workaround+[
+			pr_info("%s, %s -> U3 , Step 1 : LPWG setup\n", __func__, fih_get_aod()? "U2":"U0");
+			siw_hal_lpwg_FIH(9, 0, 1, 1, 0);
+			//SW8-DH-Double_Tap_workaround+]
+			ctrl_pdata->tp_state=1;
+		}
+	}
+#endif
+#endif
+
 	if (mdss_dsi_is_panel_on_interactive(pdata)) {
 		/*
 		 * all interrupts are disabled at LK
@@ -1516,6 +1603,19 @@ int mdss_dsi_on(struct mdss_panel_data *pdata)
 		pr_debug("%s: panel already on\n", __func__);
 		goto end;
 	}
+
+#ifdef CONFIG_FIH_NB1
+#ifdef CONFIG_TOUCHSCREEN_SIW
+	if((touch_cb.touch_vendor_id_read != NULL) && (touch_cb.touch_vendor_id_read() == LGD)){
+		if (ctrl_pdata->ndx == DSI_CTRL_0) { 
+			//lpwg control must be preceed to panel power on			
+			pr_info("%s, %s -> U3, Step 2 : Set RESET notifier\n", __func__, fih_get_aod()? "U2":"U0");
+			siw_touch_notifier_call_chain(LCD_EVENT_HW_RESET, NULL);//SW8-DH-Touch-Notify-00+
+			ctrl_pdata->tp_state=2;
+		}
+	}
+#endif
+#endif
 
 	ret = mdss_dsi_panel_power_ctrl(pdata, MDSS_PANEL_POWER_ON);
 	if (ret) {
@@ -1585,9 +1685,15 @@ end:
 	return ret;
 }
 
+#ifdef CONFIG_PANEL_POWER_CONTROL_FEATURE
+int mdss_dsi_pinctrl_set_state(
+	struct mdss_dsi_ctrl_pdata *ctrl_pdata,
+	bool active)
+#else
 static int mdss_dsi_pinctrl_set_state(
 	struct mdss_dsi_ctrl_pdata *ctrl_pdata,
 	bool active)
+#endif
 {
 	struct pinctrl_state *pin_state;
 	struct mdss_panel_info *pinfo = NULL;
@@ -1664,7 +1770,7 @@ static int mdss_dsi_unblank(struct mdss_panel_data *pdata)
 				panel_data);
 	mipi  = &pdata->panel_info.mipi;
 
-	pr_debug("%s+: ctrl=%pK ndx=%d cur_power_state=%d ctrl_state=%x\n",
+	pr_info("%s+: ctrl=%pK ndx=%d cur_power_state=%d ctrl_state=%x\n",
 			__func__, ctrl_pdata, ctrl_pdata->ndx,
 		pdata->panel_info.panel_power_state, ctrl_pdata->ctrl_state);
 
@@ -1683,6 +1789,19 @@ static int mdss_dsi_unblank(struct mdss_panel_data *pdata)
 		pr_debug("%s: dsi_unblank with panel always on\n", __func__);
 		if (ctrl_pdata->low_power_config)
 			ret = ctrl_pdata->low_power_config(pdata, false);
+#ifdef CONFIG_AOD_FEATURE
+		if(fih_get_recovery_touch()){
+			mdss_set_tp_event(pdata,TP_EVENT_REINIT);
+			fih_set_recovery_touch(0);
+		}
+#endif
+#if defined(CONFIG_AOD_FEATURE)
+#if defined(CONFIG_FIH_NB1)||defined(CONFIG_FIH_A1N)
+		if(fih_get_glance()){
+			exit_aod_set_bl=1;
+		}
+#endif
+#endif
 		if (!ret)
 			ctrl_pdata->ctrl_state &= ~CTRL_STATE_PANEL_LP;
 		goto error;
@@ -1739,16 +1858,21 @@ static int mdss_dsi_blank(struct mdss_panel_data *pdata, int power_state)
 				panel_data);
 	mipi = &pdata->panel_info.mipi;
 
-	pr_debug("%s+: ctrl=%pK ndx=%d power_state=%d\n",
+	pr_err("%s+: ctrl=%pK ndx=%d power_state=%d\n",
 		__func__, ctrl_pdata, ctrl_pdata->ndx, power_state);
 
 	mdss_dsi_clk_ctrl(ctrl_pdata, ctrl_pdata->dsi_clk_handle,
 			  MDSS_DSI_ALL_CLKS, MDSS_DSI_CLK_ON);
 
 	if (mdss_panel_is_power_on_lp(power_state)) {
-		pr_debug("%s: low power state requested\n", __func__);
+		pr_err("%s: low power state requested\n", __func__);
 		if (ctrl_pdata->low_power_config)
 			ret = ctrl_pdata->low_power_config(pdata, true);
+#if defined(CONFIG_AOD_FEATURE)
+#if defined(CONFIG_FIH_NB1)||defined(CONFIG_FIH_A1N)
+		exit_aod_set_bl=0;
+#endif
+#endif
 		if (!ret)
 			ctrl_pdata->ctrl_state |= CTRL_STATE_PANEL_LP;
 		goto error;
@@ -3738,6 +3862,17 @@ static int mdss_dsi_ctrl_probe(struct platform_device *pdev)
 
 	mdss_dsi_debug_bus_init(mdss_dsi_res);
 
+#if defined(CONFIG_FIH_NB1) || defined(CONFIG_FIH_A1N)
+#ifdef CONFIG_AOD_FEATURE
+	fih_mdss_dsi_aod_panel_init(pdev,ctrl_pdata,index);
+#endif
+
+#ifdef CONFIG_FIH_PANEL_FEATURE
+	fih_mdss_dsi_global_init(pdev,ctrl_pdata,index);
+#endif
+
+#endif
+
 	return 0;
 
 error_shadow_clk_deinit:
@@ -4735,7 +4870,12 @@ int dsi_panel_device_register(struct platform_device *ctrl_pdev,
 	 */
 	sdata = ctrl_pdata->shared_data;
 
-	if (pinfo->ulps_suspend_enabled) {
+#if defined(CONFIG_PANEL_POWER_CONTROL_FEATURE)
+	if (pinfo->ulps_suspend_enabled&& !pinfo->aod_ulps_pwr_feature)
+#else
+	if (pinfo->ulps_suspend_enabled)
+#endif
+	{
 		rc = msm_dss_enable_vreg(
 			sdata->power_data[DSI_PHY_PM].vreg_config,
 			sdata->power_data[DSI_PHY_PM].num_vreg, 1);
@@ -4746,6 +4886,11 @@ int dsi_panel_device_register(struct platform_device *ctrl_pdev,
 		}
 	}
 
+#ifdef CONFIG_FIH_NB1
+#ifdef CONFIG_PANEL_POWER_CONTROL_FEATURE
+	mdss_dsi_extra_power_init(sdata,pinfo);
+#endif
+#endif
 	pinfo->cont_splash_enabled =
 		ctrl_pdata->mdss_util->panel_intf_status(pinfo->pdest,
 		MDSS_PANEL_INTF_DSI) ? true : false;
