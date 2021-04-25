@@ -206,6 +206,8 @@ struct smb_params {
 	struct smb_chg_param	dc_icl_div2_mid_hv;
 	struct smb_chg_param	dc_icl_div2_hv;
 	struct smb_chg_param	jeita_cc_comp;
+	struct smb_chg_param	jeita_fv_comp;
+	/* end NB1-468 */
 	struct smb_chg_param	freq_buck;
 	struct smb_chg_param	freq_boost;
 };
@@ -310,6 +312,8 @@ struct smb_charger {
 	struct work_struct	legacy_detection_work;
 	struct delayed_work	uusb_otg_work;
 	struct delayed_work	bb_removal_work;
+	struct delayed_work update_batt_info_work;
+	/* end NB1-3293 */
 
 	/* cached status */
 	int			voltage_min_uv;
@@ -348,6 +352,12 @@ struct smb_charger {
 	bool			use_extcon;
 	bool			otg_present;
 	bool			fcc_stepper_mode;
+	bool			show_batt_info_en;
+	bool			fih_chg_abnormal_check_en;
+	u8			fih_reEnable_max_limit;
+	/* end NB1-3293 */
+	bool			fih_wlc_fcc_en;
+	/* end A1NO-799 */
 
 	/* workaround flag */
 	u32			wa_flags;
@@ -367,6 +377,17 @@ struct smb_charger {
 	/* qnovo */
 	int			usb_icl_delta_ua;
 	int			pulse_cnt;
+
+	bool diff_jeita_fn_en;
+	int	jeita_fcc_comp_cool;
+	int	jeita_fcc_comp_warm;
+	int	jeita_fv_comp_cool;
+	int	jeita_fv_comp_warm;
+	/* end NB1-3730 */
+
+	int fih_jeita_full_capacity_warm_en;
+	int fih_jeita_full_capacity_cool_en;
+	/* end NB1-8555 */
 };
 
 int smblib_read(struct smb_charger *chg, u16 addr, u8 *val);
@@ -434,6 +455,14 @@ int smblib_get_prop_system_temp_level(struct smb_charger *chg,
 				union power_supply_propval *val);
 int smblib_get_prop_input_current_limited(struct smb_charger *chg,
 				union power_supply_propval *val);
+int smblib_get_prop_batt_voltage_now(struct smb_charger *chg,
+				union power_supply_propval *val);
+int smblib_get_prop_batt_current_now(struct smb_charger *chg,
+				union power_supply_propval *val);
+int smblib_get_prop_batt_temp(struct smb_charger *chg,
+				union power_supply_propval *val);
+int smblib_get_prop_batt_charge_counter(struct smb_charger *chg,
+				union power_supply_propval *val);
 int smblib_set_prop_input_suspend(struct smb_charger *chg,
 				const union power_supply_propval *val);
 int smblib_set_prop_batt_capacity(struct smb_charger *chg,
@@ -466,6 +495,16 @@ int smblib_get_prop_usb_current_now(struct smb_charger *chg,
 				union power_supply_propval *val);
 int smblib_get_prop_typec_cc_orientation(struct smb_charger *chg,
 				union power_supply_propval *val);
+
+int  FIH_check_chg_status(struct smb_charger *chg);
+void FIH_chg_abnormal_check(struct smb_charger *chg);
+void FIH_chg_reEnable(struct smb_charger *chg);
+void FIH_USBIN_reEnable(struct smb_charger *chg);
+void FIH_soft_JEITA_recharge_check(struct smb_charger *chg);
+/* end NB1-8555 */
+void FIH_adjust_JEITA(struct smb_charger *chg);
+/* end NB1-3730 */
+
 int smblib_get_prop_typec_power_role(struct smb_charger *chg,
 				union power_supply_propval *val);
 int smblib_get_prop_pd_allowed(struct smb_charger *chg,
@@ -530,4 +569,10 @@ void smblib_usb_typec_change(struct smb_charger *chg);
 
 int smblib_init(struct smb_charger *chg);
 int smblib_deinit(struct smb_charger *chg);
+
+#if defined(CONFIG_FIH_NB1) || defined(CONFIG_FIH_A1N)
+int smblib_dump_typec_sts(struct smb_charger *chg,
+			       union power_supply_propval *val);
+#endif
+/* end FIH - NB1-680 */
 #endif /* __SMB2_CHARGER_H */
