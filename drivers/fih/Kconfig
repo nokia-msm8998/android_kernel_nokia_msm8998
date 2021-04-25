@@ -6,6 +6,12 @@ menu "Device Drivers for FIH"
   	help
   	  support fih A1N project
 
+  config FIH_NB1
+  	bool "FIH NB1 project"
+  	default n
+  	help
+  	  support fih NB1 project
+
   config FIH_APR
            bool "fih apr"
            default n
