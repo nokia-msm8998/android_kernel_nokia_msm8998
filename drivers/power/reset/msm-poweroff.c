@@ -35,6 +35,10 @@
 #include <soc/qcom/watchdog.h>
 #include <soc/qcom/minidump.h>
 
+#ifdef CONFIG_FIH_APR
+#include <fih/fih_rere.h>
+#endif
+
 #define EMERGENCY_DLOAD_MAGIC1    0x322A4F99
 #define EMERGENCY_DLOAD_MAGIC2    0xC67E4350
 #define EMERGENCY_DLOAD_MAGIC3    0x77777777
@@ -87,7 +91,11 @@ static int dload_type = SCM_DLOAD_FULLDUMP;
 static int download_mode = 1;
 static struct kobject dload_kobj;
 static void *dload_mode_addr, *dload_type_addr;
+#ifdef CONFIG_FIH_DLOAD
+static bool dload_mode_enabled = false;  /* FIH: default disable ramdump */
+#else
 static bool dload_mode_enabled;
+#endif
 static void *emergency_dload_mode_addr;
 #ifdef CONFIG_RANDOMIZE_BASE
 static void *kaslr_imem_addr;
@@ -109,8 +117,16 @@ struct reset_attribute {
 	static struct reset_attribute reset_attr_##_name = \
 			__ATTR(_name, _mode, _show, _store)
 
+#ifdef CONFIG_FIH_DLOAD
+static int __init oem_dload_set(char *str);//* FIH, ramdump set by fastboot 
+#endif
+
 module_param_call(download_mode, dload_set, param_get_int,
 			&download_mode, 0644);
+
+#ifdef CONFIG_FIH_DLOAD
+__setup("download_mode=", oem_dload_set);//* FIH, ramdump set by fastboot oem command			
+#endif
 
 int scm_set_dload_mode(int arg1, int arg2)
 {
@@ -202,6 +218,27 @@ static int dload_set(const char *val, struct kernel_param *kp)
 
 	return 0;
 }
+
+#ifdef CONFIG_FIH_DLOAD
+//* FIH, ramdump set by fastboot oem command
+static int __init oem_dload_set(char *str)
+{
+    int old_val = download_mode; 
+    get_option(&str, &download_mode);
+
+
+    if(download_mode != 0 && download_mode != 1){
+        download_mode = old_val;
+        return -EINVAL;
+    }
+    
+    pr_err("%s check download_mode %d\n", __func__,download_mode);
+	set_dload_mode(download_mode);
+
+    return 1;
+}
+#endif
+
 #else
 static void set_dload_mode(int on)
 {
@@ -358,6 +395,9 @@ static void msm_restart_prepare(const char *cmd)
 		} else if (!strncmp(cmd, "edl", 3)) {
 			enable_emergency_dload_mode();
 		} else {
+#ifdef CONFIG_FIH_APR
+			qpnp_pon_set_restart_reason(FIH_RERE_REBOOT_DEVICE);	//Normal boot
+#endif
 			__raw_writel(0x77665501, restart_reason);
 		}
 	}
@@ -425,6 +465,9 @@ static void do_msm_poweroff(void)
 	set_dload_mode(0);
 	scm_disable_sdi();
 	qpnp_pon_system_pwr_off(PON_POWER_OFF_SHUTDOWN);
+#ifdef CONFIG_FIH_APR
+	qpnp_pon_set_restart_reason(0);	//Normal boot
+#endif
 
 	halt_spmi_pmic_arbiter();
 	deassert_ps_hold();
@@ -569,6 +612,9 @@ static int msm_restart_probe(struct platform_device *pdev)
 	struct resource *mem;
 	struct device_node *np;
 	int ret = 0;
+#ifdef CONFIG_FIH_DLOAD
+	int scm_download_mode = 0;
+#endif
 
 	atomic_notifier_chain_register(&panic_notifier_list, &panic_blk);
 
@@ -677,6 +723,12 @@ skip_sysfs_create:
 		scm_deassert_ps_hold_supported = true;
 
 #ifdef CONFIG_QCOM_DLOAD_MODE
+#ifdef CONFIG_FIH_DLOAD
+	scm_download_mode = scm_is_secure_device();
+  pr_info("%s: scm_is_secure_device = %d\n", __func__, scm_download_mode);  /* FIH */
+  //download_mode = 0;  /* FIH: default disable ramdump */
+    download_mode = download_mode & scm_download_mode;
+#endif
 	set_dload_mode(download_mode);
 	if (!download_mode)
 		scm_disable_sdi();
