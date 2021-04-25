@@ -301,6 +301,13 @@ struct fg_batt_props {
 	int		float_volt_uv;
 	int		vbatt_full_mv;
 	int		fastchg_curr_ma;
+	bool	diff_jeita_fn_en;
+	int		jeita_fcc_comp_cool;
+	int		jeita_fcc_comp_warm;
+	int		jeita_fv_comp_cool;
+	int		jeita_fv_comp_warm;
+	bool		 fih_jeita_full_capacity_warm_en;
+	bool		 fih_jeita_full_capacity_cool_en;
 };
 
 struct fg_cyc_ctr_data {
@@ -463,6 +470,8 @@ struct fg_chip {
 	struct work_struct	esr_filter_work;
 	struct alarm		esr_filter_alarm;
 	ktime_t			last_delta_temp_time;
+	int			sys_pre_temp;
+	int			sys_ignore_temp_sts; // ignore temp
 };
 
 /* Debugfs data structures are below */

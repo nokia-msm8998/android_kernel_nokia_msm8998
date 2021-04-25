@@ -12,13 +12,6 @@ menu "Device Drivers for FIH"
            help
              support fih apr virtual file
 
-  config FIH_DISABLE_REBOOT_EDL
-           bool "fih disable reboot edl command"
-           default n
-           help
-             support fih disable reboot edl command
-
-
   config FIH_INFO
 	  bool "fih info"
 	  default n
