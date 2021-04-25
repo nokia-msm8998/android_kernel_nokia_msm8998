@@ -150,7 +150,15 @@ enum dsi_pm_type {
 	DSI_CORE_PM,
 	DSI_CTRL_PM,
 	DSI_PHY_PM,
-	DSI_MAX_PM
+	#ifdef CONFIG_FIH_NB1
+	#ifdef CONFIG_PANEL_POWER_CONTROL_FEATURE
+	DSI_VDDIO_PM,
+	DSI_VPNL_PM,
+	DSI_LAB_PM,
+	DSI_IBB_PM,
+	#endif
+	#endif
+	DSI_MAX_PM,
 };
 
 /*
@@ -363,6 +371,12 @@ struct dsi_panel_timing {
 	struct dsi_panel_cmds on_cmds;
 	struct dsi_panel_cmds post_panel_on_cmds;
 	struct dsi_panel_cmds switch_cmds;
+	#if defined(CONFIG_FIH_NB1) || defined(CONFIG_FIH_A1N)
+	#ifdef CONFIG_AOD_FEATURE
+	struct dsi_panel_cmds aod_resume_cmds;
+	struct dsi_panel_cmds aod_8color_exit_cmds;
+	#endif
+	#endif
 };
 
 struct dsi_kickoff_action {
@@ -389,6 +403,8 @@ struct dsi_err_container {
 	u32 err_cnt;
 	u32 err_time_delta;
 	u32 max_err_index;
+	u32 dsi_ack_err_cnt;
+	u32 dsi_ack_err_status;
 
 	u32 index;
 	s64 err_time[MAX_ERR_INDEX];
@@ -500,6 +516,18 @@ struct mdss_dsi_ctrl_pdata {
 	struct dsi_panel_cmds lp_on_cmds;
 	struct dsi_panel_cmds lp_off_cmds;
 	struct dsi_panel_cmds status_cmds;
+	#if defined(CONFIG_FIH_NB1) || defined(CONFIG_FIH_A1N)
+	#ifdef CONFIG_AOD_FEATURE
+	struct dsi_panel_cmds aod_suspend_cmds;
+	struct dsi_panel_cmds aod_resume_cmds;
+
+	struct dsi_panel_cmds aod_8color_enter_cmds;
+	struct dsi_panel_cmds post_aod_8color_enter_cmds;
+	struct dsi_panel_cmds aod_8color_exit_cmds;
+	bool cmd_early_lp_exit;
+	int tp_state;
+	#endif
+	#endif
 	u32 *status_valid_params;
 	u32 *status_cmds_rlen;
 	u32 *status_value;
@@ -721,6 +749,14 @@ static inline const char *__mdss_dsi_pm_name(enum dsi_pm_type module)
 	case DSI_CTRL_PM:	return "DSI_CTRL_PM";
 	case DSI_PHY_PM:	return "DSI_PHY_PM";
 	case DSI_PANEL_PM:	return "PANEL_PM";
+	#ifdef CONFIG_FIH_NB1
+	#ifdef CONFIG_PANEL_POWER_CONTROL_FEATURE
+	case DSI_VDDIO_PM:	return "DSI_VDDIO_PM";
+	case DSI_VPNL_PM:	return "DSI_VPNL_PM";
+	case DSI_IBB_PM:	return "DSI_IBB_PM";
+	case DSI_LAB_PM:	return "DSI_LAB_PM";
+	#endif
+	#endif
 	default:		return "???";
 	}
 }
@@ -733,6 +769,14 @@ static inline const char *__mdss_dsi_pm_supply_node_name(
 	case DSI_CTRL_PM:	return "qcom,ctrl-supply-entries";
 	case DSI_PHY_PM:	return "qcom,phy-supply-entries";
 	case DSI_PANEL_PM:	return "qcom,panel-supply-entries";
+	#ifdef CONFIG_FIH_NB1
+	#ifdef CONFIG_PANEL_POWER_CONTROL_FEATURE
+	case DSI_VDDIO_PM:	return "qcom,panel-vddio-supply-entries";
+	case DSI_VPNL_PM:	return "qcom,panel-vpnl-supply-entries";
+	case DSI_IBB_PM:	return "qcom,panel-ibb-supply-entries";
+	case DSI_LAB_PM:	return "qcom,panel-lab-supply-entries";
+	#endif
+	#endif
 	default:		return "???";
 	}
 }
