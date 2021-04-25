@@ -39,7 +39,16 @@
 #include "../codecs/wcd9335.h"
 #include "../codecs/wcd934x/wcd934x.h"
 #include "../codecs/wcd934x/wcd934x-mbhc.h"
+#if !defined(CONFIG_FIH_PM1) && !defined(CONFIG_FIH_A1N)
 #include "../codecs/wsa881x.h"
+#define USE_QC_HIFI_AMP
+#define USE_QC_SPK_AMP
+#define USE_QC_MBHC
+#else
+#undef USE_QC_HIFI_AMP
+#undef USE_QC_SPK_AMP
+#undef USE_QC_MBHC
+#endif
 
 #define DRV_NAME "msm8998-asoc-snd"
 
@@ -60,14 +69,18 @@
 #define SAMPLING_RATE_352P8KHZ  352800
 #define SAMPLING_RATE_384KHZ    384000
 
+#ifdef USE_QC_MBHC
 #define WCD9XXX_MBHC_DEF_BUTTONS    8
 #define WCD9XXX_MBHC_DEF_RLOADS     5
+#endif
 #define CODEC_EXT_CLK_RATE          9600000
 #define ADSP_STATE_READY_TIMEOUT_MS 3000
 #define DEV_NAME_STR_LEN            32
 
+#ifdef USE_QC_SPK_AMP
 #define WSA8810_NAME_1 "wsa881x.20170211"
 #define WSA8810_NAME_2 "wsa881x.20170212"
+#endif
 
 #define WCN_CDC_SLIM_RX_CH_MAX 2
 #define WCN_CDC_SLIM_TX_CH_MAX 3
@@ -75,7 +88,14 @@
 #define TDM_CHANNEL_MAX 16
 #define TDM_SLOT_OFFSET_MAX 32
 
+#ifdef USE_QC_HIFI_AMP
 #define MSM_HIFI_ON 1
+#endif
+#if defined(CONFIG_FIH_NB1) || defined(CONFIG_FIH_A1N)  || defined(CONFIG_FIH_F11)
+/*MM-JohnHCChiang-BBS log-00+{ */
+#define BBOX_WCD_REGISTER_ADSP_NOTIFIER_FAILED do {printk("BBox::UEC;2::2\n");} while(0);
+/*MM-JohnHCChiang-BBS log-00+} */
+#endif
 
 enum {
 	PRIMARY_TDM_RX_0,
@@ -178,11 +198,14 @@ enum {
 	EXT_DISP_RX_IDX_MAX,
 };
 
+#ifdef USE_QC_SPK_AMP
 struct msm_wsa881x_dev_info {
 	struct device_node *of_node;
 	u32 index;
 };
+#endif
 
+#ifndef CONFIG_FIH_PM1
 enum pinctrl_pin_state {
 	STATE_DISABLE = 0, /* All pins are in sleep state */
 	STATE_MI2S_ACTIVE,  /* IS2 = active, TDM = sleep */
@@ -197,25 +220,36 @@ struct msm_pinctrl_info {
 	struct pinctrl_state *tdm_active;
 	enum pinctrl_pin_state curr_state;
 };
+#endif
 
 struct msm_asoc_mach_data {
 	u32 mclk_freq;
 	int us_euro_gpio; /* used by gpio driver API */
+#if defined(CONFIG_FIH_PM1) || defined(CONFIG_FIH_A1N)
+	int hac_amp_en_gpio;
+	struct device_node *hac_amp_en_gpio_p;
+#endif
 	struct device_node *us_euro_gpio_p; /* used by pinctrl API */
 	struct device_node *hph_en1_gpio_p; /* used by pinctrl API */
 	struct device_node *hph_en0_gpio_p; /* used by pinctrl API */
 	struct snd_info_entry *codec_root;
+#ifndef CONFIG_FIH_PM1
 	struct msm_pinctrl_info pinctrl_info;
+#endif
 };
 
 struct msm_asoc_wcd93xx_codec {
 	void* (*get_afe_config_fn)(struct snd_soc_codec *codec,
 				   enum afe_config_type config_type);
+#ifdef USE_QC_MBHC
 	void (*mbhc_hs_detect_exit)(struct snd_soc_codec *codec);
+#endif
 };
 
+#ifndef CONFIG_FIH_PM1
 static const char *const pin_states[] = {"sleep", "i2s-active",
 					 "tdm-active"};
+#endif
 
 enum {
 	TDM_0 = 0,
@@ -384,7 +418,11 @@ static struct dev_config mi2s_rx_cfg[] = {
 	[PRIM_MI2S] = {SAMPLING_RATE_48KHZ, SNDRV_PCM_FORMAT_S16_LE, 2},
 	[SEC_MI2S]  = {SAMPLING_RATE_48KHZ, SNDRV_PCM_FORMAT_S16_LE, 2},
 	[TERT_MI2S] = {SAMPLING_RATE_48KHZ, SNDRV_PCM_FORMAT_S16_LE, 2},
+#if defined(CONFIG_FIH_PM1) || defined(CONFIG_FIH_A1N) || defined(CONFIG_FIH_NB1)  || defined(CONFIG_FIH_F11)
+	[QUAT_MI2S] = {SAMPLING_RATE_48KHZ, SNDRV_PCM_FORMAT_S16_LE, 1},
+#else
 	[QUAT_MI2S] = {SAMPLING_RATE_48KHZ, SNDRV_PCM_FORMAT_S16_LE, 2},
+#endif
 };
 
 static struct dev_config mi2s_tx_cfg[] = {
@@ -519,6 +557,11 @@ static unsigned int tdm_tx_slot_offset
 		{0xFFFF}, /* not used */
 	}
 };
+
+#if defined(CONFIG_FIH_PM1) || defined(CONFIG_FIH_A1N)
+static int ext_hac_amp_en_gpio = -1;
+#endif
+
 static int msm_vi_feed_tx_ch = 2;
 static const char *const slim_rx_ch_text[] = {"One", "Two", "Three", "Four",
 						"Five", "Six", "Seven",
@@ -570,7 +613,9 @@ static char const *mi2s_rate_text[] = {"KHZ_8", "KHZ_16",
 static const char *const mi2s_ch_text[] = {"One", "Two", "Three", "Four",
 					   "Five", "Six", "Seven",
 					   "Eight"};
+#ifdef USE_QC_HIFI_AMP
 static const char *const hifi_text[] = {"Off", "On"};
+#endif
 
 static SOC_ENUM_SINGLE_EXT_DECL(slim_0_rx_chs, slim_rx_ch_text);
 static SOC_ENUM_SINGLE_EXT_DECL(slim_2_rx_chs, slim_rx_ch_text);
@@ -636,23 +681,34 @@ static SOC_ENUM_SINGLE_EXT_DECL(quat_mi2s_rx_chs, mi2s_ch_text);
 static SOC_ENUM_SINGLE_EXT_DECL(quat_mi2s_tx_chs, mi2s_ch_text);
 static SOC_ENUM_SINGLE_EXT_DECL(mi2s_rx_format, bit_format_text);
 static SOC_ENUM_SINGLE_EXT_DECL(mi2s_tx_format, bit_format_text);
+#ifdef USE_QC_HIFI_AMP
 static SOC_ENUM_SINGLE_EXT_DECL(hifi_function, hifi_text);
+#endif
 
 static struct platform_device *spdev;
+#ifdef USE_QC_HIFI_AMP
 static int msm_hifi_control;
+#endif
 
 static bool is_initial_boot;
 static bool codec_reg_done;
+#ifdef USE_QC_SPK_AMP
 static struct snd_soc_aux_dev *msm_aux_dev;
 static struct snd_soc_codec_conf *msm_codec_conf;
+#endif
 static struct msm_asoc_wcd93xx_codec msm_codec_fn;
 
+#ifdef USE_QC_MBHC
 static void *def_tasha_mbhc_cal(void);
 static void *def_tavil_mbhc_cal(void);
+#endif
 static int msm_snd_enable_codec_ext_clk(struct snd_soc_codec *codec,
 					int enable, bool dapm);
+#ifdef USE_QC_SPK_AMP
 static int msm_wsa881x_init(struct snd_soc_component *component);
+#endif
 
+#ifdef USE_QC_MBHC
 /*
  * Need to report LINEIN
  * if R/L channel impedance is larger than 5K ohm
@@ -665,9 +721,15 @@ static struct wcd_mbhc_config wcd_mbhc_cfg = {
 	.swap_gnd_mic = NULL,
 	.hs_ext_micbias = true,
 	.key_code[0] = KEY_MEDIA,
+#if defined(CONFIG_FIH_NB1)  || defined(CONFIG_FIH_F11)
+	.key_code[1] = KEY_VOLUMEUP,
+	.key_code[2] = KEY_VOLUMEDOWN,
+	.key_code[3] = 0,
+#else
 	.key_code[1] = KEY_VOICECOMMAND,
 	.key_code[2] = KEY_VOLUMEUP,
 	.key_code[3] = KEY_VOLUMEDOWN,
+#endif
 	.key_code[4] = 0,
 	.key_code[5] = 0,
 	.key_code[6] = 0,
@@ -678,6 +740,7 @@ static struct wcd_mbhc_config wcd_mbhc_cfg = {
 	.anc_micbias = MIC_BIAS_2,
 	.enable_anc_mic_detect = false,
 };
+#endif
 
 static struct snd_soc_dapm_route wcd_audio_paths_tasha[] = {
 	{"MIC BIAS1", NULL, "MCLK TX"},
@@ -3094,6 +3157,7 @@ static int msm_mi2s_tx_format_put(struct snd_kcontrol *kcontrol,
 	return 0;
 }
 
+#ifdef USE_QC_HIFI_AMP
 static int msm_hifi_ctrl(struct snd_soc_codec *codec)
 {
 	struct snd_soc_dapm_context *dapm = snd_soc_codec_get_dapm(codec);
@@ -3143,6 +3207,7 @@ static int msm_hifi_put(struct snd_kcontrol *kcontrol,
 
 	return 0;
 }
+#endif
 
 static const struct snd_kcontrol_new msm_snd_controls[] = {
 	SOC_ENUM_EXT("SLIM_0_RX Channels", slim_0_rx_chs,
@@ -3630,8 +3695,10 @@ static const struct snd_kcontrol_new msm_snd_controls[] = {
 			msm_mi2s_rx_format_get, msm_mi2s_rx_format_put),
 	SOC_ENUM_EXT("QUAT_MI2S_TX Format", mi2s_tx_format,
 			msm_mi2s_tx_format_get, msm_mi2s_tx_format_put),
+#ifdef USE_QC_HIFI_AMP
 	SOC_ENUM_EXT("HiFi Function", hifi_function, msm_hifi_get,
 			msm_hifi_put),
+#endif
 };
 
 static int msm_snd_enable_codec_ext_clk(struct snd_soc_codec *codec,
@@ -3698,6 +3765,7 @@ static int msm_mclk_event(struct snd_soc_dapm_widget *w,
 	return 0;
 }
 
+#ifdef USE_QC_HIFI_AMP
 static int msm_hifi_ctrl_event(struct snd_soc_dapm_widget *w,
 			       struct snd_kcontrol *k, int event)
 {
@@ -3730,6 +3798,56 @@ static int msm_hifi_ctrl_event(struct snd_soc_dapm_widget *w,
 
 	return 0;
 }
+#endif
+
+#if defined(CONFIG_FIH_PM1) || defined(CONFIG_FIH_A1N)
+static int msm_ext_hac_amp_enable(struct snd_soc_codec *codec, u32 on)
+{
+	struct snd_soc_card *card = codec->component.card;
+	struct msm_asoc_mach_data *pdata =
+				snd_soc_card_get_drvdata(card);
+
+	if (pdata->hac_amp_en_gpio_p) {
+		if (on)
+			msm_cdc_pinctrl_select_active_state(
+							pdata->hac_amp_en_gpio_p);
+		else
+			msm_cdc_pinctrl_select_sleep_state(
+							pdata->hac_amp_en_gpio_p);
+	} else if (pdata->hac_amp_en_gpio >= 0) {
+		if (on)
+			gpio_direction_output(ext_hac_amp_en_gpio, 1);
+		else
+			gpio_direction_output(ext_hac_amp_en_gpio, 0);
+	} else {
+		pr_err("%s: external HAC amplifier enable gpio isn't configured\n",
+				__func__);
+		return -EINVAL;
+	}
+	pr_notice("%s: external HAC amplifier enable GPIO: %s\n", __func__,
+				on ? "Enable" : "Disable");
+	return 0;
+}
+
+static int msm_ext_hac_amp_event(struct snd_soc_dapm_widget *w,
+					struct snd_kcontrol *k, int event)
+{
+	struct snd_soc_codec *codec = snd_soc_dapm_to_codec(w->dapm);
+
+	pr_debug("%s()\n", __func__);
+	if (!strcmp(w->name, "Lineout_1 amp")) {
+		if (SND_SOC_DAPM_EVENT_ON(event))
+			msm_ext_hac_amp_enable(codec, 1);
+		else
+			msm_ext_hac_amp_enable(codec, 0);
+	} else {
+		pr_err("%s: Invalid Widget = %s\n",
+				__func__, w->name);
+		return -EINVAL;
+	}
+	return 0;
+}
+#endif
 
 static const struct snd_soc_dapm_widget msm_dapm_widgets[] = {
 
@@ -3740,15 +3858,31 @@ static const struct snd_soc_dapm_widget msm_dapm_widgets[] = {
 	SND_SOC_DAPM_SUPPLY("MCLK TX",  SND_SOC_NOPM, 0, 0,
 	msm_mclk_tx_event, SND_SOC_DAPM_PRE_PMU | SND_SOC_DAPM_POST_PMD),
 
+#if defined(CONFIG_FIH_PM1) || defined(CONFIG_FIH_A1N)
+	SND_SOC_DAPM_SPK("Lineout_1 amp", msm_ext_hac_amp_event),
+#else
 	SND_SOC_DAPM_SPK("Lineout_1 amp", NULL),
+#endif
 	SND_SOC_DAPM_SPK("Lineout_3 amp", NULL),
 	SND_SOC_DAPM_SPK("Lineout_2 amp", NULL),
 	SND_SOC_DAPM_SPK("Lineout_4 amp", NULL),
+#ifdef USE_QC_HIFI_AMP
 	SND_SOC_DAPM_SPK("hifi amp", msm_hifi_ctrl_event),
+#endif
 	SND_SOC_DAPM_MIC("Handset Mic", NULL),
+#ifdef CONFIG_FIH_PM1
+	SND_SOC_DAPM_MIC("Secondary Mic", NULL),
+	SND_SOC_DAPM_MIC("Third Mic", NULL),
+	SND_SOC_DAPM_MIC("Fourth Mic", NULL),
+#endif
 	SND_SOC_DAPM_MIC("Headset Mic", NULL),
 	SND_SOC_DAPM_MIC("ANCRight Headset Mic", NULL),
 	SND_SOC_DAPM_MIC("ANCLeft Headset Mic", NULL),
+#ifdef CONFIG_FIH_PM1
+	SND_SOC_DAPM_MIC("Analog Mic2", NULL),
+	SND_SOC_DAPM_MIC("Analog Mic3", NULL),
+	SND_SOC_DAPM_MIC("Analog Mic4", NULL),
+#endif
 	SND_SOC_DAPM_MIC("Analog Mic5", NULL),
 	SND_SOC_DAPM_MIC("Analog Mic6", NULL),
 
@@ -4166,6 +4300,7 @@ done:
 	return rc;
 }
 
+#ifdef USE_QC_MBHC
 static bool msm_swap_gnd_mic(struct snd_soc_codec *codec)
 {
 	struct snd_soc_card *card = codec->component.card;
@@ -4188,6 +4323,7 @@ static bool msm_swap_gnd_mic(struct snd_soc_codec *codec)
 	pr_debug("%s: swap select switch %d to %d\n", __func__, value, !value);
 	return true;
 }
+#endif
 
 static int msm_afe_set_config(struct snd_soc_codec *codec)
 {
@@ -4355,7 +4491,9 @@ static int msm_audrx_init(struct snd_soc_pcm_runtime *rtd)
 	struct snd_soc_dapm_context *dapm = snd_soc_codec_get_dapm(codec);
 	struct snd_soc_dai *cpu_dai = rtd->cpu_dai;
 	struct snd_soc_dai *codec_dai = rtd->codec_dai;
+#ifdef USE_QC_SPK_AMP
 	struct snd_soc_pcm_runtime *rtd_aux = rtd->card->rtd_aux;
+#endif
 	struct snd_card *card;
 	struct snd_info_entry *entry;
 	struct msm_asoc_mach_data *pdata =
@@ -4407,6 +4545,11 @@ static int msm_audrx_init(struct snd_soc_pcm_runtime *rtd)
 					ARRAY_SIZE(wcd_audio_paths));
 
 	snd_soc_dapm_ignore_suspend(dapm, "Handset Mic");
+#ifdef CONFIG_FIH_PM1
+	snd_soc_dapm_ignore_suspend(dapm, "Secondary Mic");
+	snd_soc_dapm_ignore_suspend(dapm, "Third Mic");
+	snd_soc_dapm_ignore_suspend(dapm, "Fourth Mic");
+#endif
 	snd_soc_dapm_ignore_suspend(dapm, "Headset Mic");
 	snd_soc_dapm_ignore_suspend(dapm, "ANCRight Headset Mic");
 	snd_soc_dapm_ignore_suspend(dapm, "ANCLeft Headset Mic");
@@ -4416,6 +4559,11 @@ static int msm_audrx_init(struct snd_soc_pcm_runtime *rtd)
 	snd_soc_dapm_ignore_suspend(dapm, "Digital Mic3");
 	snd_soc_dapm_ignore_suspend(dapm, "Digital Mic4");
 	snd_soc_dapm_ignore_suspend(dapm, "Digital Mic5");
+#ifdef CONFIG_FIH_PM1
+	snd_soc_dapm_ignore_suspend(dapm, "Analog Mic2");
+	snd_soc_dapm_ignore_suspend(dapm, "Analog Mic3");
+	snd_soc_dapm_ignore_suspend(dapm, "Analog Mic4");
+#endif
 	snd_soc_dapm_ignore_suspend(dapm, "Analog Mic5");
 	snd_soc_dapm_ignore_suspend(dapm, "Analog Mic6");
 	snd_soc_dapm_ignore_suspend(dapm, "MADINPUT");
@@ -4458,7 +4606,9 @@ static int msm_audrx_init(struct snd_soc_pcm_runtime *rtd)
 		msm_codec_fn.get_afe_config_fn = tavil_get_afe_config;
 	} else {
 		msm_codec_fn.get_afe_config_fn = tasha_get_afe_config;
+#ifdef USE_QC_MBHC
 		msm_codec_fn.mbhc_hs_detect_exit = tasha_mbhc_hs_detect_exit;
+#endif
 	}
 
 	ret = msm_adsp_power_up_config(codec);
@@ -4509,6 +4659,7 @@ static int msm_audrx_init(struct snd_soc_pcm_runtime *rtd)
 	pr_debug("%s: Number of aux devices: %d\n",
 		__func__, rtd->card->num_aux_devs);
 	if (!strcmp(dev_name(codec_dai->dev), "tavil_codec")) {
+#ifdef USE_QC_SPK_AMP
 		if (rtd->card->num_aux_devs && rtd_aux && rtd_aux->component)
 			if (!strcmp(rtd_aux->component->name, WSA8810_NAME_1) ||
 			    !strcmp(rtd_aux->component->name, WSA8810_NAME_2)) {
@@ -4516,6 +4667,7 @@ static int msm_audrx_init(struct snd_soc_pcm_runtime *rtd)
 				tavil_set_spkr_gain_offset(rtd->codec,
 							RX_GAIN_OFFSET_M1P5_DB);
 		}
+#endif
 		card = rtd->card->snd_card;
 		entry = snd_register_module_info(card->module, "codecs",
 						 card->proc_root);
@@ -4528,6 +4680,7 @@ static int msm_audrx_init(struct snd_soc_pcm_runtime *rtd)
 		pdata->codec_root = entry;
 		tavil_codec_info_create_codec_entry(pdata->codec_root, codec);
 	} else {
+#ifdef USE_QC_SPK_AMP
 		if (rtd->card->num_aux_devs && rtd_aux && rtd_aux->component)
 			if (!strcmp(rtd_aux->component->name, WSA8810_NAME_1) ||
 			    !strcmp(rtd_aux->component->name, WSA8810_NAME_2)) {
@@ -4535,6 +4688,7 @@ static int msm_audrx_init(struct snd_soc_pcm_runtime *rtd)
 				tasha_set_spkr_gain_offset(rtd->codec,
 							RX_GAIN_OFFSET_M1P5_DB);
 		}
+#endif
 		card = rtd->card->snd_card;
 		entry = snd_register_module_info(card->module, "codecs",
 						 card->proc_root);
@@ -4566,6 +4720,7 @@ static int msm_wcn_init(struct snd_soc_pcm_runtime *rtd)
 					   tx_ch, ARRAY_SIZE(rx_ch), rx_ch);
 }
 
+#ifdef USE_QC_MBHC
 static void *def_tasha_mbhc_cal(void)
 {
 	void *tasha_wcd_cal;
@@ -4578,7 +4733,7 @@ static void *def_tasha_mbhc_cal(void)
 		return NULL;
 
 #define S(X, Y) ((WCD_MBHC_CAL_PLUG_TYPE_PTR(tasha_wcd_cal)->X) = (Y))
-	S(v_hs_max, 1600);
+	S(v_hs_max, 1700);
 #undef S
 #define S(X, Y) ((WCD_MBHC_CAL_BTN_DET_PTR(tasha_wcd_cal)->X) = (Y))
 	S(num_btn, WCD_MBHC_DEF_BUTTONS);
@@ -4588,9 +4743,17 @@ static void *def_tasha_mbhc_cal(void)
 	btn_high = ((void *)&btn_cfg->_v_btn_low) +
 		(sizeof(btn_cfg->_v_btn_low[0]) * btn_cfg->num_btn);
 
+#if defined(CONFIG_FIH_NB1) || defined(CONFIG_FIH_A1N)  || defined(CONFIG_FIH_F11)
+	/*NB1-3197-MM-JohnHCChiang-Fenda Headset-00+{ */
+	btn_high[0] = 105;
+	/*NB1-3197-MM-JohnHCChiang-Fenda Headset-00+} */
+	btn_high[1] = 225;
+	btn_high[2] = 500;
+#else
 	btn_high[0] = 75;
 	btn_high[1] = 150;
 	btn_high[2] = 237;
+#endif
 	btn_high[3] = 500;
 	btn_high[4] = 500;
 	btn_high[5] = 500;
@@ -4633,6 +4796,7 @@ static void *def_tavil_mbhc_cal(void)
 
 	return tavil_wcd_cal;
 }
+#endif
 
 static int msm_snd_hw_params(struct snd_pcm_substream *substream,
 			     struct snd_pcm_hw_params *params)
@@ -5036,11 +5200,15 @@ done:
 	return ret;
 }
 
+#ifndef CONFIG_FIH_PM1
 static int msm_set_pinctrl(struct msm_pinctrl_info *pinctrl_info,
 				enum pinctrl_pin_state new_state)
 {
 	int ret = 0;
 	int curr_state = 0;
+#if defined(CONFIG_FIH_NB1) || defined(CONFIG_FIH_A1N)  || defined(CONFIG_FIH_F11)
+	return 0;
+#endif
 
 	if (pinctrl_info == NULL) {
 		pr_err("%s: pinctrl_info is NULL\n", __func__);
@@ -5135,6 +5303,9 @@ static int msm_get_pinctrl(struct platform_device *pdev)
 	struct msm_pinctrl_info *pinctrl_info = NULL;
 	struct pinctrl *pinctrl;
 	int ret;
+#if defined(CONFIG_FIH_NB1) || defined(CONFIG_FIH_A1N)  || defined(CONFIG_FIH_F11)
+	return 0;
+#endif
 
 	pinctrl_info = &pdata->pinctrl_info;
 
@@ -6363,6 +6534,7 @@ static struct snd_soc_ops msm8998_tdm_be_ops = {
 	.startup = msm8998_tdm_snd_startup,
 	.shutdown = msm8998_tdm_snd_shutdown
 };
+#endif
 
 static int msm_mi2s_snd_startup(struct snd_pcm_substream *substream)
 {
@@ -6371,10 +6543,12 @@ static int msm_mi2s_snd_startup(struct snd_pcm_substream *substream)
 	struct snd_soc_dai *cpu_dai = rtd->cpu_dai;
 	int index = cpu_dai->id;
 	unsigned int fmt = SND_SOC_DAIFMT_CBS_CFS;
+#if defined(CONFIG_FIH_NB1) || defined(CONFIG_FIH_A1N)  || defined(CONFIG_FIH_F11)
 	struct snd_soc_card *card = rtd->card;
 	struct msm_asoc_mach_data *pdata = snd_soc_card_get_drvdata(card);
 	struct msm_pinctrl_info *pinctrl_info = &pdata->pinctrl_info;
 	int ret_pinctrl = 0;
+#endif
 
 	dev_dbg(rtd->card->dev,
 		"%s: substream = %s  stream = %d, dai name %s, dai ID %d\n",
@@ -6388,6 +6562,7 @@ static int msm_mi2s_snd_startup(struct snd_pcm_substream *substream)
 			__func__, cpu_dai->id);
 		goto done;
 	}
+#if defined(CONFIG_FIH_NB1) || defined(CONFIG_FIH_A1N)  || defined(CONFIG_FIH_F11)
 	if (index == QUAT_MI2S) {
 		ret_pinctrl = msm_set_pinctrl(pinctrl_info, STATE_MI2S_ACTIVE);
 		if (ret_pinctrl) {
@@ -6395,6 +6570,7 @@ static int msm_mi2s_snd_startup(struct snd_pcm_substream *substream)
 				__func__, ret_pinctrl);
 		}
 	}
+#endif
 
 	/*
 	 * Muxtex protection in case the same MI2S
@@ -6450,10 +6626,12 @@ static void msm_mi2s_snd_shutdown(struct snd_pcm_substream *substream)
 	int ret;
 	struct snd_soc_pcm_runtime *rtd = substream->private_data;
 	int index = rtd->cpu_dai->id;
+#if defined(CONFIG_FIH_NB1) || defined(CONFIG_FIH_A1N) || defined(CONFIG_FIH_F11)
 	struct snd_soc_card *card = rtd->card;
 	struct msm_asoc_mach_data *pdata = snd_soc_card_get_drvdata(card);
 	struct msm_pinctrl_info *pinctrl_info = &pdata->pinctrl_info;
 	int ret_pinctrl = 0;
+#endif
 
 	pr_debug("%s(): substream = %s  stream = %d\n", __func__,
 		 substream->name, substream->stream);
@@ -6471,12 +6649,14 @@ static void msm_mi2s_snd_shutdown(struct snd_pcm_substream *substream)
 	}
 	mutex_unlock(&mi2s_intf_conf[index].lock);
 
+#if defined(CONFIG_FIH_NB1) || defined(CONFIG_FIH_A1N) || defined(CONFIG_FIH_F11)
 	if (index == QUAT_MI2S) {
 		ret_pinctrl = msm_set_pinctrl(pinctrl_info, STATE_DISABLE);
 		if (ret_pinctrl)
 			pr_err("%s: MI2S TLMM pinctrl set failed with %d\n",
 				__func__, ret_pinctrl);
 	}
+#endif
 }
 
 static struct snd_soc_ops msm_mi2s_be_ops = {
@@ -7164,6 +7344,26 @@ static struct snd_soc_dai_link msm_tasha_fe_dai_links[] = {
 		.codec_dai_name = "tasha_cpe",
 		.codec_name = "tasha_codec",
 	},
+#if defined(CONFIG_FIH_PM1) || defined(CONFIG_FIH_A1N)
+	/* Quaternary MI2S RX DAI Link */
+	{
+		.name = "QUAT_MI2S_RX Hostless",
+		.stream_name = "QUAT_MI2S_RX Hostless",
+		.cpu_dai_name = "QUAT_MI2S_RX_HOSTLESS",
+		.platform_name = "msm-pcm-hostless",
+		.dynamic = 1,
+		.dpcm_playback = 1,
+		.trigger = {SND_SOC_DPCM_TRIGGER_POST,
+			    SND_SOC_DPCM_TRIGGER_POST},
+		.no_host_mode = SND_SOC_DAI_LINK_NO_HOST,
+		.ignore_suspend = 1,
+		/* this dainlink has playback support */
+		.ignore_pmdown_time = 1,
+		.codec_dai_name = "snd-soc-dummy-dai",
+		.codec_name = "snd-soc-dummy",
+
+	},
+#endif
 };
 
 static struct snd_soc_dai_link msm_tavil_fe_dai_links[] = {
@@ -7664,8 +7864,13 @@ static struct snd_soc_dai_link msm_common_be_dai_links[] = {
 		.no_pcm = 1,
 		.dpcm_playback = 1,
 		.be_id = MSM_BACKEND_DAI_QUAT_TDM_RX_0,
+#ifdef CONFIG_FIH_PM1
+		.be_hw_params_fixup = msm_be_hw_params_fixup,
+		.ops = &msm_tdm_be_ops,
+#else
 		.be_hw_params_fixup = msm_tdm_be_hw_params_fixup,
 		.ops = &msm8998_tdm_be_ops,
+#endif
 		.ignore_suspend = 1,
 	},
 	{
@@ -8223,8 +8428,15 @@ static struct snd_soc_dai_link msm_mi2s_be_dai_links[] = {
 		.stream_name = "Quaternary MI2S Playback",
 		.cpu_dai_name = "msm-dai-q6-mi2s.3",
 		.platform_name = "msm-pcm-routing",
+#if defined(CONFIG_SND_SOC_TFA98XX) || defined(CONFIG_SND_SOC_TFA9892) || defined(CONFIG_FIH_PM1)
+//MM-JC-Porting smartamp speaker-00+{
+		.codec_name = "tfa98xx.9-0034",
+		.codec_dai_name = "tfa98xx-aif-9-34",
+//MM-JC-Porting smartamp speaker-00+}
+#else
 		.codec_name = "msm-stub-codec.1",
 		.codec_dai_name = "msm-stub-rx",
+#endif
 		.no_pcm = 1,
 		.dpcm_playback = 1,
 		.be_id = MSM_BACKEND_DAI_QUATERNARY_MI2S_RX,
@@ -8492,7 +8704,9 @@ static int msm_snd_card_late_probe(struct snd_soc_card *card)
 	const char *be_dl_name = LPASS_BE_SLIMBUS_0_RX;
 	struct snd_soc_pcm_runtime *rtd;
 	int ret = 0;
+#ifdef USE_QC_MBHC
 	void *mbhc_calibration;
+#endif
 
 	rtd = snd_soc_get_pcm_runtime(card, be_dl_name);
 	if (!rtd) {
@@ -8503,6 +8717,7 @@ static int msm_snd_card_late_probe(struct snd_soc_card *card)
 		goto err_pcm_runtime;
 	}
 
+#ifdef USE_QC_MBHC
 	mbhc_calibration = def_tasha_mbhc_cal();
 	if (!mbhc_calibration) {
 		ret = -ENOMEM;
@@ -8515,11 +8730,15 @@ static int msm_snd_card_late_probe(struct snd_soc_card *card)
 			__func__, ret);
 		goto err_hs_detect;
 	}
+#endif
+
 	return 0;
 
+#ifdef USE_QC_MBHC
 err_hs_detect:
 	kfree(mbhc_calibration);
 err_mbhc_cal:
+#endif
 err_pcm_runtime:
 	return ret;
 }
@@ -8529,7 +8748,9 @@ static int msm_snd_card_tavil_late_probe(struct snd_soc_card *card)
 	const char *be_dl_name = LPASS_BE_SLIMBUS_0_RX;
 	struct snd_soc_pcm_runtime *rtd;
 	int ret = 0;
+#ifdef USE_QC_MBHC
 	void *mbhc_calibration;
+#endif
 
 	rtd = snd_soc_get_pcm_runtime(card, be_dl_name);
 	if (!rtd) {
@@ -8540,6 +8761,7 @@ static int msm_snd_card_tavil_late_probe(struct snd_soc_card *card)
 		goto err_pcm_runtime;
 	}
 
+#ifdef USE_QC_MBHC
 	mbhc_calibration = def_tavil_mbhc_cal();
 	if (!mbhc_calibration) {
 		ret = -ENOMEM;
@@ -8552,11 +8774,14 @@ static int msm_snd_card_tavil_late_probe(struct snd_soc_card *card)
 			__func__, ret);
 		goto err_hs_detect;
 	}
+#endif
 	return 0;
 
+#ifdef USE_QC_MBHC
 err_hs_detect:
 	kfree(mbhc_calibration);
 err_mbhc_cal:
+#endif
 err_pcm_runtime:
 	return ret;
 }
@@ -8657,6 +8882,29 @@ err:
 	return ret;
 }
 
+#if defined(CONFIG_FIH_PM1) || defined(CONFIG_FIH_A1N)
+static int msm_prepare_hac_amp(struct snd_soc_card *card)
+{
+	struct msm_asoc_mach_data *pdata =
+				snd_soc_card_get_drvdata(card);
+	int ret = 0;
+
+	if (pdata->hac_amp_en_gpio >= 0) {
+		dev_dbg(card->dev, "%s: hac_amp_en gpio request %d", __func__,
+			pdata->hac_amp_en_gpio);
+		ret = gpio_request(pdata->hac_amp_en_gpio, "ext_hac_amp_en_gpio");
+		if (ret) {
+			dev_err(card->dev,
+				"%s: Failed to request external HAC amplifier enable gpio %d error %d\n",
+				__func__, pdata->hac_amp_en_gpio, ret);
+		}
+	}
+
+	return ret;
+}
+#endif
+
+#ifdef USE_QC_MBHC
 static int msm_prepare_us_euro(struct snd_soc_card *card)
 {
 	struct msm_asoc_mach_data *pdata =
@@ -8676,6 +8924,7 @@ static int msm_prepare_us_euro(struct snd_soc_card *card)
 
 	return ret;
 }
+#endif
 
 static int msm_audrx_stub_init(struct snd_soc_pcm_runtime *rtd)
 {
@@ -8972,6 +9221,7 @@ static struct snd_soc_card *populate_snd_card_dailinks(struct device *dev)
 	return card;
 }
 
+#ifdef USE_QC_SPK_AMP
 static int msm_wsa881x_init(struct snd_soc_component *component)
 {
 	u8 spkleft_ports[WSA881X_MAX_SWR_PORTS] = {100, 101, 102, 106};
@@ -9211,6 +9461,7 @@ err_mem:
 err_dt:
 	return ret;
 }
+#endif
 
 static void i2s_auxpcm_init(struct platform_device *pdev)
 {
@@ -9278,7 +9529,9 @@ static int msm_asoc_machine_probe(struct platform_device *pdev)
 {
 	struct snd_soc_card *card;
 	struct msm_asoc_mach_data *pdata;
+#ifdef USE_QC_MBHC
 	const char *mbhc_audio_jack_type = NULL;
+#endif
 	char *mclk_freq_prop_name;
 	const struct of_device_id *match;
 	int ret;
@@ -9352,9 +9605,11 @@ static int msm_asoc_machine_probe(struct platform_device *pdev)
 		ret = -EPROBE_DEFER;
 		goto err;
 	}
+#ifdef USE_QC_SPK_AMP
 	ret = msm_init_wsa_dev(pdev, card);
 	if (ret)
 		goto err;
+#endif
 
 	ret = devm_snd_soc_register_card(&pdev->dev, card);
 	if (ret == -EPROBE_DEFER) {
@@ -9373,7 +9628,9 @@ static int msm_asoc_machine_probe(struct platform_device *pdev)
 	if (ret) {
 		dev_dbg(&pdev->dev, "%s: failed to add child nodes, ret=%d\n",
 			__func__, ret);
-	} else {
+	} 
+#ifdef USE_QC_HIFI_AMP
+	else {
 		pdata->hph_en1_gpio_p = of_parse_phandle(pdev->dev.of_node,
 							"qcom,hph-en1-gpio", 0);
 		if (!pdata->hph_en1_gpio_p) {
@@ -9390,7 +9647,9 @@ static int msm_asoc_machine_probe(struct platform_device *pdev)
 				pdev->dev.of_node->full_name);
 		}
 	}
+#endif
 
+#ifdef USE_QC_MBHC
 	ret = of_property_read_string(pdev->dev.of_node,
 		"qcom,mbhc-audio-jack-type", &mbhc_audio_jack_type);
 	if (ret) {
@@ -9436,6 +9695,7 @@ static int msm_asoc_machine_probe(struct platform_device *pdev)
 	if (ret)
 		dev_dbg(&pdev->dev, "msm_prepare_us_euro failed (%d)\n",
 			ret);
+#endif
 
 	/* Parse pinctrl info from devicetree */
 	ret = msm_get_pinctrl(pdev);
@@ -9453,18 +9713,57 @@ static int msm_asoc_machine_probe(struct platform_device *pdev)
 	is_initial_boot = true;
 	ret = audio_notifier_register("msm8998", AUDIO_NOTIFIER_ADSP_DOMAIN,
 				      &service_nb);
+#if defined(CONFIG_FIH_NB1) || defined(CONFIG_FIH_A1N) || defined(CONFIG_FIH_F11)
+	if (ret < 0){
+		pr_err("%s: Audio notifier register failed ret = %d\n",
+			__func__, ret);
+		/*MM-JohnHCChiang-BBS log-00+{ */
+		printk("BBox;Failed to register adsp state notifier\n");
+		BBOX_WCD_REGISTER_ADSP_NOTIFIER_FAILED;
+		/*MM-JohnHCChiang-BBS log-00+} */
+	}
+#else
 	if (ret < 0)
 		pr_err("%s: Audio notifier register failed ret = %d\n",
 			__func__, ret);
-
+#endif
+#if defined(CONFIG_FIH_PM1) || defined(CONFIG_FIH_A1N)
+	/* external HAC amplifier */
+	pdata->hac_amp_en_gpio = of_get_named_gpio(pdev->dev.of_node,
+				"fih,hac-amp-en-gpio", 0);
+	if (!gpio_is_valid(pdata->hac_amp_en_gpio))
+		pdata->hac_amp_en_gpio_p = of_parse_phandle(pdev->dev.of_node,
+					"fih,hac-amp-en-gpio", 0);
+	if (!gpio_is_valid(pdata->hac_amp_en_gpio) && (!pdata->hac_amp_en_gpio_p)) {
+		dev_info(&pdev->dev, "property %s not detected in node %s",
+			"fih,hac-amp-en-gpio", pdev->dev.of_node->full_name);
+	} else {
+		dev_dbg(&pdev->dev, "%s detected",
+			"fih,hac-amp-en-gpio");
+	}
+	ret = msm_prepare_hac_amp(card);
+	if (ret)
+		dev_info(&pdev->dev, "msm_prepare_hac_amp failed (%d)\n",
+			ret);
+#endif
 	return 0;
 err:
+#if defined(CONFIG_FIH_PM1) || defined(CONFIG_FIH_A1N)
+	if (pdata->hac_amp_en_gpio > 0) {
+		dev_dbg(&pdev->dev, "%s free hac_amp_en gpio %d\n",
+			__func__, pdata->hac_amp_en_gpio);
+		gpio_free(pdata->hac_amp_en_gpio);
+		pdata->hac_amp_en_gpio = 0;
+	}
+#endif
+#ifdef USE_QC_MBHC
 	if (pdata->us_euro_gpio > 0) {
 		dev_dbg(&pdev->dev, "%s free us_euro gpio %d\n",
 			__func__, pdata->us_euro_gpio);
 		gpio_free(pdata->us_euro_gpio);
 		pdata->us_euro_gpio = 0;
 	}
+#endif
 	msm_release_pinctrl(pdev);
 	devm_kfree(&pdev->dev, pdata);
 	return ret;
@@ -9476,7 +9775,12 @@ static int msm_asoc_machine_remove(struct platform_device *pdev)
 	struct msm_asoc_mach_data *pdata =
 				snd_soc_card_get_drvdata(card);
 
+#if defined(CONFIG_FIH_PM1) || defined(CONFIG_FIH_A1N)
+	gpio_free(pdata->hac_amp_en_gpio);
+#endif
+#ifdef USE_QC_MBHC
 	gpio_free(pdata->us_euro_gpio);
+#endif
 	i2s_auxpcm_deinit();
 
 	snd_soc_unregister_card(card);
