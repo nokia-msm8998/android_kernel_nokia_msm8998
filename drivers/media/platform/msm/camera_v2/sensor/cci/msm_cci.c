@@ -1788,11 +1788,6 @@ static int32_t msm_cci_config(struct v4l2_subdev *sd,
 		rc = msm_cci_init(sd, cci_ctrl);
 		break;
 	case MSM_CCI_RELEASE:
-#if defined(CONFIG_FIH_NB1) || defined(CONFIG_FIH_A1N)
-		if (cci_ctrl && cci_ctrl->cci_info)
-			pr_err("%s:%d master %d, msm_cci_release sid 0x%x\n", __func__, __LINE__,
-				cci_ctrl->cci_info->cci_i2c_master, cci_ctrl->cci_info->sid);
-#endif
 		rc = msm_cci_release(sd);
 		break;
 	case MSM_CCI_I2C_READ:
