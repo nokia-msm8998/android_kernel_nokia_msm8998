@@ -1689,7 +1689,6 @@ static int mdss_fb_resume(struct platform_device *pdev)
 static int mdss_fb_pm_suspend(struct device *dev)
 {
 	struct msm_fb_data_type *mfd = dev_get_drvdata(dev);
-	int rc = 0;
 
 	if (!mfd)
 		return -ENODEV;
