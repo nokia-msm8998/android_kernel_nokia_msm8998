@@ -105,8 +105,6 @@ module_param_named(
 	tmr_add, tmr_add, uint, S_IRUGO | S_IWUSR | S_IWGRP
 );
 
-static uint32_t ref_premature_cnt = 1;
-
 static bool cluster_use_deepest_state;
 module_param(cluster_use_deepest_state, bool, 0664);
 
