@@ -211,7 +211,7 @@ struct stmvl53l0_api_fn_t {
 	int8_t (*PerformSingleMeasurement)(VL53L0_DEV Dev);
 	int8_t (*PerformRefCalibration)(VL53L0_DEV Dev,
 				uint8_t *pVhvSettings, uint8_t *pPhaseCal);
-	int8_t (*SetRefCalibration)(VL53L0_DEV Dev, uint8_t VhvSettings, uint8_t PhaseCal); 
+	int8_t (*SetRefCalibration)(VL53L0_DEV Dev, uint8_t VhvSettings, uint8_t PhaseCal);
 	int8_t (*GetRefCalibration)(VL53L0_DEV Dev, uint8_t *pVhvSettings, uint8_t *pPhaseCal);
 	int8_t (*PerformXTalkCalibration)(VL53L0_DEV Dev,
 				FixPoint1616_t XTalkCalDistance,
@@ -846,7 +846,7 @@ static void stmvl53l0_ps_read_measurement(struct stmvl53l0_data *data)
 		data->rangeData.MeasurementTimeUsec);
 	input_report_abs(data->input_dev_ps, ABS_HAT3Y,
 		data->rangeData.RangeDMaxMilliMeter);
-	Status = papi_func_tbl->GetLimitCheckCurrent(vl53l0_dev, 
+	Status = papi_func_tbl->GetLimitCheckCurrent(vl53l0_dev,
 										VL53L0_CHECKENABLE_SIGMA_FINAL_RANGE,
 										&LimitCheckCurrent);
 	if (Status == VL53L0_ERROR_NONE) {
@@ -925,8 +925,8 @@ static irqreturn_t stmvl53l0_interrupt_handler(int vec, void *info)
 static void stmvl53l0_ps_read_fake_measurement(struct stmvl53l0_data *data)
 {
 	struct timeval tv;
-	VL53L0_DEV vl53l0_dev = data;
-	VL53L0_Error Status = VL53L0_ERROR_NONE;
+	// VL53L0_DEV vl53l0_dev = data;
+	// VL53L0_Error Status = VL53L0_ERROR_NONE;
 	FixPoint1616_t LimitCheckCurrent = 1350000;
 
 	do_gettimeofday(&tv);
@@ -941,7 +941,7 @@ static void stmvl53l0_ps_read_fake_measurement(struct stmvl53l0_data *data)
 	input_report_abs(data->input_dev_ps, ABS_HAT2Y, 7168);
 	input_report_abs(data->input_dev_ps, ABS_HAT3X, 0);
 	input_report_abs(data->input_dev_ps, ABS_HAT3Y, 953);
-	//Status = papi_func_tbl->GetLimitCheckCurrent(vl53l0_dev, 
+	//Status = papi_func_tbl->GetLimitCheckCurrent(vl53l0_dev,
 	//									VL53L0_CHECKENABLE_SIGMA_FINAL_RANGE,
 	//									&LimitCheckCurrent);
 	//if (Status == VL53L0_ERROR_NONE) {
@@ -981,7 +981,7 @@ int stmvl53l0_poll_thread(void *data)
 
 	while(!kthread_should_stop()) {
 		/* Check if enable_ps_sensor is true or exit request is made. If not block */
-		wait_event(vl53l0_dev->poll_thread_wq, 
+		wait_event(vl53l0_dev->poll_thread_wq,
 			(vl53l0_dev->enable_ps_sensor || poll_thread_exit || stmvl53l0_stop_access_on_bus_error));/* MM-MC-Fix-TOF-deinit-deadlock-01* */
 		//pr_err("%s(%d) : --------->\n", __FUNCTION__, __LINE__);
 		if (poll_thread_exit) {
@@ -1014,13 +1014,13 @@ int stmvl53l0_poll_thread(void *data)
 			stmvl53l0_schedule_handler(vl53l0_dev);
 			//pr_err("%s(%d) : stmvl53l0_schedule_handler()\n", __FUNCTION__, __LINE__);/* MM-MC-Fix-TOF-deinit-deadlock-00+ */
 		} else {
+			struct cci_data *cci_data = (struct cci_data *)vl53l0_dev->client_object;
 			vl53l0_dev->noInterruptCount++;
 			/* MM-MC-Fix-TOF-deinit-deadlock-00+{ */
 			//pr_err("%s(%d) : noInterruptCount++ \n", __FUNCTION__, __LINE__);
-			struct cci_data *cci_data = (struct cci_data *)vl53l0_dev->client_object;
 			if ((vl53l0_dev->enable_ps_sensor == 1)&&(cci_data->power_up == 0))
 			{
-				pr_err("%s(%d) : enable_ps_sensor = %d, power_up = %d, Send fake TOF data \n", __FUNCTION__ 
+				pr_err("%s(%d) : enable_ps_sensor = %d, power_up = %d, Send fake TOF data \n", __FUNCTION__
                                                                                              , __LINE__
                                                                                              , vl53l0_dev->enable_ps_sensor
                                                                                              , cci_data->power_up);
@@ -1042,11 +1042,11 @@ int stmvl53l0_poll_thread(void *data)
 				}
 			}
 		}
-		
+
 		mutex_unlock(&vl53l0_dev->work_mutex);
-		
+
 		//Sleep for delay_ms milliseconds
-		msleep(sleep_time); 
+		msleep(sleep_time);
 		//pr_err("%s(%d) : <---------2\n", __FUNCTION__, __LINE__);
 	}
 
@@ -1080,23 +1080,23 @@ static void stmvl53l0_work_handler(struct work_struct *work)
 		stmvl53l0_DebugTimeDuration(&start_tv, &stop_tv);
 #endif
 		if (vl53l0_dev->interrupt_received == 1) { 	/* ISR has scheduled this function */
-		
+
 			Status = papi_func_tbl->GetInterruptMaskStatus(vl53l0_dev, &vl53l0_dev->interruptStatus);
 			if (Status != VL53L0_ERROR_NONE) {
 				pr_err("%s(%d) : Status = %d\n", __FUNCTION__ , __LINE__, Status);
 			}
 			vl53l0_dev->interrupt_received = 0;
-		} 
+		}
 		if (data->enableDebug)
 			pr_err("interruptStatus:0x%x, interrupt_received:%d\n",
 				vl53l0_dev->interruptStatus, vl53l0_dev->interrupt_received);
 
-		if (vl53l0_dev->interruptStatus == vl53l0_dev->gpio_function) { 
+		if (vl53l0_dev->interruptStatus == vl53l0_dev->gpio_function) {
 				Status = papi_func_tbl->ClearInterruptMask(vl53l0_dev, 0);
 			if (Status != VL53L0_ERROR_NONE) {
 				pr_err("%s(%d) : Status = %d\n", __FUNCTION__ , __LINE__, Status);
 			} else {
-				Status = papi_func_tbl->GetRangingMeasurementData( vl53l0_dev, 
+				Status = papi_func_tbl->GetRangingMeasurementData( vl53l0_dev,
 																&(data->rangeData));
 				/* to push the measurement */
 				if (Status == VL53L0_ERROR_NONE)
@@ -1107,7 +1107,7 @@ static void stmvl53l0_work_handler(struct work_struct *work)
 				if (data->enableDebug)
 					pr_err("Measured range:%d\n", data->rangeData.RangeMilliMeter);
 
-				if (data->deviceMode == VL53L0_DEVICEMODE_SINGLE_RANGING) 
+				if (data->deviceMode == VL53L0_DEVICEMODE_SINGLE_RANGING)
 					Status = papi_func_tbl->StartMeasurement(vl53l0_dev);
 			}
 		}
@@ -1202,7 +1202,7 @@ static ssize_t stmvl53l0_store_enable_ps_sensor(struct device *dev,
 			vl53l0_errmsg("Re-seset because for previous msm_tof_subdev_ioctl(MSM_SD_SHUTDOWN)");
 			cci_data->power_up = 1;
  			stmvl53l0_stop(data);
-			stmvl53l0_start(data, 3, NORMAL_MODE);  
+			stmvl53l0_start(data, 3, NORMAL_MODE);
 		}
 		else
 			vl53l0_errmsg("Already enabled. Skip !");
@@ -1852,7 +1852,7 @@ static int stmvl53l0_ioctl_handler(struct file *file,
 						vl53l0_dev, parameter.value);
 			vl53l0_dbgmsg("get parameter value as %d\n", parameter.value);
 			break;
-			
+
 	   	case (REFERENCESPADS_PAR):
 			if (parameter.is_read) {
 				parameter.status =
@@ -1871,7 +1871,7 @@ static int stmvl53l0_ioctl_handler(struct file *file,
 						(uint32_t)(parameter.value), (uint8_t)(parameter.value2));
 			}
 			break;
-			
+
 	   	case (REFCALIBRATION_PAR):
 			if (parameter.is_read) {
 				parameter.status =
@@ -2253,7 +2253,7 @@ static int stmvl53l0_start(struct stmvl53l0_data *data, uint8_t scaling,
 
 
 
-	if (vl53l0_dev->useLongRange) {		
+	if (vl53l0_dev->useLongRange) {
 		pr_err("Configure Long Ranging\n");
 		Status = papi_func_tbl->SetLimitCheckValue(vl53l0_dev,
 						VL53L0_CHECKENABLE_SIGNAL_RATE_FINAL_RANGE,
@@ -2269,12 +2269,12 @@ static int stmvl53l0_start(struct stmvl53l0_data *data, uint8_t scaling,
 		if (Status == VL53L0_ERROR_NONE) {
 			pr_err("Set Timing Budget = %u\n", vl53l0_dev->timingBudget);
 			Status =
-			papi_func_tbl->SetMeasurementTimingBudgetMicroSeconds(vl53l0_dev, 
+			papi_func_tbl->SetMeasurementTimingBudgetMicroSeconds(vl53l0_dev,
 																vl53l0_dev->timingBudget);
 		} else {
 			pr_err("SetLimitCheckValue failed with errcode = %d\n", Status);
 		}
-		
+
 
 		if (Status == VL53L0_ERROR_NONE) {
 			Status = papi_func_tbl->SetVcselPulsePeriod(vl53l0_dev,
@@ -2309,12 +2309,12 @@ static int stmvl53l0_start(struct stmvl53l0_data *data, uint8_t scaling,
 		if (Status == VL53L0_ERROR_NONE) {
 			pr_err("Set Timing Budget = %u\n", vl53l0_dev->timingBudget);
 			Status =
-			papi_func_tbl->SetMeasurementTimingBudgetMicroSeconds(vl53l0_dev, 
+			papi_func_tbl->SetMeasurementTimingBudgetMicroSeconds(vl53l0_dev,
 																vl53l0_dev->timingBudget);
 		} else {
 			pr_err("SetLimitCheckValue failed with errcode = %d\n", Status);
 		}
-		
+
 
 		if (Status == VL53L0_ERROR_NONE) {
 			Status = papi_func_tbl->SetVcselPulsePeriod(vl53l0_dev,
