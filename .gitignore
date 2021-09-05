@@ -129,3 +129,5 @@ android/configs/android-*.cfg
 Android.bp
 
 out/
+clang-llvm/
+AnyKernel3/
