@@ -1381,7 +1381,6 @@ int smblib_vconn_regulator_is_enabled(struct regulator_dev *rdev)
 #define MAX_DELAY_US		9000
 static int otg_current[] = {250000, 500000, 1000000, 1500000};
 static int smblib_enable_otg_wa(struct smb_charger *chg)
-
 {
 	u8 stat;
 	int rc, i, retry_count = 0, min_delay = MIN_DELAY_US;
@@ -2881,11 +2880,11 @@ static int get_rp_based_dcp_current(struct smb_charger *chg, int typec_mode)
 	int rp_ua;
 
 	switch (typec_mode) {
+	case POWER_SUPPLY_TYPEC_SOURCE_DEFAULT:
 	case POWER_SUPPLY_TYPEC_SOURCE_HIGH:
 		rp_ua = TYPEC_HIGH_CURRENT_UA;
 		break;
 	case POWER_SUPPLY_TYPEC_SOURCE_MEDIUM:
-	case POWER_SUPPLY_TYPEC_SOURCE_DEFAULT:
 	/* fall through */
 	default:
 		rp_ua = DCP_CURRENT_UA;
@@ -2956,26 +2955,26 @@ int smblib_set_prop_sdp_current_max(struct smb_charger *chg,
 				    const union power_supply_propval *val)
 {
 	int rc = 0;
-       int typec_mode = 0;
-       bool legacy_cable = 0;
-       union power_supply_propval final_val = {0, };
-       /* end NB1-7524 */
+	int typec_mode = 0;
+	bool legacy_cable = 0;
+	union power_supply_propval final_val = {0, };
+	/* end NB1-7524 */
 
 	if (!chg->pd_active) {
 		rc = smblib_handle_usb_current(chg, val->intval);
-               final_val.intval = val->intval;
-               typec_mode = smblib_get_prop_ufp_mode(chg);
-               legacy_cable = (bool)(chg->typec_status[4] & TYPEC_LEGACY_CABLE_STATUS_BIT);
-               if(!legacy_cable) { // it's a C to C cable, the charging current should be determined by typeC mode
-                       if (typec_mode == POWER_SUPPLY_TYPEC_SOURCE_MEDIUM)
-                               final_val.intval = 1500000;
+		final_val.intval = val->intval;
+		typec_mode = smblib_get_prop_ufp_mode(chg);
+		legacy_cable = (bool)(chg->typec_status[4] & TYPEC_LEGACY_CABLE_STATUS_BIT);
+		if(!legacy_cable) { // it's a C to C cable, the charging current should be determined by typeC mode
+			if (typec_mode == POWER_SUPPLY_TYPEC_SOURCE_MEDIUM)
+				final_val.intval = 1500000;
 
-                       if (typec_mode == POWER_SUPPLY_TYPEC_SOURCE_HIGH)
-                               final_val.intval = 3000000;
-              } else { // it's a C to A cable, we only allow the ICL to 900 mA
-                       if (typec_mode == POWER_SUPPLY_TYPEC_SOURCE_MEDIUM || typec_mode == POWER_SUPPLY_TYPEC_SOURCE_HIGH)
-                               final_val.intval = 900000;
-               }
+			if (typec_mode == POWER_SUPPLY_TYPEC_SOURCE_HIGH)
+				final_val.intval = 3000000;
+		} else { // it's a C to A cable, we only allow the ICL to 900 mA
+			if (typec_mode == POWER_SUPPLY_TYPEC_SOURCE_MEDIUM || typec_mode == POWER_SUPPLY_TYPEC_SOURCE_HIGH)
+				final_val.intval = 900000;
+		}
 
 		rc = vote(chg->usb_icl_votable, USB_PSY_VOTER,
 				true, final_val.intval);
@@ -3370,7 +3369,7 @@ int smblib_set_prop_pd_in_hard_reset(struct smb_charger *chg,
 	return rc;
 }
 
-#if 0
+#if !defined(CONFIG_FIH_NB1) && !defined(CONFIG_FIH_A1N)
 static int smblib_recover_from_soft_jeita(struct smb_charger *chg)
 {
 	u8 stat_1, stat_2;
@@ -3623,36 +3622,35 @@ irqreturn_t smblib_handle_chg_state_change(int irq, void *data)
 	return IRQ_HANDLED;
 }
 
-
 irqreturn_t smblib_handle_batt_temp_changed(int irq, void *data)
 {
 	struct smb_irq_data *irq_data = data;
 	struct smb_charger *chg = irq_data->parent_data;
+#ifdef BBS_LOG
 	union power_supply_propval val = {0, };
-	// int rc;
+#else if !defined(CONFIG_FIH_NB1) && !defined(CONFIG_FIH_A1N)
+	int rc;
+#endif
 	/* end NB1O-1214 */
 
 	FIH_adjust_JEITA(chg);
 	/* end NB1-3730 */
 
-	//FIH_soft_JEITA_recharge_check(chg);
-	/* end NB1-8555 */
-
-	#if 0
+#if !defined(CONFIG_FIH_NB1) && !defined(CONFIG_FIH_A1N)
 	rc = smblib_recover_from_soft_jeita(chg);
 	if (rc < 0) {
 		smblib_err(chg, "Couldn't recover chg from soft jeita rc=%d\n",
 				rc);
 		return IRQ_HANDLED;
 	}
-	#endif
+#endif
 	/* end NB1O-1214 */
 
-	#ifdef BBS_LOG
+#ifdef BBS_LOG
 	smblib_get_prop_batt_temp(chg, &val);
 	if(val.intval >= 600)
 		QPNPFG_BATTERY_SHUTDOWN_TEMP;
-	#endif
+#endif
 
 	rerun_election(chg->fcc_votable);
 	power_supply_changed(chg->batt_psy);
@@ -4089,9 +4087,8 @@ static void smblib_handle_hvdcp_detect_done(struct smb_charger *chg,
 
 static void smblib_force_legacy_icl(struct smb_charger *chg, int pst)
 {
-	int typec_mode = 0;
+	int typec_mode;
 	int rp_ua;
-	/* end NB1-6004 */
 
 	/* while PD is active it should have complete ICL control */
 	if (chg->pd_active)
@@ -4116,15 +4113,6 @@ static void smblib_force_legacy_icl(struct smb_charger *chg, int pst)
 		typec_mode = smblib_get_prop_typec_mode(chg);
 		rp_ua = get_rp_based_dcp_current(chg, typec_mode);
 		vote(chg->usb_icl_votable, LEGACY_UNKNOWN_VOTER, true, rp_ua);
-		typec_mode = smblib_get_prop_ufp_mode(chg);
-		if (typec_mode == POWER_SUPPLY_TYPEC_SOURCE_MEDIUM) {
-			vote(chg->usb_icl_votable, LEGACY_UNKNOWN_VOTER, true, TYPEC_MEDIUM_CURRENT_UA);
-		} else if (typec_mode == POWER_SUPPLY_TYPEC_SOURCE_HIGH) {
-			vote(chg->usb_icl_votable, LEGACY_UNKNOWN_VOTER, true, TYPEC_HIGH_CURRENT_UA);
-		} else {
-			vote(chg->usb_icl_votable, LEGACY_UNKNOWN_VOTER, true, TYPEC_MEDIUM_CURRENT_UA);
-		}
-		/* end NB1-6004 */
 		break;
 	case POWER_SUPPLY_TYPE_USB_FLOAT:
 		/*
