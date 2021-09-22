@@ -52,6 +52,7 @@ static bool forecast_charging = false;
 				__func__, ##__VA_ARGS__);	\
 	} while (0)
 
+#define SHOW_INFO_DELAY_MS 30000
 
 #define BBS_LOG 1
 #ifdef BBS_LOG
@@ -635,7 +636,7 @@ static int smblib_notifier_call(struct notifier_block *nb,
 		chg->pl.psy = psy;
 
 	if(chg->show_batt_info_en)
-		schedule_delayed_work(&chg->update_batt_info_work, msecs_to_jiffies(30000));
+		schedule_delayed_work(&chg->update_batt_info_work, msecs_to_jiffies(SHOW_INFO_DELAY_MS));
 	/* end NB1-3293 */
 
 	return NOTIFY_OK;
@@ -2467,7 +2468,7 @@ int smblib_dump_typec_sts(struct smb_charger *chg,
 		}
 	}
 
-	smblib_err(chg, "TypeC sts1:0x%02x, sts2:0x%02x, sts3:0x%02x, sts4:0x%02x, sts5:0x%02x\n",
+	smblib_dbg(chg, PR_MISC, "TypeC sts1:0x%02x, sts2:0x%02x, sts3:0x%02x, sts4:0x%02x, sts5:0x%02x\n",
 					stat[0], stat[1], stat[2], stat[3], stat[4]);
 
 	return rc;
@@ -2696,31 +2697,32 @@ void FIH_adjust_JEITA(struct smb_charger *chg) {
 
 	if(chg->diff_jeita_fn_en) {
 		rc = smblib_read(chg, BATTERY_CHARGER_STATUS_2_REG, &stat);
-		if(rc >= 0) {
-			if (stat & BAT_TEMP_STATUS_COLD_SOFT_LIMIT_BIT) {
-				rc = smblib_set_charge_param(chg, &chg->param.jeita_cc_comp,  chg->jeita_fcc_comp_cool);
-				if (rc < 0)
-					pr_err("Couldn't configure jeita fcc comp cool rc = %d\n", rc);
-
-				rc = smblib_set_charge_param(chg, &chg->param.jeita_fv_comp,  chg->jeita_fv_comp_cool);
-				if (rc < 0)
-					pr_err("Couldn't configure jeita fv comp cool rc = %d\n", rc);
-
-				pr_err("JEITA_COOL set fcc to %d, fv to %d\n", chg->jeita_fcc_comp_cool, chg->jeita_fv_comp_cool);
-
-			} else if (stat & BAT_TEMP_STATUS_HOT_SOFT_LIMIT_BIT) {
-				rc = smblib_set_charge_param(chg, &chg->param.jeita_cc_comp,  chg->jeita_fcc_comp_warm);
-				if (rc < 0)
-					pr_err("Couldn't configure jeita fcc comp warm rc = %d\n", rc);
-
-				rc = smblib_set_charge_param(chg, &chg->param.jeita_fv_comp,  chg->jeita_fv_comp_warm);
-				if (rc < 0)
-					pr_err("Couldn't configure jeita fv comp warm rc = %d\n", rc);
-
-				pr_err("JEITA_WARM set fcc to %d, fv to %d\n", chg->jeita_fcc_comp_warm, chg->jeita_fv_comp_warm);
-			}
-		} else {
+		if(rc < 0) {
 			pr_err("Could not read battery health, rc = %d", rc);
+			return;
+		}
+
+		if (stat & BAT_TEMP_STATUS_COLD_SOFT_LIMIT_BIT) {
+			rc = smblib_set_charge_param(chg, &chg->param.jeita_cc_comp,  chg->jeita_fcc_comp_cool);
+			if (rc < 0)
+				pr_err("Couldn't configure jeita fcc comp cool rc = %d\n", rc);
+
+			rc = smblib_set_charge_param(chg, &chg->param.jeita_fv_comp,  chg->jeita_fv_comp_cool);
+			if (rc < 0)
+				pr_err("Couldn't configure jeita fv comp cool rc = %d\n", rc);
+
+			pr_err("JEITA_COOL set fcc to %d, fv to %d\n", chg->jeita_fcc_comp_cool, chg->jeita_fv_comp_cool);
+
+		} else if (stat & BAT_TEMP_STATUS_HOT_SOFT_LIMIT_BIT) {
+			rc = smblib_set_charge_param(chg, &chg->param.jeita_cc_comp,  chg->jeita_fcc_comp_warm);
+			if (rc < 0)
+				pr_err("Couldn't configure jeita fcc comp warm rc = %d\n", rc);
+
+			rc = smblib_set_charge_param(chg, &chg->param.jeita_fv_comp,  chg->jeita_fv_comp_warm);
+			if (rc < 0)
+				pr_err("Couldn't configure jeita fv comp warm rc = %d\n", rc);
+
+			pr_err("JEITA_WARM set fcc to %d, fv to %d\n", chg->jeita_fcc_comp_warm, chg->jeita_fv_comp_warm);
 		}
 	}
 }
@@ -2955,30 +2957,9 @@ int smblib_set_prop_sdp_current_max(struct smb_charger *chg,
 				    const union power_supply_propval *val)
 {
 	int rc = 0;
-	int typec_mode = 0;
-	bool legacy_cable = 0;
-	union power_supply_propval final_val = {0, };
-	/* end NB1-7524 */
 
 	if (!chg->pd_active) {
 		rc = smblib_handle_usb_current(chg, val->intval);
-		final_val.intval = val->intval;
-		typec_mode = smblib_get_prop_ufp_mode(chg);
-		legacy_cable = (bool)(chg->typec_status[4] & TYPEC_LEGACY_CABLE_STATUS_BIT);
-		if(!legacy_cable) { // it's a C to C cable, the charging current should be determined by typeC mode
-			if (typec_mode == POWER_SUPPLY_TYPEC_SOURCE_MEDIUM)
-				final_val.intval = 1500000;
-
-			if (typec_mode == POWER_SUPPLY_TYPEC_SOURCE_HIGH)
-				final_val.intval = 3000000;
-		} else { // it's a C to A cable, we only allow the ICL to 900 mA
-			if (typec_mode == POWER_SUPPLY_TYPEC_SOURCE_MEDIUM || typec_mode == POWER_SUPPLY_TYPEC_SOURCE_HIGH)
-				final_val.intval = 900000;
-		}
-
-		rc = vote(chg->usb_icl_votable, USB_PSY_VOTER,
-				true, final_val.intval);
-		/* end NB1-7524 */
 	} else if (chg->system_suspend_supported) {
 		if (val->intval <= USBIN_25MA)
 			rc = vote(chg->usb_icl_votable,
@@ -3414,7 +3395,7 @@ static int smblib_recover_from_soft_jeita(struct smb_charger *chg)
 
 	return 0;
 }
-#endif
+#endif /* !defined(CONFIG_FIH_NB1) && !defined(CONFIG_FIH_A1N) */
 /* end NB1O-1214 */
 
 /***********************
@@ -3628,23 +3609,20 @@ irqreturn_t smblib_handle_batt_temp_changed(int irq, void *data)
 	struct smb_charger *chg = irq_data->parent_data;
 #ifdef BBS_LOG
 	union power_supply_propval val = {0, };
-#else if !defined(CONFIG_FIH_NB1) && !defined(CONFIG_FIH_A1N)
-	int rc;
 #endif
-	/* end NB1O-1214 */
 
+#if defined(CONFIG_FIH_NB1) || defined(CONFIG_FIH_A1N)
 	FIH_adjust_JEITA(chg);
-	/* end NB1-3730 */
+#else
+	int rc;
 
-#if !defined(CONFIG_FIH_NB1) && !defined(CONFIG_FIH_A1N)
 	rc = smblib_recover_from_soft_jeita(chg);
 	if (rc < 0) {
 		smblib_err(chg, "Couldn't recover chg from soft jeita rc=%d\n",
 				rc);
 		return IRQ_HANDLED;
 	}
-#endif
-	/* end NB1O-1214 */
+#endif /* defined(CONFIG_FIH_NB1) || defined(CONFIG_FIH_A1N) */
 
 #ifdef BBS_LOG
 	smblib_get_prop_batt_temp(chg, &val);
@@ -5340,7 +5318,6 @@ unlock:
 	mutex_unlock(&chg->lock);
 }
 
-#define showInfoDelayms 10000
 static void fih_update_batt_info_work(struct work_struct *work)
 {
 	union power_supply_propval val = {0, };
@@ -5524,9 +5501,8 @@ static void fih_update_batt_info_work(struct work_struct *work)
 			system_temp_level);
 	}
 
-	schedule_delayed_work(
-	&chg->update_batt_info_work,
-	msecs_to_jiffies(showInfoDelayms));
+	if(chg->show_batt_info_en)
+		schedule_delayed_work(&chg->update_batt_info_work, msecs_to_jiffies(SHOW_INFO_DELAY_MS));
 }
 /* end NB1-3293 */
 
