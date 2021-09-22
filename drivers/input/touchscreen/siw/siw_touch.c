@@ -57,7 +57,7 @@ extern void siw_touch_free_sysfs(struct siw_ts *ts);
 
 extern int siw_touch_parse_data(struct siw_ts *ts);
 
-extern int tp_probe_success; 
+extern int tp_probe_success;
 
 
 /* Original
@@ -65,7 +65,7 @@ extern int tp_probe_success;
 u32 t_pr_dbg_mask = DBG_NONE | DBG_INFO;
 u32 t_dev_dbg_mask = DBG_NONE | DBG_BASE | DBG_INFO | DBG_GPIO | DBG_OF;
 */
-#if 1 //SW8-DH-Touchpanel-Bringup-00
+#if 0 //SW8-DH-Touchpanel-Bringup-00
 u32 t_pr_dbg_mask = DBG_NONE  | DBG_BASE;
 u32 t_dev_dbg_mask = DBG_NONE | DBG_BASE | DBG_GPIO | DBG_OF | DBG_NOTI ;
 #else
@@ -1530,7 +1530,7 @@ static int siw_touch_do_probe_normal(void *data)
 	if (ret < 0) {
 		goto out_probe_late;
 	}
-	
+
 	t_dev_info(dev, "probe(normal) done\n");
 	tp_probe_success = 1;
 

@@ -138,7 +138,7 @@ static int _siw_touch_do_notify(struct siw_ts *ts,
 	int call_hal_notify = 1;
 	u32 value = 0;
 	int ret = 0;
-	t_dev_info(dev, "%s, %d, event = %ld\n", __func__, __LINE__, event);
+	t_dev_dbg_base(dev, "%s, %d, event = %ld\n", __func__, __LINE__, event);
 
 	if (data) {
 		value = *((int *)data);
@@ -207,7 +207,7 @@ static int _siw_touch_do_notify(struct siw_ts *ts,
 	}
 
 	if (!call_hal_notify) {
-		t_dev_info(dev, "notify: event %s(%Xh), value %Xh\n",
+		t_dev_dbg_base(dev, "notify: event %s(%Xh), value %Xh\n",
 			noti_str, (int)event, value);
 		siwmon_submit_evt(dev, "NOTIFY", 0, noti_str, event, value, ret);
 	}
@@ -254,7 +254,7 @@ static int siw_touch_blocking_notifier_callback(struct notifier_block *this,
 {
 	struct siw_ts *ts =
 		container_of(this, struct siw_ts, blocking_notif);
-	t_dev_info(ts->dev, "%s, %d\n", __func__, __LINE__);
+	t_dev_dbg_base(ts->dev, "%s, %d\n", __func__, __LINE__);
 	return siw_touch_notify(ts, event, data);
 }
 
@@ -263,7 +263,7 @@ void siw_touch_atomic_notifer_work_func(struct work_struct *work)
 	struct siw_ts *ts =
 		container_of(to_delayed_work(work),
 				struct siw_ts, notify_work);
-	t_dev_info(ts->dev, "%s, %d\n", __func__, __LINE__);
+	t_dev_dbg_base(ts->dev, "%s, %d\n", __func__, __LINE__);
 
 	siw_touch_notify(ts, ts->notify_event, &ts->notify_data);
 }
@@ -272,7 +272,7 @@ int siw_touch_init_notify(struct siw_ts *ts)
 {
 	struct device *dev = ts->dev;
 	int ret = 0;
-	t_dev_info(ts->dev, "%s, %d\n", __func__, __LINE__);
+	t_dev_dbg_base(ts->dev, "%s, %d\n", __func__, __LINE__);
 
 	ts->blocking_notif.notifier_call = siw_touch_blocking_notifier_callback;
 	ret = siw_touch_blocking_notifier_register(&ts->blocking_notif);
