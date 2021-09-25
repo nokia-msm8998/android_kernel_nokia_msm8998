@@ -199,13 +199,8 @@ int sched_boost_handler(struct ctl_table *table, int write,
 	if (ret || !write)
 		goto done;
 
-	if (verify_boost_params(old_val, *data)) {
-		_sched_set_boost(old_val, *data);
-	} else {
-		*data = old_val;
-		ret = -EINVAL;
-	}
-
+	if (verify_boost_params(old_val, *data))
+		sysctl_sched_boost = *data;
 done:
 	mutex_unlock(&boost_mutex);
 	return ret;
