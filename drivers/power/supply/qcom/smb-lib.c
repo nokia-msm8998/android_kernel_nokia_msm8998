@@ -5345,13 +5345,21 @@ static void fih_update_batt_info_work(struct work_struct *work)
 	int parallel_temp = 0;
 	int misc_temp_status = 0;
 	int rc = 0;
-	bool pmiFail = false;
 	u8 stat = 0;
 	const char *typec_mode = 0;
 
 	struct smb_charger *chg = container_of(work, struct smb_charger,
 							update_batt_info_work.work);
 
+	val.intval = 0;
+	rc = smblib_get_prop_batt_capacity(chg, &val);
+	capacity = val.intval;
+
+	/* only log when capacity is normal and charging */
+	if(rc < 0 || capacity < 0 || capacity >= 100)
+		goto sched_work;
+
+	val.intval = 0;
 	smblib_get_prop_input_suspend(chg, &val);
 	input_suspend = (val.intval == 1) ? true : false;
 
@@ -5362,13 +5370,6 @@ static void fih_update_batt_info_work(struct work_struct *work)
 	val.intval = 0;
 	smblib_get_prop_input_current_settled(chg, &val);
 	usb_input_current_settled = val.intval;
-
-	val.intval = 0;
-	rc = smblib_get_prop_batt_capacity(chg, &val);
-	capacity = val.intval;
-	/* We use capacity to judge if the pmic is normal or not */
-	if(rc < 0 || capacity < 0 || capacity > 100)
-		pmiFail = true;
 
 	val.intval = 0;
 	smblib_get_prop_batt_voltage_now(chg, &val);
@@ -5473,34 +5474,33 @@ static void fih_update_batt_info_work(struct work_struct *work)
 	smblib_get_prop_die_health(chg, &val);
 	misc_temp_status = val.intval;
 
-	if(pmiFail == false) {// if the pmic is unstable, we will not show the log to get rid of flooding info.
-		pr_err("input_suspend = %s, usb_online = %s, typec_mode = %s, usb_iSettled = %d, cap = %d, vbat = %d, ibat = %d, FCC(%s) = %d, ICL(override = %s)(%s) = %d, bat_status = %d, bat_temp = %d, apsd_result = 0x%x, resistance(esr = %d, rslow = %d) = %d, cable_v = %d, cable_i = %d, pmi_temp = %d, parallel_temp = %d, misc_temp_status = %s, system_temp_level = %d\n",
-			input_suspend == true ? "true" : "false",
-			usb_online == true ? "true" : "false",
-			typec_mode,
-			usb_input_current_settled,
-			capacity,
-			vbat,
-			ibat,
-			FCC_votable,
-			FCC,
-			icl_override == true ? "true" : "false",
-			ICL_votable,
-			ICL,
-			bat_status,
-			bat_temp,
-			chg_apsd_result,
-			resistance_esr,
-			resistance_rslow,
-			resistance,
-			cable_voltage,
-			cable_current,
-			pmi_temp,
-			parallel_temp,
-			misc_temp_status == POWER_SUPPLY_HEALTH_COOL ? "COOL" : (misc_temp_status == POWER_SUPPLY_HEALTH_WARM ? "WARM" : (misc_temp_status == POWER_SUPPLY_HEALTH_HOT ? "HOT" : (misc_temp_status == POWER_SUPPLY_HEALTH_OVERHEAT ? "OVERHEAT" : "UNKNOW"))),
-			system_temp_level);
-	}
+	pr_info("input_suspend = %s, usb_online = %s, typec_mode = %s, usb_iSettled = %d, cap = %d, vbat = %d, ibat = %d, FCC(%s) = %d, ICL(override = %s)(%s) = %d, bat_status = %d, bat_temp = %d, apsd_result = 0x%x, resistance(esr = %d, rslow = %d) = %d, cable_v = %d, cable_i = %d, pmi_temp = %d, parallel_temp = %d, misc_temp_status = %s, system_temp_level = %d\n",
+		input_suspend == true ? "true" : "false",
+		usb_online == true ? "true" : "false",
+		typec_mode,
+		usb_input_current_settled,
+		capacity,
+		vbat,
+		ibat,
+		FCC_votable,
+		FCC,
+		icl_override == true ? "true" : "false",
+		ICL_votable,
+		ICL,
+		bat_status,
+		bat_temp,
+		chg_apsd_result,
+		resistance_esr,
+		resistance_rslow,
+		resistance,
+		cable_voltage,
+		cable_current,
+		pmi_temp,
+		parallel_temp,
+		misc_temp_status == POWER_SUPPLY_HEALTH_COOL ? "COOL" : (misc_temp_status == POWER_SUPPLY_HEALTH_WARM ? "WARM" : (misc_temp_status == POWER_SUPPLY_HEALTH_HOT ? "HOT" : (misc_temp_status == POWER_SUPPLY_HEALTH_OVERHEAT ? "OVERHEAT" : "UNKNOW"))),
+		system_temp_level);
 
+sched_work:
 	if(chg->show_batt_info_en)
 		schedule_delayed_work(&chg->update_batt_info_work, msecs_to_jiffies(SHOW_INFO_DELAY_MS));
 }
