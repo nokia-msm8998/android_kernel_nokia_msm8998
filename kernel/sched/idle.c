@@ -212,11 +212,7 @@ DEFINE_PER_CPU(bool, cpu_dead_idle);
  */
 static void cpu_idle_loop(void)
 {
-	int cpu = smp_processor_id();
-
 	while (1) {
-		int cpu = smp_processor_id();
-
 		/*
 		 * If the arch has a polling bit, we maintain an invariant:
 		 *
@@ -234,7 +230,7 @@ static void cpu_idle_loop(void)
 			check_pgt_cache();
 			rmb();
 
-			if (cpu_is_offline(cpu)) {
+			if (cpu_is_offline(smp_processor_id())) {
 				rcu_cpu_notify(NULL, CPU_DYING_IDLE,
 					       (void *)(long)cpu);
 				smp_mb(); /* all activity before dead. */
