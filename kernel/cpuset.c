@@ -1711,6 +1711,16 @@ out_unlock:
 static ssize_t cpuset_write_resmask(struct kernfs_open_file *of,
 				    char *buf, size_t nbytes, loff_t off)
 {
+#ifdef CONFIG_UCLAMP_ASSIST
+	static struct uc_target uc_targets[] = {
+		{ "top-app",		"30", "max",	1, 1 },
+		{ "foreground",		"0", "50",	1, 1 },
+		{ "restricted",		"0", "40",	0, 0 },
+		{ "background",		"0", "max",	0, 0 },
+		{ "system-background",	"0", "40",	0, 0 },
+	};
+#endif
+
 	struct cpuset *cs = css_cs(of_css(of));
 	struct cpuset *trialcs;
 	int retval = -ENODEV;
