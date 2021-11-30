@@ -12,7 +12,7 @@
 #include "tune.h"
 
 #ifdef CONFIG_CGROUP_SCHEDTUNE
-bool schedtune_initialized = false;
+bool schedtune_initialized __read_mostly = false;
 #endif
 
 unsigned int sysctl_sched_cfs_boost __read_mostly;
@@ -489,7 +489,7 @@ void schedtune_enqueue_task(struct task_struct *p, int cpu)
 	struct schedtune *st;
 	int idx;
 
-	if (!unlikely(schedtune_initialized))
+	if (unlikely(!schedtune_initialized))
 		return;
 
 	/*
@@ -530,7 +530,7 @@ int schedtune_can_attach(struct cgroup_taskset *tset)
 	int dst_bg; /* Destination boost group index */
 	int tasks;
 
-	if (!unlikely(schedtune_initialized))
+	if (unlikely(!schedtune_initialized))
 		return 0;
 
 
@@ -605,7 +605,7 @@ void schedtune_dequeue_task(struct task_struct *p, int cpu)
 	struct schedtune *st;
 	int idx;
 
-	if (!unlikely(schedtune_initialized))
+	if (unlikely(!schedtune_initialized))
 		return;
 
 	/*
@@ -643,7 +643,7 @@ void schedtune_exit_task(struct task_struct *tsk)
 	struct rq *rq;
 	int idx;
 
-	if (!unlikely(schedtune_initialized))
+	if (unlikely(!schedtune_initialized))
 		return;
 
 	rq = lock_rq_of(tsk, &rf);
@@ -695,7 +695,7 @@ int schedtune_task_boost(struct task_struct *p)
 	struct schedtune *st;
 	int task_boost;
 
-	if (!unlikely(schedtune_initialized))
+	if (unlikely(!schedtune_initialized))
 		return 0;
 
 	/* Get task boost value */
@@ -730,7 +730,7 @@ int schedtune_prefer_idle(struct task_struct *p)
 	struct schedtune *st;
 	int prefer_idle;
 
-	if (!unlikely(schedtune_initialized))
+	if (unlikely(!schedtune_initialized))
 		return 0;
 
 	/* Get prefer_idle value */
