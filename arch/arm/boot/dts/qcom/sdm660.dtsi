@@ -300,6 +300,10 @@
 	firmware: firmware {
 		android {
 			compatible = "android,firmware";
+			vbmeta {
+				compatible = "android,vbmeta";
+				parts = "vbmeta,boot,system,vendor,dtbo";
+			};
 			fstab {
 				compatible = "android,fstab";
 				vendor {
@@ -307,7 +311,7 @@
 					dev = "/dev/block/platform/soc/c0c4000.sdhci/by-name/vendor";
 					type = "ext4";
 					mnt_flags = "ro,barrier=1,discard";
-					fsmgr_flags = "wait,slotselect,verify";
+					fsmgr_flags = "wait,slotselect,avb";
 					status = "ok";
 				};
 			};
@@ -683,7 +687,6 @@
 		clocks = <&clock_gcc GCC_BLSP1_QUP3_SPI_APPS_CLK>,
 			<&clock_gcc GCC_BLSP1_AHB_CLK>;
 		clock-frequency = <15000000>;
-		qcom,ipc-gpio = <&tlmm 72 0>;
 		qcom,finger-detect-gpio = <&pm660_gpios 11 0>;
 	};
 
@@ -1963,6 +1966,16 @@
 		memory-region = <&venus_fw_mem>;
 		status = "ok";
 	};
+	
+/* add sar ant check by xiaopei at 20190520 i love you start */
+ant_check {
+		compatible = "ant_check";
+                pinctrl-names = "ant_check_irq_state";
+                pinctrl-0 = <&ant_check_irq_state>;
+                ant_check,irq_gpio_hb = <&tlmm 56 0>;
+                ant_check,irq_gpio_mb = <&tlmm 77 0>;
+	};
+/* add sar ant check by xiaopei at 20190520 i love you no end */
 
 	qcom,icnss@18800000 {
 		compatible = "qcom,icnss";
@@ -2429,6 +2442,13 @@
 		reg-names = "fuse-base";
 	};
 
+        sn_fuse: snfuse@0xA4128 {
+                 compatible = "qcom,sn-fuse";
+                 reg = <0x786134 0x4>,
+                     <0x78607C 0x4>;
+                 reg-names = "sn-base","fuse-state";
+         };
+
 	jtag_mm0: jtagmm@7840000 {
 		compatible = "qcom,jtagv8-mm";
 		reg = <0x7840000 0x1000>;
@@ -2524,6 +2544,23 @@
 
 		qcom,coresight-jtagmm-cpu = <&CPU7>;
 	};
+	/* added by liwei for trustonic tee 20190624 start */
+	mcd {
+		compatible = "qcom,mcd";
+		status =  "okay";
+		qcom,ce-hw-instance = <0>;
+		qcom,ce-device = <0>;
+		interrupts = <0 248 0>;
+		interrupt-names = "mcd_irq";
+		clock-names = "core_clk_src", "core_clk",
+		              "iface_clk", "bus_clk";
+		clocks = <&clock_rpmcc QSEECOM_CE1_CLK>,
+		         <&clock_rpmcc QSEECOM_CE1_CLK>,
+				 <&clock_rpmcc QSEECOM_CE1_CLK>,
+				 <&clock_rpmcc QSEECOM_CE1_CLK>;
+		qcom,ce-opp-freq = <171430000>;
+	};	
+	/* added by liwei for trustonic tee 20190624 end */  
 };
 
 #include "sdm660-ion.dtsi"
@@ -2662,19 +2699,22 @@
 
 		camera_focus {
 			label = "camera_focus";
-			gpios = <&tlmm 64 0x1>;
+			gpios = <&tlmm 75 0x1>;
 			linux,input-type = <1>;
 			linux,code = <0x210>;
+			gpio-key,wakeup;
 			debounce-interval = <15>;
 		};
 
-		camera_snapshot {
+/*NHK_M690_A01-841 volume up key has no function delete by wangyibo 20190320*/
+/*		camera_snapshot {
 			label = "camera_snapshot";
 			gpios = <&tlmm 113 0x1>;
 			linux,input-type = <1>;
 			linux,code = <0x2fe>;
 			debounce-interval = <15>;
 		};
+*/
 
 		vol_up {
 			label = "volume_up";
@@ -2690,6 +2730,8 @@
 &blsp2_uart1_hs {
 	status = "ok";
 };
+
+
 
 #include "sdm660-mdss.dtsi"
 #include "sdm660-mdss-pll.dtsi"

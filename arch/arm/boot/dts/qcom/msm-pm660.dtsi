@@ -50,6 +50,12 @@
 				qcom,pon-type = <0>;
 				qcom,pull-up = <1>;
 				linux,code = <116>;
+				/*long press powerkey 10s to reboot by wangyibo at 20190315 start*/
+				qcom,support-reset = <1>;
+				qcom,s1-timer = <6720>;
+				qcom,s2-timer = <2000>;
+				qcom,s2-type = <7>;
+				/*long press powerkey 10s to reboot by wangyibo at 20190315 end*/
 			};
 
 			qcom,pon_2 {
@@ -330,12 +336,18 @@
 					   "usbin_i",
 					   "usbin_v";
 
-			qcom,wipower-max-uw = <5000000>;
+			//qcom,wipower-max-uw = <5000000>;
 			dpdm-supply = <&qusb_phy0>;
+		/* set input current and voltage add by tangjifu 2019-03-19 start*/	
+			qcom,otg-cl-ua = <1000000>;
+                        qcom,fv-max-uv  = <4400000>;
+ 
+                    	qcom,usb-icl-ua = <2000000>;
+                        qcom,fcc-max-ua = <2000000>;
 
+		/* set input current and voltage add by tangjifu 2019-03-19 end*/	
 			qcom,thermal-mitigation
-					= <3000000 2500000 2000000 1500000
-						1000000 500000>;
+					= <2000000 1700000 1400000 1100000 800000>;
 
 			qcom,chgr@1000 {
 				reg = <0x1000 0x100>;
@@ -551,10 +563,16 @@
 			io-channel-names = "rradc_batt_id",
 					   "rradc_die_temp";
 			qcom,rradc-base = <0x4500>;
+			/*set cutoff voltage and term current add by tangjifu 2019-03-19 start*/
+			qcom,fg-cutoff-voltage = <3400>;
+                        qcom,fg-chg-term-current = <150>;
+                        qcom,fg-sys-term-current = <300>;
+			/*set cutoff voltage and term current add by tangjifu 2019-03-19 end*/
 			qcom,fg-esr-timer-awake = <96 96>;
 			qcom,fg-esr-timer-asleep = <256 256>;
 			qcom,fg-esr-timer-charging = <0 96>;
 			qcom,cycle-counter-en;
+			qcom,fg-jeita-thresholds = <0 10 45 52>;
 			status = "okay";
 
 			qcom,fg-batt-soc@4000 {
@@ -642,12 +660,15 @@
 			qcom,play-mode = "direct";
 			qcom,vmax-mv = <3200>;
 			qcom,ilim-ma = <800>;
-			qcom,sc-dbc-cycles = <8>;
-			qcom,wave-play-rate-us = <6667>;
+			qcom,wave-shape = "sine";
+			qcom,wave-play-rate-us = <4255>; //modified by wenhuilong @20190717 for vib
+			qcom,int-pwm-freq-khz = <505>;
+			qcom,sc-deb-cycles = <8>;
 			qcom,en-brake;
 			qcom,lra-high-z = "opt0";
-			qcom,lra-auto-res-mode = "qwd";
-			qcom,lra-res-cal-period = <4>;
+			qcom,lra-auto-res-mode = "none"; //modified by wenhuilong @20190717 for vib
+			qcom,lra-calibrate-at-eop = <0>;
+			qcom,correct-lra-drive-freq;
 		};
 	};
 };

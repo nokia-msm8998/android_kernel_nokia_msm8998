@@ -31,6 +31,18 @@
 
 #define SMB2_DEFAULT_WPWR_UW	8000000
 
+/**
+ * add by wangyibo at 2017.11.29. As runing apk is running and usb is inserted in phone, when battery capacity higher than 80%, stop charging.
+ * when battery capacity lower than 40%, system enable recharging.
+ * And running apk is stoped, enable charging.
+ */
+#define CONFIG_CHARGER_RUNIN 	//lct RUNIN
+#ifdef CONFIG_CHARGER_RUNIN
+static int BatteryTestStatus_enable = 0;
+static bool charger_enable = true;
+void runin_work(struct smb_charger *chip,union power_supply_propval *value);
+#endif
+
 static struct smb_params v1_params = {
 	.fcc			= {
 		.name	= "fast charge current",
@@ -946,6 +958,12 @@ static enum power_supply_property smb2_batt_props[] = {
 	POWER_SUPPLY_PROP_DP_DM,
 	POWER_SUPPLY_PROP_CHARGE_COUNTER,
 	POWER_SUPPLY_PROP_FCC_STEPPER_ENABLE,
+	//begin for the total capacity of batt in  2017.11.29
+	POWER_SUPPLY_PROP_CHARGE_FULL_DESIGN,
+	//end for the total capacity of batt in  2017.11.29
+	//begin for system app to control battery charging in 2019.12.25
+	POWER_SUPPLY_PROP_CHARGING_ENABLED,
+	//end for system app to control battery charging in 2019.12.25
 	POWER_SUPPLY_PROP_CHARGE_FULL,
 	POWER_SUPPLY_PROP_CYCLE_COUNT,
 };
@@ -979,6 +997,10 @@ static int smb2_batt_get_prop(struct power_supply *psy,
 		break;
 	case POWER_SUPPLY_PROP_CAPACITY:
 		rc = smblib_get_prop_batt_capacity(chg, val);
+		#ifdef CONFIG_CHARGER_RUNIN
+		if (BatteryTestStatus_enable)
+			runin_work(chg,val);
+		#endif
 		break;
 	case POWER_SUPPLY_PROP_SYSTEM_TEMP_LEVEL:
 		rc = smblib_get_prop_system_temp_level(chg, val);
@@ -1044,6 +1066,11 @@ static int smb2_batt_get_prop(struct power_supply *psy,
 	case POWER_SUPPLY_PROP_DP_DM:
 		val->intval = chg->pulse_cnt;
 		break;
+	//begin for the total capacity of batt in  2017.11.29
+	case POWER_SUPPLY_PROP_CHARGE_FULL_DESIGN:
+		rc = smblib_get_prop_battery_full_design(chg, val);
+		break;
+	//end for the total capacity of batt in  2017.11.29
 	case POWER_SUPPLY_PROP_RERUN_AICL:
 		val->intval = 0;
 		break;
@@ -1062,6 +1089,13 @@ static int smb2_batt_get_prop(struct power_supply *psy,
 	case POWER_SUPPLY_PROP_FCC_STEPPER_ENABLE:
 		val->intval = chg->fcc_stepper_mode;
 		break;
+	//begin for system app to control battery charging in 2019.12.25
+	case POWER_SUPPLY_PROP_CHARGING_ENABLED:
+		smblib_get_prop_batt_status(chg, val);
+		if (val->intval != POWER_SUPPLY_STATUS_CHARGING)
+			val->intval = 0;
+		break;
+	//end for system app to control battery charging in 2019.12.25
 	default:
 		pr_err("batt power supply prop %d not supported\n", psp);
 		return -EINVAL;
@@ -1159,6 +1193,11 @@ static int smb2_batt_set_prop(struct power_supply *psy,
 	case POWER_SUPPLY_PROP_INPUT_CURRENT_LIMITED:
 		rc = smblib_set_prop_input_current_limited(chg, val);
 		break;
+	//begin for system app to control battery charging in 2019.12.25
+	case POWER_SUPPLY_PROP_CHARGING_ENABLED:
+		rc = lct_set_prop_input_suspend(chg, val);
+		break;
+	//end for system app to control battery charging in 2019.12.25
 	default:
 		rc = -EINVAL;
 	}
@@ -1180,6 +1219,9 @@ static int smb2_batt_prop_is_writeable(struct power_supply *psy,
 	case POWER_SUPPLY_PROP_INPUT_CURRENT_LIMITED:
 	case POWER_SUPPLY_PROP_STEP_CHARGING_ENABLED:
 	case POWER_SUPPLY_PROP_SW_JEITA_ENABLED:
+	//begin for system app to control battery charging in 2019.12.25
+	case POWER_SUPPLY_PROP_CHARGING_ENABLED:
+	//end for system app to control battery charging in 2019.12.25
 		return 1;
 	default:
 		break;
@@ -2256,6 +2298,117 @@ static void smb2_create_debugfs(struct smb2 *chip)
 
 #endif
 
+// add running test by wangyibo at 20180812 start
+#ifdef CONFIG_CHARGER_RUNIN
+int BatteryCurrent = 0;
+static ssize_t smb_current_test_status_show(struct device *dev,
+					struct device_attribute *attr, char *buf)
+{
+	return sprintf(buf,"%d\n", BatteryCurrent);
+}
+
+static ssize_t smb_current_test_status_store(struct device *dev,
+		struct device_attribute *attr, const char *buf, size_t size)
+{
+	int retval;
+	unsigned int input;
+	union power_supply_propval pval = {0, };
+
+	struct smb_charger *chg = dev_get_drvdata(dev);
+
+	if (sscanf(buf, "%u", &input) != 1)
+		retval = -EINVAL;
+	else
+	        BatteryCurrent = input;
+
+	if (BatteryCurrent) {
+		pval.intval = 1;
+	} else {
+		pval.intval = 0;
+	}
+	smblib_set_prop_input_suspend(chg, &pval);
+
+	pr_err("%s:input = %d, BatteryCurrent = %d\n", __func__,input, BatteryCurrent);
+
+	return retval;
+}
+
+static ssize_t smb_battery_test_status_show(struct device *dev,
+					struct device_attribute *attr, char *buf)
+{
+	return sprintf(buf,"%d\n", BatteryTestStatus_enable);
+}
+
+static ssize_t smb_battery_test_status_store(struct device *dev,
+		struct device_attribute *attr, const char *buf, size_t size)
+{
+	int retval;
+	unsigned int input;
+
+	if (sscanf(buf, "%u", &input) != 1)
+		retval = -EINVAL;
+	else
+	        BatteryTestStatus_enable = input;
+
+	pr_err("%s:input = %d,BatteryTestStatus_enable = %d\n", __func__,input,BatteryTestStatus_enable);
+
+	return retval;
+}
+
+void runin_work(struct smb_charger *chip,union power_supply_propval *value)
+{
+	int rc = 0;
+
+	if (!BatteryTestStatus_enable) {
+		if(!charger_enable){
+			rc = smblib_set_dc_suspend(chip, false);
+			if (rc) {
+				pr_err("Couldn't enable charge rc=%d\n", rc);
+			}
+			rc = smblib_set_usb_suspend(chip, false);
+			if (rc)
+				pr_err("Couldn't enable usb charge rc=%d\n", rc);
+			charger_enable = true;
+		}
+		return;
+	}
+	pr_err("[lct  runin]capacity = %d\n",value->intval);
+
+	if (value->intval >= 80) {
+		pr_err("[lct runin]smblib_get_prop_batt_capacity >= 80\n");
+		if(charger_enable){
+			rc = smblib_set_dc_suspend(chip, true);
+			if (rc)
+				pr_err("Couldn't enable dc charge rc=%d\n", rc);
+			rc = smblib_set_usb_suspend(chip, true);
+			if (rc)
+				pr_err("Couldn't disenable usb charge rc=%d\n", rc);
+			charger_enable = false;
+		}
+	}
+	else if (value->intval <= 40) {
+		pr_err("[lct runin]smblib_get_prop_batt_capacity <= 40\n");
+		if(!charger_enable){
+			rc = smblib_set_dc_suspend(chip, false);
+			if (rc)
+				pr_err("Couldn't enable dc charge rc=%d\n", rc);
+			rc = smblib_set_usb_suspend(chip, false);
+			if (rc)
+				pr_err("Couldn't enable usb charge rc=%d\n", rc);
+			charger_enable = true;
+		}
+	}
+}
+
+static struct device_attribute attrs[] = {
+	__ATTR(BatteryTestStatus, S_IRUGO | S_IWUSR,
+			smb_battery_test_status_show, smb_battery_test_status_store),
+	__ATTR(BatteryCurrent, S_IRUGO | S_IWUSR,
+			smb_current_test_status_show, smb_current_test_status_store),
+};
+#endif
+// add running test by wangyibo at 20180812 start
+
 static int smb2_probe(struct platform_device *pdev)
 {
 	struct smb2 *chip;
@@ -2263,7 +2416,11 @@ static int smb2_probe(struct platform_device *pdev)
 	int rc = 0;
 	union power_supply_propval val;
 	int usb_present, batt_present, batt_health, batt_charge_type;
-
+// add running test by wangyibo at 20180812 start
+	#ifdef CONFIG_CHARGER_RUNIN
+	unsigned char attr_count;
+	#endif
+// add running test by wangyibo at 20180812 end
 	chip = devm_kzalloc(&pdev->dev, sizeof(*chip), GFP_KERNEL);
 	if (!chip)
 		return -ENOMEM;
@@ -2277,6 +2434,8 @@ static int smb2_probe(struct platform_device *pdev)
 	chg->mode = PARALLEL_MASTER;
 	chg->irq_info = smb2_irqs;
 	chg->name = "PMI";
+
+	dev_set_drvdata(chg->dev, &chip->chg);
 
 	chg->regmap = dev_get_regmap(chg->dev->parent, NULL);
 	if (!chg->regmap) {
@@ -2371,7 +2530,19 @@ static int smb2_probe(struct platform_device *pdev)
 		pr_err("Couldn't initialize batt psy rc=%d\n", rc);
 		goto cleanup;
 	}
-
+// add running test by wangyibo at 20180812 start
+	#ifdef CONFIG_CHARGER_RUNIN
+	pr_info("[lct runin]enter sysfs create file\n");
+	for (attr_count = 0; attr_count < ARRAY_SIZE(attrs); attr_count++) {
+		    rc = sysfs_create_file(&chg->dev->kobj,
+						&attrs[attr_count].attr);
+			if (rc < 0) {
+		        sysfs_remove_file(&chg->dev->kobj,
+						&attrs[attr_count].attr);
+			}
+		}
+	#endif
+// add running test by wangyibo at 20180812 end
 	rc = smb2_determine_initial_status(chip);
 	if (rc < 0) {
 		pr_err("Couldn't determine initial status rc=%d\n",
@@ -2420,7 +2591,18 @@ static int smb2_probe(struct platform_device *pdev)
 		goto cleanup;
 	}
 	batt_charge_type = val.intval;
-
+	//begin by zhangyang at 2019.6.11 
+	rc = smblib_write(chg,CHARGING_ENABLE_CMD_REG,0);
+	if(rc < 0) { 
+		pr_err("Couldn't disable charging rc = %d\n",rc);
+		return rc;
+	}
+	rc = smblib_write(chg,CHARGING_ENABLE_CMD_REG,CHARGING_ENABLE_CMD_BIT);
+	if(rc < 0) {
+		pr_err("Couldn't enable charging rc = %d\n",rc);
+		return rc;
+	}
+	//end by zhangyang at 2019.6.11
 	device_init_wakeup(chg->dev, true);
 
 	pr_info("QPNP SMB2 probed successfully usb:present=%d type=%d batt:present = %d health = %d charge = %d\n",
@@ -2455,7 +2637,15 @@ static int smb2_remove(struct platform_device *pdev)
 {
 	struct smb2 *chip = platform_get_drvdata(pdev);
 	struct smb_charger *chg = &chip->chg;
-
+// add running test by wangyibo at 20180812 start
+	#ifdef CONFIG_CHARGER_RUNIN
+	unsigned char attr_count;
+			for (attr_count = 0; attr_count < ARRAY_SIZE(attrs); attr_count++) {
+			    sysfs_remove_file(&chg->dev->kobj,
+							&attrs[attr_count].attr);
+			}
+	#endif
+// add running test by wangyibo at 20180812 end
 	power_supply_unregister(chg->batt_psy);
 	power_supply_unregister(chg->usb_psy);
 	power_supply_unregister(chg->usb_port_psy);

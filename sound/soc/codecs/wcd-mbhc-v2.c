@@ -56,6 +56,9 @@
 #define WCD_MBHC_SPL_HS_CNT  1
 
 static int det_extn_cable_en;
+
+extern bool spk_ext_pa_is_on;	//added by wenhuilong @20190515 for hph padac ctrl
+
 module_param(det_extn_cable_en, int,
 		S_IRUGO | S_IWUSR | S_IWGRP);
 MODULE_PARM_DESC(det_extn_cable_en, "enable/disable extn cable detect");
@@ -653,7 +656,10 @@ static void wcd_mbhc_report_plug(struct wcd_mbhc *mbhc, int insertion,
 			 jack_type, mbhc->hph_status);
 		wcd_mbhc_jack_report(mbhc, &mbhc->headset_jack,
 				mbhc->hph_status, WCD_MBHC_JACK_MASK);
-		wcd_mbhc_set_and_turnoff_hph_padac(mbhc);
+		if(!spk_ext_pa_is_on)	//added by wenhuilong @20190515 for hph padac ctrl
+		{
+		    wcd_mbhc_set_and_turnoff_hph_padac(mbhc);
+		}
 		hphrocp_off_report(mbhc, SND_JACK_OC_HPHR);
 		hphlocp_off_report(mbhc, SND_JACK_OC_HPHL);
 		mbhc->current_plug = MBHC_PLUG_TYPE_NONE;
@@ -859,6 +865,8 @@ exit:
 	return anc_mic_found;
 }
 
+static void wcd_enable_mbhc_supply(struct wcd_mbhc *mbhc, enum wcd_mbhc_plug_type plug_type);
+
 static void wcd_mbhc_find_plug_and_report(struct wcd_mbhc *mbhc,
 					 enum wcd_mbhc_plug_type plug_type)
 {
@@ -887,7 +895,31 @@ static void wcd_mbhc_find_plug_and_report(struct wcd_mbhc *mbhc,
 						SND_JACK_HEADPHONE);
 			if (mbhc->current_plug == MBHC_PLUG_TYPE_HEADSET)
 				wcd_mbhc_report_plug(mbhc, 0, SND_JACK_HEADSET);
-		wcd_mbhc_report_plug(mbhc, 1, SND_JACK_UNSUPPORTED);
+		//wcd_mbhc_report_plug(mbhc, 1, SND_JACK_UNSUPPORTED);
+		/* add for self stick not work ligang 20190624 */
+		wcd_mbhc_report_plug(mbhc, 0, SND_JACK_HEADSET);
+		pr_debug("%s: lct special accessory \n", __func__);
+		if (mbhc->impedance_detect) {
+			printk("lct 0; impedance_detect\n");
+			mbhc->mbhc_cb->compute_impedance(mbhc, &mbhc->zl, &mbhc->zr);
+			if ((mbhc->zl > 20000) && (mbhc->zr > 20000)) {
+				pr_debug("%s: special accessory \n", __func__);
+				printk("lct 0; special accessory\n");
+				/* Toggle switch back */
+				if (mbhc->mbhc_cfg->swap_gnd_mic &&
+					mbhc->mbhc_cfg->swap_gnd_mic(mbhc->codec)) {
+						pr_debug("%s: US_EU gpio present,flip switch again\n"
+						, __func__);
+					    printk("lct 0; US_EU gpio present,flip switch again\n");
+				}
+			    /* enable CS/MICBIAS for headset button detection to work */
+				wcd_enable_mbhc_supply(mbhc, MBHC_PLUG_TYPE_HEADSET);
+				wcd_mbhc_report_plug(mbhc, 1, SND_JACK_HEADSET);
+			} else {
+				printk("lct 0; not special accessory\n");
+				wcd_mbhc_report_plug(mbhc, 1, SND_JACK_UNSUPPORTED);
+			}
+		}
 	} else if (plug_type == MBHC_PLUG_TYPE_HEADSET) {
 		if (mbhc->mbhc_cfg->enable_anc_mic_detect)
 			anc_mic_found = wcd_mbhc_detect_anc_plug_type(mbhc);
@@ -904,6 +936,26 @@ static void wcd_mbhc_find_plug_and_report(struct wcd_mbhc *mbhc,
 	} else if (plug_type == MBHC_PLUG_TYPE_HIGH_HPH) {
 		if (mbhc->mbhc_cfg->detect_extn_cable) {
 			/* High impedance device found. Report as LINEOUT */
+			/* add for self stick nott work ligang 20190624 */
+			if (mbhc->impedance_detect) {
+				mbhc->mbhc_cb->compute_impedance(mbhc,
+				&mbhc->zl, &mbhc->zr);
+				if ((mbhc->zl > 20000) && (mbhc->zr > 20000)) {
+					pr_debug("tsx_hph_%s: special accessory \n", __func__);
+					/* Toggle switch back */
+					if (mbhc->mbhc_cfg->swap_gnd_mic &&
+					mbhc->mbhc_cfg->swap_gnd_mic(mbhc->codec)) {
+					pr_debug("%s: US_EU gpio present,flip switch again\n"
+					, __func__);
+					}
+					/* enable CS/MICBIAS for headset button detection to work */
+					wcd_enable_mbhc_supply(mbhc, MBHC_PLUG_TYPE_HEADSET);
+					wcd_mbhc_report_plug(mbhc, 1, SND_JACK_HEADSET);
+				}
+				else {
+				 wcd_mbhc_report_plug(mbhc, 1, SND_JACK_LINEOUT);
+				}
+		    } else {
 			wcd_mbhc_report_plug(mbhc, 1, SND_JACK_LINEOUT);
 			pr_debug("%s: setup mic trigger for further detection\n",
 				 __func__);
@@ -922,6 +974,7 @@ static void wcd_mbhc_find_plug_and_report(struct wcd_mbhc *mbhc,
 						 3);
 			wcd_mbhc_hs_elec_irq(mbhc, WCD_MBHC_ELEC_HS_INS,
 					     true);
+		    }
 		} else {
 			wcd_mbhc_report_plug(mbhc, 1, SND_JACK_LINEOUT);
 		}
@@ -1051,6 +1104,16 @@ static bool wcd_is_special_headset(struct wcd_mbhc *mbhc)
 					__func__);
 			break;
 		}
+
+		/* add for self stick not work ligang 20190624 */
+		if (mbhc->impedance_detect) {
+			mbhc->mbhc_cb->compute_impedance(mbhc,
+			&mbhc->zl, &mbhc->zr);
+			if ((mbhc->zl > 20000) && (mbhc->zr > 20000)) {
+				pr_debug("%s: Selfie stick detected\n",__func__);
+				break;	
+			}
+		}
 	}
 	if (is_spl_hs) {
 		pr_debug("%s: Headset with threshold found\n",  __func__);
@@ -1100,7 +1163,7 @@ static void wcd_mbhc_update_fsm_source(struct wcd_mbhc *mbhc,
 }
 
 static void wcd_enable_mbhc_supply(struct wcd_mbhc *mbhc,
-			enum wcd_mbhc_plug_type plug_type)
+		enum wcd_mbhc_plug_type plug_type)
 {
 
 	struct snd_soc_codec *codec = mbhc->codec;
@@ -1223,6 +1286,7 @@ static void wcd_correct_swch_plug(struct work_struct *work)
 
 
 	/* Enable HW FSM */
+	WCD_MBHC_REG_UPDATE_BITS(WCD_MBHC_FSM_EN, 0);    //jianggp add for DDV-1498
 	WCD_MBHC_REG_UPDATE_BITS(WCD_MBHC_FSM_EN, 1);
 	/*
 	 * Check for any button press interrupts before starting 3-sec
@@ -1481,8 +1545,21 @@ report:
 enable_supply:
 	if (mbhc->mbhc_cb->mbhc_micbias_control)
 		wcd_mbhc_update_fsm_source(mbhc, plug_type);
-	else
+	else{
+	      /*Add for selfie stick not work  ligang 20190624*/
+	      if (mbhc->impedance_detect) {
+			mbhc->mbhc_cb->compute_impedance(mbhc,
+			&mbhc->zl, &mbhc->zr);
+				if ((mbhc->zl > 20000) && (mbhc->zr > 20000)) {
+					pr_debug("%s:Selfie stick device,need enable btn isrc ctrl",__func__);
+					wcd_enable_mbhc_supply(mbhc, MBHC_PLUG_TYPE_HEADSET);
+				} else {
+					wcd_enable_mbhc_supply(mbhc, plug_type);
+				}
+		}else{
 		wcd_enable_mbhc_supply(mbhc, plug_type);
+		}
+	}
 exit:
 	if (mbhc->mbhc_cb->mbhc_micbias_control &&
 	    !mbhc->micbias_enable)
@@ -1925,7 +2002,12 @@ report_unplug:
 	 */
 	if (test_bit(WCD_MBHC_EVENT_PA_HPHL,
 		&mbhc->event_state))
-		wcd_mbhc_set_and_turnoff_hph_padac(mbhc);
+	{
+		if(!spk_ext_pa_is_on)	//added by wenhuilong @20190515 for hph padac ctrl
+		{
+			wcd_mbhc_set_and_turnoff_hph_padac(mbhc);
+		}
+	}
 	/*
 	 * Disable HPHL trigger and MIC Schmitt triggers.
 	 * Setup for insertion detection.

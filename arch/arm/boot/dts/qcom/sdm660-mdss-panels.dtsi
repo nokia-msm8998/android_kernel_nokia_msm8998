@@ -10,23 +10,27 @@
  * GNU General Public License for more details.
  */
 
-#include "dsi-panel-sim-video.dtsi"
-#include "dsi-panel-sim-dualmipi-video.dtsi"
-#include "dsi-panel-nt35597-truly-dualmipi-wqxga-video.dtsi"
-#include "dsi-panel-nt35597-truly-dualmipi-wqxga-cmd.dtsi"
-#include "dsi-panel-nt36850-truly-dualmipi-wqhd-cmd.dtsi"
-#include "dsi-panel-sharp-dualmipi-wqxga-video.dtsi"
-#include "dsi-panel-nt35597-truly-dsc-wqxga-video.dtsi"
-#include "dsi-panel-nt35597-truly-dsc-wqxga-cmd.dtsi"
-#include "dsi-panel-nt35597-dualmipi-wqxga-video.dtsi"
-#include "dsi-panel-nt35597-dualmipi-wqxga-cmd.dtsi"
+//#include "dsi-panel-sim-video.dtsi"
+//#include "dsi-panel-sim-dualmipi-video.dtsi"
+//#include "dsi-panel-nt35597-truly-dualmipi-wqxga-video.dtsi"
+//#include "dsi-panel-nt35597-truly-dualmipi-wqxga-cmd.dtsi"
+//#include "dsi-panel-nt36850-truly-dualmipi-wqhd-cmd.dtsi"
+//#include "dsi-panel-sharp-dualmipi-wqxga-video.dtsi"
+//#include "dsi-panel-nt35597-truly-dsc-wqxga-video.dtsi"
+//#include "dsi-panel-nt35597-truly-dsc-wqxga-cmd.dtsi"
+//#include "dsi-panel-nt35597-dualmipi-wqxga-video.dtsi"
+//#include "dsi-panel-nt35597-dualmipi-wqxga-cmd.dtsi"
 #include "dsi-panel-nt35695b-truly-fhd-video.dtsi"
-#include "dsi-panel-nt35695b-truly-fhd-cmd.dtsi"
-#include "dsi-panel-truly-1080p-cmd.dtsi"
-#include "dsi-panel-truly-1080p-video.dtsi"
+//#include "dsi-panel-nt35695b-truly-fhd-cmd.dtsi"
+//#include "dsi-panel-truly-1080p-cmd.dtsi"
+//#include "dsi-panel-truly-1080p-video.dtsi"
 #include "dsi-panel-rm67195-amoled-fhd-cmd.dtsi"
-#include "dsi-panel-lgd-incell-sw49106-fhd-video.dtsi"
-#include "dsi-panel-hx8399c-fhd-plus-video.dtsi"
+//#include "dsi-panel-lgd-incell-sw49106-fhd-video.dtsi"
+//#include "dsi-panel-hx8399c-fhd-plus-video.dtsi"
+#include "dsi-panel-tianma-ft8719-fhdplus-video.dtsi"
+#include "dsi-panel-hlt-hx83112a-fhdplus-video.dtsi"
+#include "pxlw-iris3-cfg-lc-m690-tianma-ft8719-fhdplus-video.dtsi"
+#include "pxlw-iris3-cfg-lc-m690-hlt-hx83112a-fhdplus-video.dtsi"
 
 &soc {
 	dsi_panel_pwr_supply: dsi_panel_pwr_supply {
@@ -60,6 +64,16 @@
 			qcom,supply-disable-load = <100>;
 			qcom,supply-post-on-sleep = <10>;
 		};
+                /*modify by shenwenbin for M690 display 20190312 begin*/
+                qcom,panel-supply-entry@3 {
+			reg = <0>;
+			qcom,supply-name = "px8418-vdd";
+			qcom,supply-min-voltage = <1800000>;
+			qcom,supply-max-voltage = <1950000>;
+			qcom,supply-enable-load = <32000>;
+			qcom,supply-disable-load = <80>;
+		};
+                /*modify by shenwenbin for M690 display 20190312 end*/
 	};
 
 	dsi_panel_pwr_supply_labibb_amoled:
@@ -128,6 +142,32 @@
 	};
 };
 
+/*modify by shenwenbin for M690 display 20190312 begin*/
+&dsi_ft8719_tianma_fhdplus_video {
+        qcom,mdss-dsi-panel-timings-phy-v2 = [25 1f 09 0a 06 03 04 a0
+                25 1f 09 0a 06 03 04 a0
+                25 1f 09 0a 06 03 04 a0
+                25 1f 09 0a 06 03 04 a0
+                25 1f 08 0a 06 03 04 a0];
+        qcom,mdss-dsi-min-refresh-rate = <48>;
+        qcom,mdss-dsi-max-refresh-rate = <60>;
+        qcom,mdss-dsi-t-clk-post = <0x0E>;
+	qcom,mdss-dsi-t-clk-pre = <0x35>;
+};
+
+&dsi_hx83112a_hlt_fhdplus_video {
+        qcom,mdss-dsi-panel-timings-phy-v2 = [25 1f 09 0a 06 03 04 a0
+                25 1f 09 0a 06 03 04 a0
+                25 1f 09 0a 06 03 04 a0
+                25 1f 09 0a 06 03 04 a0
+                25 1f 08 0a 06 03 04 a0];
+        qcom,mdss-dsi-min-refresh-rate = <48>;
+        qcom,mdss-dsi-max-refresh-rate = <60>;
+        qcom,mdss-dsi-t-clk-post = <0x0E>;
+	qcom,mdss-dsi-t-clk-pre = <0x35>;
+};
+/*modify by shenwenbin for M690 display 20190312 end*/
+/*
 &dsi_dual_nt35597_truly_video {
 	qcom,mdss-dsi-panel-timings-phy-v2 = [23 1e 07 08 05 03 04 a0
 		23 1e 07 08 05 03 04 a0
@@ -246,7 +286,7 @@
 		23 1e 07 08 05 03 04 a0
 		23 18 07 08 04 03 04 a0];
 };
-
+*/
 &dsi_nt35695b_truly_fhd_video {
 	qcom,mdss-dsi-panel-timings-phy-v2 = [24 1e 08 09 05 03 04 a0
 		24 1e 08 09 05 03 04 a0
@@ -257,7 +297,9 @@
 	qcom,mdss-dsi-max-refresh-rate = <60>;
 	qcom,mdss-dsi-pan-enable-dynamic-fps;
 	qcom,mdss-dsi-pan-fps-update = "dfps_immediate_porch_mode_vfp";
-	qcom,esd-check-enabled;
+        /*delete by shenwenbin for defalut panel no ESD 20190319 begin*/
+        /*
+        qcom,esd-check-enabled;
 	qcom,mdss-dsi-panel-status-check-mode = "reg_read";
 	qcom,mdss-dsi-panel-status-command = [06 01 00 01 00 00 01 0a];
 	qcom,mdss-dsi-panel-status-command-state = "dsi_hs_mode";
@@ -265,8 +307,21 @@
 	qcom,mdss-dsi-panel-on-check-value = <0x9c>;
 	qcom,mdss-dsi-panel-status-read-length = <1>;
 	qcom,mdss-dsi-panel-max-error-count = <3>;
+	*/
+	/*delete by shenwenbin for defalut panel no ESD 20190319 end*/
 };
 
+&dsi_rm67195_amoled_fhd_cmd {
+	qcom,mdss-dsi-panel-timings-phy-v2 = [24 1f 08 09 05 03 04 a0
+		24 1f 08 09 05 03 04 a0
+		24 1f 08 09 05 03 04 a0
+		24 1f 08 09 05 03 04 a0
+		24 1a 08 09 05 03 04 a0];
+	qcom,mdss-dsi-t-clk-post = <0x0d>;
+	qcom,mdss-dsi-t-clk-pre = <0x2f>;
+};
+
+/*
 &dsi_nt35695b_truly_fhd_cmd {
 	qcom,mdss-dsi-panel-timings-phy-v2 = [24 1e 08 09 05 03 04 a0
 		24 1e 08 09 05 03 04 a0
@@ -321,17 +376,6 @@
 
 };
 
-&dsi_rm67195_amoled_fhd_cmd {
-	qcom,mdss-dsi-panel-timings-phy-v2 = [24 1f 08 09 05 03 04 a0
-		24 1f 08 09 05 03 04 a0
-		24 1f 08 09 05 03 04 a0
-		24 1f 08 09 05 03 04 a0
-		24 1a 08 09 05 03 04 a0];
-	qcom,mdss-dsi-t-clk-post = <0x0d>;
-	qcom,mdss-dsi-t-clk-pre = <0x2f>;
-};
-
-
 &dsi_lgd_incell_sw49106_fhd_video {
 	qcom,mdss-dsi-panel-timings-phy-v2 = [24 1f 08 09 05 03 04 a0
 		24 1f 08 09 05 03 04 a0
@@ -362,3 +406,4 @@
 	qcom,mdss-dsi-pan-fps-update =
 		"dfps_immediate_porch_mode_vfp";
 };
+*/

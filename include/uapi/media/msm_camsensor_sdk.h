@@ -57,6 +57,7 @@ enum msm_sensor_camera_id_t {
 	CAMERA_1,
 	CAMERA_2,
 	CAMERA_3,
+	CAMERA_4,
 	MAX_CAMERAS,
 };
 
@@ -71,6 +72,7 @@ enum i2c_freq_mode_t {
 enum camb_position_t {
 	BACK_CAMERA_B,
 	FRONT_CAMERA_B,
+	WIDE_CAMERA_B = 0x110, //for wide camera
 	AUX_CAMERA_B = 0x100,
 	FRONT_AUX_CAMERA_B,
 	INVALID_CAMERA_B,
@@ -256,6 +258,7 @@ enum msm_camera_i2c_operation {
 	MSM_CAM_WRITE = 0,
 	MSM_CAM_POLL,
 	MSM_CAM_READ,
+	MSM_CAM_READ_LOOP, /*added for gc otp*/
 };
 
 struct msm_sensor_i2c_sync_params {

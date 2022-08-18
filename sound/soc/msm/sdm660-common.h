@@ -104,6 +104,7 @@ struct msm_asoc_mach_data {
 	struct sdm660_codec sdm660_codec_fn;
 	struct snd_info_entry *codec_root;
 	int spk_ext_pa_gpio;
+	int spk_ext_pa_gpio_det;	//added by wenhuilong @20190420 for will pa compatible
 	int mclk_freq;
 	bool native_clk_set;
 	int lb_mode;

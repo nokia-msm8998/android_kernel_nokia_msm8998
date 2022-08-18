@@ -22,16 +22,39 @@
 #include <linux/qpnp/pwm.h>
 #include <linux/err.h>
 #include <linux/string.h>
+/*modify by shenwenbin for open double tap wakeup 20190516 begin*/
+#include <linux/lct_tp_fm_info.h>
+/*modify by shenwenbin for open double tap wakeup 20190516 end*/
 
 #include "mdss_dsi.h"
 #include "mdss_dba_utils.h"
 #include "mdss_debug.h"
 #include "mdss_livedisplay.h"
 
+#if defined(CONFIG_PXLW_IRIS3)
+#include "mdss_dsi_iris3.h"
+#include "mdss_dsi_iris3_lightup.h"
+#include "mdss_dsi_iris3_lightup_ocp.h"
+#include "mdss_dsi_iris3_pq.h"
+#endif
+
+/*add by shenwenbin for panel calibrate  20190322 begin*/
+#include <linux/proc_fs.h>
+#include <asm/uaccess.h>
+
+int panel_calibrate_state_get(void);
+int panel_calibrate_state_set(int state);
+static int calibrate_state = 0;
+/*add by shenwenbin for panel calibrate  20190322 end*/
+/*modify by shenwenbin for sleep spi electric leakage 20190429 begin */
+u32 panel_hardware_id = 0;
+/*modify by shenwenbin for sleep spi electric leakage 20190429 end */
+
 #define DT_CMD_HDR 6
 #define DEFAULT_MDP_TRANSFER_TIME 14000
 
 #define VSYNC_DELAY msecs_to_jiffies(17)
+char g_lcd_id[128];
 
 DEFINE_LED_TRIGGER(bl_led_trigger);
 
@@ -99,6 +122,13 @@ static void mdss_dsi_panel_bklt_pwm(struct mdss_dsi_ctrl_pdata *ctrl, int level)
 	pr_debug("%s: ndx=%d level=%d duty=%d\n", __func__,
 					ctrl->ndx, level, duty);
 
+#if defined(CONFIG_PXLW_IRIS3)
+	if (iris_is_valid_cfg()) {
+		/*continuous splash should not setting dbc use dma*/
+		if (IRIS_CONT_SPLASH_LK != iris_get_cont_splash_type())
+			iris_dbc_bl_user_set(level);
+	}
+#endif
 	if (ctrl->pwm_period >= USEC_PER_SEC) {
 		ret = pwm_config_us(ctrl->pwm_bl, duty, ctrl->pwm_period);
 		if (ret) {
@@ -244,7 +274,14 @@ static void mdss_dsi_panel_bklt_dcs(struct mdss_dsi_ctrl_pdata *ctrl, int level)
 	else
 		cmdreq.flags |= CMD_REQ_LP_MODE;
 
+#if defined(CONFIG_PXLW_IRIS3)
+	if (iris_is_valid_cfg())
+		iris_panel_cmd_passthrough(ctrl, &cmdreq);
+	else
+		mdss_dsi_cmdlist_put(ctrl, &cmdreq);
+#else
 	mdss_dsi_cmdlist_put(ctrl, &cmdreq);
+#endif
 }
 
 static int mdss_dsi_request_gpios(struct mdss_dsi_ctrl_pdata *ctrl_pdata)
@@ -260,12 +297,28 @@ static int mdss_dsi_request_gpios(struct mdss_dsi_ctrl_pdata *ctrl_pdata)
 			goto disp_en_gpio_err;
 		}
 	}
-	rc = gpio_request(ctrl_pdata->rst_gpio, "disp_rst_n");
+
+        /*modify by shenwenbin for M690 display 20190312 begin*/
+        rc = gpio_request(ctrl_pdata->px8418_reset_gpio,"px8418_reset");
 	if (rc) {
-		pr_err("request reset gpio failed, rc=%d\n",
-			rc);
-		goto rst_gpio_err;
+		pr_err("request px8418_reset gpio failed, rc=%d\n",rc);
+		goto px8418_rst_gpio_err;
 	}
+        /*modify by shenwenbin for M690 display 20190312 end*/
+
+        /*modify by shenwenbin for open double tap wakeup 20190516 begin*/
+        if(tp_gesture_wakeup() == 1)
+                pr_debug("request disp_en gpio failed, rc=%d\n",rc); 
+        else{
+                rc = gpio_request(ctrl_pdata->rst_gpio, "disp_rst_n");
+        	if (rc) {
+        		pr_err("request reset gpio failed, rc=%d\n",
+        			rc);
+        		goto rst_gpio_err;
+        	}
+        }
+        /*modify by shenwenbin for open double tap wakeup 20190516 end*/
+        
 	if (gpio_is_valid(ctrl_pdata->avdd_en_gpio)) {
 		rc = gpio_request(ctrl_pdata->avdd_en_gpio,
 						"avdd_enable");
@@ -284,6 +337,23 @@ static int mdss_dsi_request_gpios(struct mdss_dsi_ctrl_pdata *ctrl_pdata)
 		}
 	}
 
+#if 0//defined(CONFIG_PXLW_IRIS3)
+	if (gpio_is_valid(ctrl_pdata->abyp_gpio)) {
+		rc = gpio_request(ctrl_pdata->abyp_gpio, "analog_bypass");
+		if (rc) {
+			pr_err("request analog bypass gpio failed,rc=%d\n", rc);
+		}
+	}
+
+	if (gpio_is_valid(ctrl_pdata->iris_rst_gpio)) {
+		rc = gpio_request(ctrl_pdata->iris_rst_gpio, "iris_reset");
+		if (rc) {
+			pr_err("request iris reset gpio failed,rc=%d\n", rc);
+			if (gpio_is_valid(ctrl_pdata->abyp_gpio))
+				gpio_free(ctrl_pdata->abyp_gpio);
+		}
+	}
+#endif
 	return rc;
 
 lcd_mode_sel_gpio_err:
@@ -291,9 +361,16 @@ lcd_mode_sel_gpio_err:
 		gpio_free(ctrl_pdata->avdd_en_gpio);
 avdd_en_gpio_err:
 	gpio_free(ctrl_pdata->rst_gpio);
+/*modify by shenwenbin for M690 display 20190312 begin*/
 rst_gpio_err:
 	if (gpio_is_valid(ctrl_pdata->disp_en_gpio))
 		gpio_free(ctrl_pdata->disp_en_gpio);
+        if (gpio_is_valid(ctrl_pdata->px8418_reset_gpio))
+		gpio_free(ctrl_pdata->px8418_reset_gpio);
+px8418_rst_gpio_err:
+	if (gpio_is_valid(ctrl_pdata->disp_en_gpio))
+		gpio_free(ctrl_pdata->disp_en_gpio);
+/*modify by shenwenbin for M690 display 20190312 end*/
 disp_en_gpio_err:
 	return rc;
 }
@@ -373,6 +450,12 @@ ret:
 	return rc;
 }
 
+
+/*add by shenwenbin for LCD ESD check need use TP read status 20190428 begin*/
+extern int lcd_need_reset;
+extern void himax_lcd_resume_func(void);
+/*add by shenwenbin for LCD ESD check need use TP read status 20190428 end*/
+
 int mdss_dsi_panel_reset(struct mdss_panel_data *pdata, int enable)
 {
 	struct mdss_dsi_ctrl_pdata *ctrl_pdata = NULL;
@@ -401,6 +484,14 @@ int mdss_dsi_panel_reset(struct mdss_panel_data *pdata, int enable)
 			   __func__, __LINE__);
 	}
 
+        /*modify by shenwenbin for M690 display 20190312 begin*/
+        if (!gpio_is_valid(ctrl_pdata->px8418_reset_gpio)) {
+		pr_debug("%s:%d, px8418_reset gpio not configured\n",
+			   __func__, __LINE__);
+		return rc;
+	}
+        /*modify by shenwenbin for M690 display 20190312 end*/
+
 	if (!gpio_is_valid(ctrl_pdata->rst_gpio)) {
 		pr_debug("%s:%d, reset line not configured\n",
 			   __func__, __LINE__);
@@ -410,6 +501,15 @@ int mdss_dsi_panel_reset(struct mdss_panel_data *pdata, int enable)
 	pr_debug("%s: enable = %d\n", __func__, enable);
 
 	if (enable) {
+                /*modify by shenwenbin for open double tap wakeup 20190516 begin*/
+                if((tp_gesture_wakeup() == 1) && (panel_hardware_id == 101)){
+                        gpio_direction_output(66, 0);
+                        msleep(2);
+                }
+                /*modify by shenwenbin for open double tap wakeup 20190516 end*/
+                
+                gpio_direction_output(66, 1);   //add by shenwenbin for TP timing 20190313
+                
 		rc = mdss_dsi_request_gpios(ctrl_pdata);
 		if (rc) {
 			pr_err("gpio request failed\n");
@@ -426,6 +526,25 @@ int mdss_dsi_panel_reset(struct mdss_panel_data *pdata, int enable)
 				}
 			}
 
+                        /*modify by shenwenbin for M690 display 20190312 begin*/
+                        if (pdata->panel_info.rst_seq_len) {
+				rc = gpio_direction_output(ctrl_pdata->px8418_reset_gpio,
+					pdata->panel_info.rst_seq[0]);
+				if (rc) {
+					pr_err("%s: unable to set dir for px8418_reset gpio\n",
+						__func__);
+					goto exit;
+				}
+			}
+
+			for (i = 0; i < pdata->panel_info.rst_seq_len; ++i) {
+				gpio_set_value((ctrl_pdata->px8418_reset_gpio),
+					pdata->panel_info.rst_seq[i]);
+				if (pdata->panel_info.rst_seq[++i])
+					usleep_range(pinfo->rst_seq[i] * 1000, pinfo->rst_seq[i] * 1000);
+			}
+                        /*modify by shenwenbin for M690 display 20190312 end*/
+
 			if (pdata->panel_info.rst_seq_len) {
 				rc = gpio_direction_output(ctrl_pdata->rst_gpio,
 					pdata->panel_info.rst_seq[0]);
@@ -435,13 +554,16 @@ int mdss_dsi_panel_reset(struct mdss_panel_data *pdata, int enable)
 					goto exit;
 				}
 			}
-
 			for (i = 0; i < pdata->panel_info.rst_seq_len; ++i) {
 				gpio_set_value((ctrl_pdata->rst_gpio),
 					pdata->panel_info.rst_seq[i]);
 				if (pdata->panel_info.rst_seq[++i])
 					usleep_range(pinfo->rst_seq[i] * 1000, pinfo->rst_seq[i] * 1000);
 			}
+                        /*modify by shenwenbin for wakeup faster of hlt module 20190703 begin*/
+                        if(panel_hardware_id == 110)
+                            himax_lcd_resume_func();
+                        /*modify by shenwenbin for wakeup faster of hlt module 20190703 end*/
 
 			if (gpio_is_valid(ctrl_pdata->avdd_en_gpio)) {
 				if (ctrl_pdata->avdd_en_gpio_invert) {
@@ -484,6 +606,10 @@ int mdss_dsi_panel_reset(struct mdss_panel_data *pdata, int enable)
 			ctrl_pdata->ctrl_state &= ~CTRL_STATE_PANEL_INIT;
 			pr_debug("%s: Reset panel done\n", __func__);
 		}
+                /*add by shenwenbin for LCD ESD check need use TP read status 20180925 begin*/
+                   //printk("swb.%s lcd_need_reset = %d\n",__func__,lcd_need_reset);
+                   lcd_need_reset = 0;
+                /*add by shenwenbin for LCD ESD check need use TP read status 20180925 end*/
 	} else {
 		if (gpio_is_valid(ctrl_pdata->avdd_en_gpio)) {
 			if (ctrl_pdata->avdd_en_gpio_invert)
@@ -497,12 +623,32 @@ int mdss_dsi_panel_reset(struct mdss_panel_data *pdata, int enable)
 			gpio_set_value((ctrl_pdata->disp_en_gpio), 0);
 			gpio_free(ctrl_pdata->disp_en_gpio);
 		}
-		gpio_set_value((ctrl_pdata->rst_gpio), 0);
-		gpio_free(ctrl_pdata->rst_gpio);
+
+                /*modify by shenwenbin for M690 display 20190312 begin*/
+                gpio_set_value((ctrl_pdata->px8418_reset_gpio), 0);
+		gpio_free(ctrl_pdata->px8418_reset_gpio);
+                /*modify by shenwenbin for M690 display 20190312 end*/
+
+                /*modify by shenwenbin for open double tap wakeup 20190516 begin*/
+                if(tp_gesture_wakeup() == 1)
+                        pr_debug("%s: touch have opened double wakeup function\n", __func__);
+                else{
+                        gpio_direction_output(66, 0);   //add by shenwenbin for TP timing 20190313            
+        		gpio_set_value((ctrl_pdata->rst_gpio), 0);
+        		gpio_free(ctrl_pdata->rst_gpio);
+                }
+                /*modify by shenwenbin for open double tap wakeup 20190516 end*/
+                
 		if (gpio_is_valid(ctrl_pdata->lcd_mode_sel_gpio)) {
 			gpio_set_value(ctrl_pdata->lcd_mode_sel_gpio, 0);
 			gpio_free(ctrl_pdata->lcd_mode_sel_gpio);
 		}
+#if 0//defined(CONFIG_PXLW_IRIS3)
+		if (gpio_is_valid(ctrl_pdata->iris_rst_gpio)) {
+			gpio_set_value(ctrl_pdata->iris_rst_gpio, 0);
+			gpio_free(ctrl_pdata->iris_rst_gpio);
+		}
+#endif
 	}
 
 exit:
@@ -645,6 +791,11 @@ static void mdss_dsi_send_col_page_addr(struct mdss_dsi_ctrl_pdata *ctrl,
 	/* Send default or dual roi 2A/2B cmd */
 	cmdreq.cmds = dual_roi ? set_dual_col_page_addr_cmd :
 		set_col_page_addr_cmd;
+
+#if defined(CONFIG_PXLW_IRIS3)
+	if (iris_is_valid_cfg())
+		iris_panel_cmd_passthrough(ctrl, &cmdreq);
+#endif
 	mdss_dsi_cmdlist_put(ctrl, &cmdreq);
 }
 
@@ -852,6 +1003,9 @@ static void mdss_dsi_panel_bl_ctrl(struct mdss_panel_data *pdata,
 {
 	struct mdss_dsi_ctrl_pdata *ctrl_pdata = NULL;
 	struct mdss_dsi_ctrl_pdata *sctrl = NULL;
+#if defined(CONFIG_PXLW_IRIS3)
+	struct iris_setting_info *psetting = NULL;
+#endif
 
 	if (pdata == NULL) {
 		pr_err("%s: Invalid input data\n", __func__);
@@ -877,6 +1031,15 @@ static void mdss_dsi_panel_bl_ctrl(struct mdss_panel_data *pdata,
 
 	/* enable the backlight gpio if present */
 	mdss_dsi_bl_gpio_ctrl(pdata, bl_level);
+
+#if defined(CONFIG_PXLW_IRIS3)
+	psetting = iris_get_setting();
+	psetting->quality_cur.system_brightness = bl_level;
+	/* Don't set panel's brightness during HDR/SDR2HDR */
+	/* Set panel's brightness when sdr2hdr mode is 3 */
+	if (iris_is_valid_cfg() && psetting->quality_cur.pq_setting.sdr2hdr != SDR2HDR_Bypass && iris_get_sdr2hdr_mode() != 3)
+		return;
+#endif
 
 	switch (ctrl_pdata->bklt_ctrl) {
 	case BL_WLED:
@@ -922,7 +1085,7 @@ static int mdss_dsi_panel_on(struct mdss_panel_data *pdata)
 	struct mdss_panel_info *pinfo;
 	struct dsi_panel_cmds *on_cmds;
 	int ret = 0;
-
+	int len;
 	if (pdata == NULL) {
 		pr_err("%s: Invalid input data\n", __func__);
 		return -EINVAL;
@@ -948,7 +1111,26 @@ static int mdss_dsi_panel_on(struct mdss_panel_data *pdata)
 	pr_debug("%s: ndx=%d cmd_cnt=%d\n", __func__,
 				ctrl->ndx, on_cmds->cmd_cnt);
 
+#if defined(CONFIG_PXLW_IRIS3)
+	len = on_cmds->cmd_cnt;
+#if defined(IRIS3_ABYP_LIGHTUP)
+	// Use Iris3 Analog bypass mode to light up panel
+	// Assume the AP output is LP11 here
+	iris_abyp_lightup(ctrl);
+#else
+	if (iris_is_valid_cfg()) {
+		if (iris_abyp_lightup_get() == 0) {
+			iris_lightup(ctrl, on_cmds);
+			len = 0;
+		} else {
+			iris_abyp_lightup(ctrl);
+		}
+	}
+#endif
+	if (len)
+#else
 	if (on_cmds->cmd_cnt)
+#endif
 		mdss_dsi_panel_cmds_send(ctrl, on_cmds, CMD_REQ_COMMIT);
 
 	if (pinfo->compression_mode == COMPRESSION_DSC)
@@ -993,7 +1175,15 @@ static int mdss_dsi_post_panel_on(struct mdss_panel_data *pdata)
 	cmds = &ctrl->post_panel_on_cmds;
 	if (cmds->cmd_cnt) {
 		msleep(VSYNC_DELAY);	/* wait for a vsync passed */
+#if defined(CONFIG_PXLW_IRIS3)
+		if (iris_abyp_lightup_get() == 0) {
+			iris_send_cmd_to_panel(ctrl, cmds);
+		} else {
+			mdss_dsi_panel_cmds_send(ctrl, cmds, CMD_REQ_COMMIT);
+		}
+#else
 		mdss_dsi_panel_cmds_send(ctrl, cmds, CMD_REQ_COMMIT);
+#endif
 	}
 
 	if (pinfo->is_dba_panel && pinfo->is_pluggable) {
@@ -1029,7 +1219,18 @@ static int mdss_dsi_panel_off(struct mdss_panel_data *pdata)
 			goto end;
 	}
 
+#if defined(CONFIG_PXLW_IRIS3) && !defined(IRIS3_ABYP_LIGHTUP)
+/*modify by pixelworks for disable px8418 when panel off 20190621 begin*/
+	if (iris_is_valid_cfg() && iris_abyp_lightup_get() == 0)
+	{
+		iris_lightoff_pre();
+/*modify by pixelworks for disable px8418 when panel off 20190621 end*/
+		iris_lightoff(ctrl, &ctrl->off_cmds);
+	}
+	else if (ctrl->off_cmds.cmd_cnt)
+#else
 	if (ctrl->off_cmds.cmd_cnt)
+#endif
 		mdss_dsi_panel_cmds_send(ctrl, &ctrl->off_cmds, CMD_REQ_COMMIT);
 
 	if (ctrl->ds_registered && pinfo->is_pluggable) {
@@ -2059,15 +2260,23 @@ static void mdss_dsi_parse_esd_params(struct device_node *np,
 				pr_err("TE-ESD not valid for video mode\n");
 				goto error;
 			}
-		} else {
+		} 
+                /*modify by shenwenbin for LCD ESD check need use TP read status 20190428 begin*/
+                else if (!strcmp(string, "tp_check")) {
+			ctrl->status_mode = ESD_TP;
+		}
+                /*modify by shenwenbin for LCD ESD check need use TP read status 20190428 end*/	
+                else {
 			pr_err("No valid panel-status-check-mode string\n");
 			goto error;
 		}
 	}
 
-	if ((ctrl->status_mode == ESD_BTA) || (ctrl->status_mode == ESD_TE) ||
-			(ctrl->status_mode == ESD_MAX))
+        /*modify by shenwenbin for LCD ESD check need use TP read status 20190428 begin*/
+        if ((ctrl->status_mode == ESD_BTA) || (ctrl->status_mode == ESD_TE) ||
+			(ctrl->status_mode == ESD_MAX)|| (ctrl->status_mode == ESD_TP))
 		return;
+        /*modify by shenwenbin for LCD ESD check need use TP read status 20190428 end*/
 
 	mdss_dsi_parse_dcs_cmds(np, &ctrl->status_cmds,
 			"qcom,mdss-dsi-panel-status-command",
@@ -2407,6 +2616,9 @@ int mdss_panel_parse_bl_settings(struct device_node *np,
 			pr_debug("%s: SUCCESS-> WLED TRIGGER register\n",
 				__func__);
 			ctrl_pdata->bklt_ctrl = BL_WLED;
+#if defined(CONFIG_PXLW_IRIS3)
+			iris_set_bklt_ctrl(bl_led_trigger);
+#endif
 		} else if (!strcmp(data, "bl_ctrl_pwm")) {
 			ctrl_pdata->bklt_ctrl = BL_PWM;
 			ctrl_pdata->pwm_pmi = of_property_read_bool(np,
@@ -2505,6 +2717,10 @@ void mdss_dsi_unregister_bl_settings(struct mdss_dsi_ctrl_pdata *ctrl_pdata)
 {
 	if (ctrl_pdata->bklt_ctrl == BL_WLED)
 		led_trigger_unregister_simple(bl_led_trigger);
+#if defined(CONFIG_PXLW_IRIS3)
+	if (ctrl_pdata->bklt_ctrl == BL_WLED)
+		iris_set_bklt_ctrl(NULL);
+#endif
 }
 
 static int mdss_dsi_panel_timing_from_dt(struct device_node *np,
@@ -2744,6 +2960,12 @@ static int mdss_panel_parse_dt(struct device_node *np,
 	if (mdss_dsi_is_hw_config_split(ctrl_pdata->shared_data))
 		pinfo->is_split_display = true;
 
+        /*modify by shenwenbin for sleep spi electric leakage 20190429 begin */
+        rc = of_property_read_u32(np,"qcom,mdss-dsi-panel-hwid", &tmp);
+	pinfo->panel_hwid = (!rc ? tmp : 0);
+        panel_hardware_id = pinfo->panel_hwid;
+        /*modify by shenwenbin for sleep spi electric leakage 20190429 end */
+
 	rc = of_property_read_u32(np,
 		"qcom,mdss-pan-physical-width-dimension", &tmp);
 	pinfo->physical_width = (!rc ? tmp : 0);
@@ -2943,6 +3165,11 @@ static int mdss_panel_parse_dt(struct device_node *np,
 	mdss_dsi_parse_dcs_cmds(np, &ctrl_pdata->off_cmds,
 		"qcom,mdss-dsi-off-command", "qcom,mdss-dsi-off-command-state");
 
+        /*add by shenwenbin for hlt panel read 128bytes 20190505 begin*/
+        mdss_dsi_parse_dcs_cmds(np, &ctrl_pdata->read_128bytes_cmds,
+		"qcom,mdss-dsi-read-128bytes-command", "qcom,mdss-dsi-read-128bytes-command-state");
+        /*add by shenwenbin for hlt panel read 128bytes 20190505 end*/
+
 	rc = of_property_read_u32(np, "qcom,adjust-timer-wakeup-ms", &tmp);
 	pinfo->adjust_timer_delay_ms = (!rc ? tmp : 0);
 
@@ -2977,6 +3204,9 @@ static int mdss_panel_parse_dt(struct device_node *np,
 			MSM_DBA_CHIP_NAME_MAX_LEN);
 	}
 
+#if defined(CONFIG_PXLW_IRIS3)
+	iris_parse_params(np, ctrl_pdata, mdss_dsi_parse_dcs_cmds);
+#endif
 	rc = of_property_read_u32(np,
 		"qcom,mdss-dsi-host-esc-clk-freq-hz",
 		&pinfo->esc_clk_rate_hz);
@@ -2991,6 +3221,100 @@ static int mdss_panel_parse_dt(struct device_node *np,
 error:
 	return -EINVAL;
 }
+
+/*modify by shenwenbin for M690 display panel name 20190319 begin*/
+static ssize_t msm_fb_lcd_name(struct device *dev,
+		struct device_attribute *attr, char *buf)
+{
+	ssize_t ret = 0;
+	sprintf(buf, "%s\n", g_lcd_id);
+	ret = strlen(buf) + 1;
+	return ret;
+}
+
+static DEVICE_ATTR(lcd_name,0664,msm_fb_lcd_name,NULL);
+static struct kobject *msm_lcd_name;
+static int msm_lcd_name_create_sysfs(void){
+   int ret;
+   msm_lcd_name=kobject_create_and_add("android_lcd",NULL);
+   if(msm_lcd_name==NULL){
+     pr_info("msm_lcd_name_create_sysfs_ failed\n");
+     ret=-ENOMEM;
+     return ret;
+   }
+   ret=sysfs_create_file(msm_lcd_name,&dev_attr_lcd_name.attr);
+   if(ret){
+    pr_info("%s failed \n",__func__);
+    kobject_del(msm_lcd_name);
+   }
+   return 0;
+}
+/*modify by shenwenbin for M690 display panel name 20190319 end*/
+/*add by shenwenbin for panel calibrate  20190322 begin*/
+static ssize_t panel_proc_calibrate_state_read(struct file *file, char __user *buf, size_t size, loff_t *ppos)
+{
+	int cnt=0;
+	char buff[12] = {0};
+	cnt=sprintf(buff,"%d\n",calibrate_state);
+	cnt += sprintf(buff + cnt, "\n");
+	if(copy_to_user(buf, buff,sizeof(buff)))
+		pr_err("%s %d copy_to_user \n",__func__,__LINE__);
+	//printk("%s,%d,calibrate_state =%d\n",__func__,__LINE__,calibrate_state);
+	return cnt;
+
+}
+
+static ssize_t panel_proc_calibrate_state_write(struct file *file, const char *buff,size_t len, loff_t *pos)
+{
+	char buf[12] = {0};
+	if(len > 12)
+		len =12;
+	if(copy_from_user(buf, buff, len))
+		pr_err("%s %d copy_from_user \n",__func__,__LINE__);
+	if(buf[0]=='0'||buf[0]==0)
+		calibrate_state = 0;
+        else if(buf[0]=='1'||buf[0]==1)
+		calibrate_state = 1;
+        else if(buf[0]=='2'||buf[0]==2)
+		calibrate_state = 2;
+        else
+                calibrate_state = 4;
+
+	//printk("%s,%d,calibrate_state=%d\n",__func__,__LINE__,calibrate_state);
+	return len;
+}
+
+static const struct file_operations panel_proc_calibrate_state_fops = {
+	.read		= panel_proc_calibrate_state_read,
+	.write		= panel_proc_calibrate_state_write,	
+};
+
+
+static int panel_calibrate_state_creat_proc_entry(void)
+{
+        struct proc_dir_entry *proc_entry_panel;
+
+        proc_entry_panel = proc_create_data("calibrate_state", 0666, NULL, &panel_proc_calibrate_state_fops, NULL);
+	if (IS_ERR_OR_NULL(proc_entry_panel))
+	{
+		pr_err("add /proc/calibrate_state error \n");
+	}
+
+    return 0;
+}
+
+int panel_calibrate_state_get(void)
+{
+	return calibrate_state;
+}
+
+int panel_calibrate_state_set(int state)
+{
+    calibrate_state = state;
+    printk("%s calibrate_state = %d\n",__func__,calibrate_state);
+    return 0;
+}
+/*add by shenwenbin for panel calibrate  20190322 end*/
 
 int mdss_dsi_panel_init(struct device_node *node,
 	struct mdss_dsi_ctrl_pdata *ctrl_pdata,
@@ -3017,6 +3341,12 @@ int mdss_dsi_panel_init(struct device_node *node,
 		pr_info("%s: Panel Name = %s\n", __func__, panel_name);
 		strlcpy(&pinfo->panel_name[0], panel_name, MDSS_MAX_PANEL_LEN);
 	}
+
+/*modify by shenwenbin for M690 display panel name 20190319 begin*/
+	/*add for device name node */
+	strcpy(g_lcd_id,panel_name);
+/*modify by shenwenbin for M690 display panel name 20190319 end*/
+
 	rc = mdss_panel_parse_dt(node, ctrl_pdata);
 	if (rc) {
 		pr_err("%s:%d panel dt parse failed\n", __func__, __LINE__);
@@ -3037,5 +3367,11 @@ int mdss_dsi_panel_init(struct device_node *node,
 			mdss_dsi_panel_apply_display_setting;
 	ctrl_pdata->switch_mode = mdss_dsi_panel_switch_mode;
 
+/*modify by shenwenbin for M690 display panel name 20190319 begin*/
+	msm_lcd_name_create_sysfs();
+/*modify by shenwenbin for M690 display panel name 20190319 end*/
+/*add by shenwenbin for panel calibrate  20190322 begin*/
+        panel_calibrate_state_creat_proc_entry();
+/*add by shenwenbin for panel calibrate  20190322 end*/
 	return 0;
 }

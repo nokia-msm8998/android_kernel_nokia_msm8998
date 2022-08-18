@@ -1104,6 +1104,8 @@ int subsystem_restart_dev(struct subsys_device *dev)
 		return -EBUSY;
 	}
 
+	/*add by wangyibo for vts at 20190605*/
+	dev->restart_level = 1;
 	pr_info("Restart sequence requested for %s, restart_level = %s.\n",
 		name, restart_levels[dev->restart_level]);
 

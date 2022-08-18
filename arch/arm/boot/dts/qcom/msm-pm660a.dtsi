@@ -10,20 +10,22 @@
  * GNU General Public License for more details.
  */
 
-/* Disable WLED */
+/*modify by shenwenbin for M690 display 20190312 begin*/
+/* enable WLED */
 &pm660l_wled {
-	status = "disabled";
+	status = "okay";
 };
 
-/* disable LCDB */
+/* enable LCDB */
 &pm660l_lcdb {
-	status = "disabled";
+	status = "okay";
 };
 
 &pm660a_oledb {
-	status = "okay";
+	status = "disabled";
 };
 
 &pm660a_labibb {
-	status = "okay";
+	status = "disabled";
 };
+/*modify by shenwenbin for M690 display 20190312 end*/

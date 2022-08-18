@@ -3,7 +3,7 @@
 #
 menuconfig TOUCHSCREEN_SYNAPTICS_DSX_v21
 	bool "Synaptics DSX touchscreen"
-	default y
+	default n
 	help
 	  Say Y here if you have a Synaptics DSX touchscreen connected
 	  to your system.
@@ -19,6 +19,7 @@ choice
 config TOUCHSCREEN_SYNAPTICS_DSX_I2C_v21
 	bool "I2C"
 	depends on I2C
+	default n
 	help
 	  Say Y here if you have a Synaptics DSX touchscreen interfaced
 	  to the host processor over I2C

@@ -363,7 +363,7 @@ void snd_jack_report(struct snd_jack *jack, int status)
 	if (!jack->input_dev)
 		return;
 
-	for (i = 0; i < ARRAY_SIZE(jack->key); i++) {
+	for (i = 0; i < ARRAY_SIZE(jack->key)-3; i++) {
 		int testbit = SND_JACK_BTN_0 >> i;
 
 		if (jack->type & testbit)

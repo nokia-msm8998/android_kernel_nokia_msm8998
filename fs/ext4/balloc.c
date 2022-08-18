@@ -20,6 +20,9 @@
 #include "ext4_jbd2.h"
 #include "mballoc.h"
 
+//lijinnan add for protect data partition has less space left stability 20180809 start
+#define DATA_PARTITION_PROTECT_ENABLE 1
+//lijinnan add for protect data partition has less space left stability 20180809 end
 #include <trace/events/ext4.h>
 
 static unsigned ext4_num_base_meta_clusters(struct super_block *sb,
@@ -552,6 +555,63 @@ ext4_read_block_bitmap(struct super_block *sb, ext4_group_t block_group)
 	}
 	return bh;
 }
+//lijinnan add for protect data partition has less space left stability 20180809 start
+#if DATA_PARTITION_PROTECT_ENABLE
+static int has_free_blocks(s64 free_blocks, s64 dirty_blocks)
+{
+	//pr_err("has_free_blocks: comm:%s, group_leader:%s\n", current->comm,current->group_leader->comm);
+	/* Low limited value:150M exclude the dirty blocks */
+	if((free_blocks - dirty_blocks) < 50000) {
+		/*limit some system process like adbd...*/
+		if(current->cred->uid.val <= 10000
+		   && !strcmp(current->group_leader->comm, "adbd")
+		) {
+			//return 0;
+			return 1; // modified by wangyibo fot camera tunning push so to /vendor at 20190604
+		}
+		/*pass some system app process*/
+		if(current->cred->uid.val > 10000) {
+			if(strstr(current->group_leader->comm, "android.phone")
+			   || strstr(current->group_leader->comm, "systemui")
+			   || strstr(current->group_leader->comm, "process.media")
+			   || strstr(current->group_leader->comm, "process.acore")
+			   || strstr(current->group_leader->comm, "launcher")
+			   || strstr(current->group_leader->comm, "com.android.mms")
+			   || strstr(current->group_leader->comm, "android.setting")
+			   || strstr(current->group_leader->comm, "dex2oat")
+			   || strstr(current->group_leader->comm, "gms.persistent")
+			   || strstr(current->group_leader->comm, "android.dialer")
+			   || strstr(current->group_leader->comm, "apps.messaging")
+			   || strstr(current->group_leader->comm, "android.talk")
+			   || strstr(current->group_leader->comm, "android.gms")
+			   || strstr(current->group_leader->comm, "roid.calendar")
+			   || strstr(current->group_leader->comm, "apps.photos")
+			   || strstr(current->group_leader->comm, "android.ims")
+			   || strstr(current->group_leader->comm, "roid.calculator")
+			   || strstr(current->group_leader->comm, "obile.assistant")
+			   || strstr(current->group_leader->comm, "eaurora.snapcam")
+			   || strstr(current->group_leader->comm, "filleventtests")//for fill worker
+			   || strstr(current->group_leader->comm, "s.messaging:rcs")
+			   || strstr(current->group_leader->comm, "ndroid.contacts")
+			   || strstr(current->group_leader->comm, "ogle.android.gm")
+			   || strstr(current->group_leader->comm, ".android.chrome")
+               || strstr(current->group_leader->comm, "com.android.mtp")
+               || strstr(current->group_leader->comm, "id.apps.tachyon")
+               || strstr(current->group_leader->comm, "droid.apps.maps")
+               || strstr(current->group_leader->comm, ".android.videos")
+               || strstr(current->group_leader->comm, "roid.music:main")
+               || strstr(current->group_leader->comm, "ndroid.music:ui")
+			){
+				return 1;
+			} else {
+				return 0;
+			}
+		}
+	}
+	return 1;
+}
+#endif
+//lijinnan add for protect data partition has less space left stability 20180809 end
 
 /**
  * ext4_has_free_clusters()
@@ -585,6 +645,18 @@ static int ext4_has_free_clusters(struct ext4_sb_info *sbi,
 		free_clusters  = percpu_counter_sum_positive(fcc);
 		dirty_clusters = percpu_counter_sum_positive(dcc);
 	}
+
+//lijinnan add for protect data partition has less space left stability 20180809 start
+#if DATA_PARTITION_PROTECT_ENABLE
+    if(sbi->s_groups_count >= 5 && has_free_blocks(free_clusters, dirty_clusters) == 0) {
+        //pr_err("ext4_has_free_clusters: %lld, %lld, %u\n", free_clusters, dirty_clusters, sbi->s_groups_count);
+        pr_err("ext4_has_free_clusters: no free block for (UID:%d, CMD:%s)\n", current->cred->uid.val, current->group_leader->comm);
+        	pr_err("has_free_blocks: comm:%s, group_leader:%s\n", current->comm,current->group_leader->comm);
+        return 0;
+    }
+#endif
+//lijinnan add for protect data partition has less space left stability 20180809 end
+
 	/* Check whether we have space after accounting for current
 	 * dirty clusters & root reserved clusters.
 	 */

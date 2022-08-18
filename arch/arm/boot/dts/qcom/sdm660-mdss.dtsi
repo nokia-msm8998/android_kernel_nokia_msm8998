@@ -299,7 +299,7 @@
 		qcom,msm-bus,num-paths = <1>;
 		qcom,msm-bus,vectors-KBps =
 			<22 512 0 0>,
-			<22 512 0 1000>;
+			<22 512 0 6400000>; //modify by huxiaobin for iris3 mipi IB to 6.4Gbps 20190411 
 
 		qcom,mmss-ulp-clamp-ctrl-offset = <0x14>;
 
@@ -371,6 +371,7 @@
 
 			qcom,timing-db-mode;
 			wqhd-vddio-supply = <&pm660_l11>;
+                        px8418-vdd-supply = <&pm660_l13>;       //modify by shenwenbin for M690 display 20190312 
 			vdda-3p3-supply = <&pm660l_l6>;
 			lab-supply = <&lcdb_ldo_vreg>;
 			ibb-supply = <&lcdb_ncp_vreg>;
@@ -388,13 +389,14 @@
 				 <&mdss_dsi0_pll BYTE0_SRC_CLK>,
 				 <&mdss_dsi0_pll PIX0_SRC_CLK>,
 				 <&mdss_dsi0_pll SHADOW_BYTE0_SRC_CLK>,
-				 <&mdss_dsi0_pll SHADOW_PIX0_SRC_CLK>;
+				 <&mdss_dsi0_pll SHADOW_PIX0_SRC_CLK>,
+				 <&clock_rpmcc RPM_LN_BB_CLK2>;         //modify by shenwenbin for M690 display 20190312 
 			clock-names = "byte_clk", "pixel_clk", "core_clk",
 				"byte_clk_rcg", "pixel_clk_rcg",
 				"byte_intf_clk", "pll_byte_clk_mux",
 				"pll_pixel_clk_mux", "pll_byte_clk_src",
 				"pll_pixel_clk_src", "pll_shadow_byte_clk_src",
-				"pll_shadow_pixel_clk_src";
+				"pll_shadow_pixel_clk_src","bb_clk_2";          //modify by shenwenbin for M690 display 20190312 
 
 			qcom,null-insertion-enabled;
 			qcom,platform-strength-ctrl = [ff 06

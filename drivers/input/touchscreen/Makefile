@@ -98,3 +98,8 @@ obj-$(CONFIG_TOUCHSCREEN_ZFORCE)	+= zforce_ts.o
 obj-$(CONFIG_TOUCHSCREEN_COLIBRI_VF50)	+= colibri-vf50-ts.o
 obj-$(CONFIG_TOUCHSCREEN_ROHM_BU21023)	+= rohm_bu21023.o
 obj-$(CONFIG_TOUCHSCREEN_ST)		+= st/
+obj-$(CONFIG_TOUCHSCREEN_FTS)		+= focaltech_touch/
+# add by shenwenbin for factory show firmware 20190322 begin
+obj-y	+= lct_tp_fm_info.o
+# add by shenwenbin for factory show firmware 20190322 end
+obj-$(CONFIG_TOUCHSCREEN_HIMAX_CHIPSET)	+= hxchipset/

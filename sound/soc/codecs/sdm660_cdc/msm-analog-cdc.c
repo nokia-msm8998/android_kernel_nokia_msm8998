@@ -33,6 +33,7 @@
 #include "msm-cdc-common.h"
 #include "../../msm/sdm660-common.h"
 #include "../wcd-mbhc-v2.h"
+#include <linux/of_gpio.h>	//added by wenhuilong @20190313 for M690 audio bringup
 
 #define DRV_NAME "pmic_analog_codec"
 #define SDM660_CDC_RATES (SNDRV_PCM_RATE_8000 | SNDRV_PCM_RATE_16000 |\
@@ -59,7 +60,7 @@
 #define SPK_PMD 2
 #define SPK_PMU 3
 
-#define MICBIAS_DEFAULT_VAL 1800000
+#define MICBIAS_DEFAULT_VAL 2700000	//modified from 1800000 to 2700000 by wenhuilong @20190531 for high impendance headphone mic
 #define MICBIAS_MIN_VAL 1600000
 #define MICBIAS_STEP_SIZE 50000
 
@@ -1908,7 +1909,6 @@ static int msm_anlg_cdc_ext_spk_boost_set(struct snd_kcontrol *kcontrol,
 	return 0;
 }
 
-
 static const char * const msm_anlg_cdc_loopback_mode_ctrl_text[] = {
 		"DISABLE", "ENABLE"};
 static const struct soc_enum msm_anlg_cdc_loopback_mode_ctl_enum[] = {
@@ -2330,8 +2330,10 @@ static int msm_anlg_cdc_codec_enable_spk_pa(struct snd_soc_dapm_widget *w,
 		msm_anlg_cdc_dig_notifier_call(codec,
 					       DIG_CDC_EVENT_RX3_MUTE_OFF);
 		snd_soc_update_bits(codec, w->reg, 0x80, 0x80);
+
 		break;
 	case SND_SOC_DAPM_PRE_PMD:
+
 		msm_anlg_cdc_dig_notifier_call(codec,
 					       DIG_CDC_EVENT_RX3_MUTE_ON);
 		/*

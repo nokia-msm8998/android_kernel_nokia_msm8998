@@ -692,6 +692,63 @@ static int qpnp_wled_set_step_level(struct qpnp_wled *wled, int new_level)
 	return 0;
 }
 
+/*modify by shenwenbin for slide backlight bar flicker 20190712 begin*/
+static int qpnp_wled_set_step_level_delay(struct qpnp_wled *wled, int new_level)
+{
+	int rc, i, num_steps, delay_us;
+	u16 level, step_size;
+	bool level_inc = false;
+
+	level = wled->prev_level;
+	level_inc = (new_level > level);
+
+	num_steps = abs(level - new_level);
+	if (!num_steps)
+		return 0;
+
+	delay_us = qpnp_wled_step_delay_us / num_steps;
+
+	if (delay_us < 500) {
+		step_size = 1000 / delay_us;
+		num_steps = num_steps / step_size;
+		delay_us = 1000;
+	} else {
+		if (num_steps < qpnp_wled_step_size_threshold)
+			delay_us *= qpnp_wled_step_delay_gain;
+
+		step_size = 1;
+	}
+
+	i = level;
+	while (num_steps--) {
+		if (level_inc)
+			i += step_size;
+		else
+			i -= step_size;
+
+		rc = qpnp_wled_set_level(wled, i);
+		if (rc < 0)
+			return rc;
+
+		if (delay_us > 0) {
+			if (delay_us < 20000)
+				usleep_range(delay_us, delay_us + 1);
+			else
+				msleep(delay_us / USEC_PER_MSEC);
+		}
+	}
+
+	if (i != new_level) {
+		i = new_level;
+		rc = qpnp_wled_set_level(wled, i);
+		if (rc < 0)
+			return rc;
+	}
+
+	return 0;
+}
+/*modify by shenwenbin for slide backlight bar flicker 20190712 end*/
+
 static int qpnp_wled_psm_config(struct qpnp_wled *wled, bool enable)
 {
 	int rc;
@@ -1088,11 +1145,16 @@ static void qpnp_wled_work(struct work_struct *work)
 		}
 		wled->prev_level = level_255;
 	} else if (level) {
+                /*modify by shenwenbin for slide backlight bar flicker 20190712 begin*/
+                if (wled->stepper_en && wled->prev_level != 0)
+                rc = qpnp_wled_set_step_level_delay(wled, level);
+                else
 		rc = qpnp_wled_set_level(wled, level);
 		if (rc) {
 			dev_err(&wled->pdev->dev, "wled set level failed\n");
 			goto unlock_mutex;
 		}
+                /*modify by shenwenbin for slide backlight bar flicker 20190712 end*/
 	}
 
 	if (!!level != wled->prev_state) {
@@ -1116,7 +1178,9 @@ static void qpnp_wled_work(struct work_struct *work)
 			goto unlock_mutex;
 		}
 	}
-
+        /*modify by shenwenbin for slide backlight bar flicker 20190712 begin*/
+        wled->prev_level = level;
+        /*modify by shenwenbin for slide backlight bar flicker 20190712 end*/
 	wled->prev_state = !!level;
 unlock_mutex:
 	mutex_unlock(&wled->lock);

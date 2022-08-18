@@ -1,0 +1,72 @@
+
+qcom,m690_atl_3500mah_pm660 {
+	qcom, = <24>;
+	/* #3947961_LC_M690_ATL_3500mAH_PM660_averaged_MasterSlave_May7th2019*/
+	qcom,max-voltage-uv = <4400000>;
+	qcom,fg-cc-cv-threshold-mv = <4390>;
+	qcom,nom-batt-capacity-mah = <3500>;
+	qcom,fastchg-current-ma = <2000>;
+	qcom,batt-id-kohm = <100>;
+	qcom,battery-beta = <3435>;
+	qcom,battery-type = "m690_atl_3500mah_pm660";
+	qcom,checksum = <0xF432>;
+	qcom,gui-version = "PM660GUI - 0.0.0.45";
+	qcom,fg-profile-data = [
+		 BC 1F 3E 05
+		 B0 0A 6D FC
+		 77 1B EA 0A
+		 CC 1D 59 1A
+		 FC 16 0E 23
+		 C8 45 51 52
+		 5F 00 00 00
+		 14 00 00 00
+		 00 00 FC D5
+		 E8 C4 A2 D2
+		 1A 00 08 00
+		 B7 EA A3 F5
+		 AD 06 FD F2
+		 46 F2 05 0B
+		 D9 ED CF 1A
+		 51 06 09 20
+		 27 00 14 00
+		 C7 20 23 04
+		 90 0B 53 05
+		 B2 1B E6 0A
+		 D4 1D 41 1A
+		 14 18 62 22
+		 DC 3C 05 4B
+		 65 00 00 00
+		 15 00 00 00
+		 00 00 BD CC
+		 89 BB 90 B2
+		 13 00 00 00
+		 5F F3 A3 F5
+		 FD F4 FF EA
+		 68 01 0E 0B
+		 2E F2 38 1B
+		 B0 33 CC FF
+		 07 10 00 00
+		 AB 0D 66 46
+		 13 00 40 00
+		 AA 01 0A FA
+		 FF 00 00 00
+		 00 00 00 00
+		 00 00 00 00
+		 00 00 00 00
+		 00 00 00 00
+		 00 00 00 00
+		 00 00 00 00
+		 00 00 00 00
+		 00 00 00 00
+		 00 00 00 00
+		 00 00 00 00
+		 00 00 00 00
+		 00 00 00 00
+		 00 00 00 00
+		 00 00 00 00
+		 00 00 00 00
+		 00 00 00 00
+		 00 00 00 00
+		 00 00 00 00
+	];
+};

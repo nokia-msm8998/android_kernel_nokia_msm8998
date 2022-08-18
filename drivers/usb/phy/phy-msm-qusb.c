@@ -117,7 +117,7 @@ unsigned int tune1;
 module_param(tune1, uint, S_IRUGO | S_IWUSR);
 MODULE_PARM_DESC(tune1, "QUSB PHY TUNE1");
 
-unsigned int tune2;
+unsigned int tune2 = 0xa0; //modify by wangyibo at 2019.04.10  for usb eye test
 module_param(tune2, uint, S_IRUGO | S_IWUSR);
 MODULE_PARM_DESC(tune2, "QUSB PHY TUNE2");
 
@@ -125,7 +125,7 @@ unsigned int tune3;
 module_param(tune3, uint, S_IRUGO | S_IWUSR);
 MODULE_PARM_DESC(tune3, "QUSB PHY TUNE3");
 
-unsigned int tune4;
+unsigned int tune4 = 0xc5;  //modify by wangyibo at 2019.04.10  for usb eye test
 module_param(tune4, uint, S_IRUGO | S_IWUSR);
 MODULE_PARM_DESC(tune4, "QUSB PHY TUNE4");
 
@@ -1132,6 +1132,14 @@ static int qusb_phy_dpdm_regulator_enable(struct regulator_dev *rdev)
 	struct qusb_phy *qphy = rdev_get_drvdata(rdev);
 
 	dev_dbg(qphy->phy.dev, "%s\n", __func__);
+
+	// fix DDV-715 ycable not work if at first not charge by ligang at 20190523 start
+	if (qphy->phy.flags & PHY_HOST_MODE) {
+		dev_err(qphy->phy.dev, "%s: host mode active\n", __func__);
+		return -EINVAL;
+	}
+	// fix DDV-715 ycable not work if at first not charge by ligang at 20190523 end
+
 	return qusb_phy_update_dpdm(&qphy->phy, POWER_SUPPLY_DP_DM_DPF_DMF);
 }
 

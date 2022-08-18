@@ -15,7 +15,9 @@
 
 #include "sdm636.dtsi"
 #include "sdm636-mtp.dtsi"
-#include "sdm660-external-codec.dtsi"
+//#include "sdm660-external-codec.dtsi"
+#include "sdm660-internal-codec.dtsi"	//modified by wenhuilong @20190319 for M490 audio bringup
+
 
 / {
 	model = "Qualcomm Technologies, Inc. SDM 636 PM660 + PM660L MTP";

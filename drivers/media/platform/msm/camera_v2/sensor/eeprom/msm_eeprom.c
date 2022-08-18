@@ -17,6 +17,7 @@
 #include "msm_sd.h"
 #include "msm_cci.h"
 #include "msm_eeprom.h"
+#include "hi556.h"
 
 #undef CDBG
 #define CDBG(fmt, args...) pr_debug(fmt, ##args)
@@ -25,13 +26,70 @@ DEFINE_MSM_MUTEX(msm_eeprom_mutex);
 #ifdef CONFIG_COMPAT
 static struct v4l2_file_operations msm_eeprom_v4l2_subdev_fops;
 #endif
+struct vendor_eeprom s_vendor_eeprom[CAMERA_VENDOR_EEPROM_COUNT_MAX];
 
-/**
-  * msm_get_read_mem_size - Get the total size for allocation
-  * @eeprom_map_array:	mem map
-  *
-  * Returns size after computation size, returns error in case of error
-  */
+
+static int custom_hynix_define_otp_read(struct msm_eeprom_ctrl_t *e_ctrl,
+		struct msm_eeprom_memory_map_t *emap, uint8_t *memptr) {
+	int m = 0;
+	int k = 0;
+	uint32_t addr = 0;
+	int rc =0;
+	pr_err("%s: hi556 otp read init \n", __func__);
+	for (m = 0; m < sizeof(init_reg_array0) / (sizeof(init_reg_array0[0])); m++){
+		rc = e_ctrl->i2c_client.i2c_func_tbl->i2c_write(&(e_ctrl->i2c_client),
+				init_reg_array0[m].reg_addr, init_reg_array0[m].reg_data, MSM_CAMERA_I2C_WORD_DATA);
+		if (rc < 0) {
+			pr_err("%s: hi556 init  failed\n", __func__);
+			return rc;
+		}
+	}
+	mdelay(100);
+	for (m = 0; m < sizeof(init_otp_array) / sizeof(init_otp_array[0]); m++){
+		rc = e_ctrl->i2c_client.i2c_func_tbl->i2c_write(&(e_ctrl->i2c_client),
+				init_otp_array[m].reg_addr, init_otp_array[m].reg_data, MSM_CAMERA_I2C_BYTE_DATA);
+		mdelay(init_otp_array[m].delay);
+		if (rc < 0) {
+			pr_err("%s: hi556 to otp mode  failed\n", __func__);
+			return rc;
+		}
+	}
+	/*
+	rc = e_ctrl->i2c_client.i2c_func_tbl->i2c_write(&(e_ctrl->i2c_client), 0x10A, (addr>>8)&0xff, MSM_CAMERA_I2C_BYTE_DATA);
+	rc |= e_ctrl->i2c_client.i2c_func_tbl->i2c_write(&(e_ctrl->i2c_client), 0x10B, addr & 0xff, MSM_CAMERA_I2C_BYTE_DATA);
+	rc |= e_ctrl->i2c_client.i2c_func_tbl->i2c_write(&(e_ctrl->i2c_client), 0x102, 1, MSM_CAMERA_I2C_BYTE_DATA);
+	*/
+	for (addr = emap->mem.addr, k = 0; k < (emap->mem.valid_size); addr++, k++) {
+		rc |= e_ctrl->i2c_client.addr_type = MSM_CAMERA_I2C_WORD_DATA;
+		rc |= e_ctrl->i2c_client.i2c_func_tbl->i2c_read_seq(&(e_ctrl->i2c_client), 0x108, memptr, 1);
+		//pr_err(" hi556 custom:addr:[0x%04x] value: (0x%x)\n", addr, *memptr);
+		memptr++;  // must
+		if (rc < 0) {
+			pr_err("%s: hi556 read failed\n", __func__);
+			return rc;
+		}
+	}
+	for (m = 0; m < sizeof(otp_to_norm_mode_array)/sizeof(otp_to_norm_mode_array[0]); m++){
+		rc = e_ctrl->i2c_client.i2c_func_tbl->i2c_write(&(e_ctrl->i2c_client),
+				otp_to_norm_mode_array[m].reg_addr, otp_to_norm_mode_array[m].reg_data, 1);
+		if (rc < 0) {
+			pr_err("%s: to normal  failed\n", __func__);
+			return rc;
+		}
+	}
+	return rc;
+}
+
+
+
+
+
+/*
+ * msm_get_read_mem_size - Get the total size for allocation
+ * @eeprom_map_array:	mem map
+ *
+ * Returns size after computation size, returns error in case of error
+ */
 static int msm_get_read_mem_size
 	(struct msm_eeprom_memory_map_array *eeprom_map_array) {
 	int size = 0, i, j;
@@ -203,6 +261,11 @@ static int read_eeprom_memory(struct msm_eeprom_ctrl_t *e_ctrl,
 		}
 
 		if (emap[j].mem.valid_size) {
+			if((strcmp(eb_info->eeprom_name,"starlord_hi556_aux_txd_i")==0)){
+					rc = custom_hynix_define_otp_read(e_ctrl,&emap[j],memptr);
+					pr_err("hynix_define_otp_read hi556 eeprom\n");
+			}  
+			else{
 			e_ctrl->i2c_client.addr_type = emap[j].mem.addr_t;
 			rc = e_ctrl->i2c_client.i2c_func_tbl->i2c_read_seq(
 				&(e_ctrl->i2c_client), emap[j].mem.addr,
@@ -212,6 +275,7 @@ static int read_eeprom_memory(struct msm_eeprom_ctrl_t *e_ctrl,
 				return rc;
 			}
 			memptr += emap[j].mem.valid_size;
+			}
 		}
 		if (emap[j].pageen.valid_size) {
 			e_ctrl->i2c_client.addr_type = emap[j].pageen.addr_t;
@@ -659,7 +723,7 @@ static int msm_eeprom_config(struct msm_eeprom_ctrl_t *e_ctrl,
 		if (e_ctrl->userspace_probe == 0) {
 			pr_err("%s:%d Eeprom already probed at kernel boot",
 				__func__, __LINE__);
-			rc = -EINVAL;
+			rc = 0;
 			break;
 		}
 		if (e_ctrl->cal_data.num_data == 0) {
@@ -1521,7 +1585,7 @@ static int msm_eeprom_config32(struct msm_eeprom_ctrl_t *e_ctrl,
 		if (e_ctrl->userspace_probe == 0) {
 			pr_err("%s:%d Eeprom already probed at kernel boot",
 				__func__, __LINE__);
-			rc = -EINVAL;
+			rc = 0;
 			break;
 		}
 		if (e_ctrl->cal_data.num_data == 0) {
@@ -1578,6 +1642,319 @@ static long msm_eeprom_subdev_fops_ioctl32(struct file *file, unsigned int cmd,
 }
 
 #endif
+
+static camera_vendor_module_id hi556_690_tsp_back2_i_get_otp_vendor_module_id(
+    struct msm_eeprom_ctrl_t *e_ctrl)
+{
+    uint8_t MODULE_INFO_OFFSET = 0x01;//please reference the otp spec.
+    uint8_t MID_FLAG_OFFSET = 0x00;
+    uint8_t mid=0;
+    uint8_t flag=0;
+    uint8_t *buffer = e_ctrl->cal_data.mapdata;
+    bool rc = false;
+
+    flag = buffer[MID_FLAG_OFFSET];
+    if(flag != 0x01){
+	pr_err("Lct %s module id is empty or invialid!", __func__);
+	return MID_NULL;
+    }
+    mid = buffer[MODULE_INFO_OFFSET];
+    rc = (mid == MID_TSP) ? true : false;
+    if(rc == false) 
+		mid = MID_NULL;
+    pr_err("Lct %s mid=0x%x, flag=0x%x\n", __func__, mid, flag);
+    return mid;
+}
+
+static camera_vendor_module_id hi556_490_txd_back2_i_get_otp_vendor_module_id(
+    struct msm_eeprom_ctrl_t *e_ctrl)
+{
+    uint8_t MODULE_INFO_OFFSET = 0x01;//please reference the otp spec.
+    uint8_t MID_GROUP1_FLAG_OFFSET = 0x00;
+    uint32_t MID_GROUP2_FLAG_OFFSET = 0x071c;
+    uint32_t MID_GROUP3_FLAG_OFFSET = 0x0E38;
+    uint8_t mid=0;
+    uint8_t flag1=0,flag2=0,flag3=0;
+    uint8_t *buffer = e_ctrl->cal_data.mapdata;
+    bool rc = false;
+	uint32_t group_index = 0;
+
+    flag1 = buffer[MID_GROUP1_FLAG_OFFSET];
+    flag2 = buffer[MID_GROUP2_FLAG_OFFSET];
+    flag3 = buffer[MID_GROUP3_FLAG_OFFSET];
+	if(0x01 == flag1){
+		group_index = 0 ;
+	}else if(0x01 == flag2){
+		group_index = 1820 ;
+	}else if(0x01 == flag2){
+		group_index = 3640 ;	
+	}else{
+		group_index = -1 ;
+		pr_err("Lct %s none group can be used, group_index=0x%x\n", __func__, group_index);
+	}
+    mid = buffer[MODULE_INFO_OFFSET  + group_index];
+    rc = (mid == MID_TXD) ? true : false;
+    if(rc == false) 
+		mid = MID_NULL;
+    pr_err("Lct %s mid=0x%x\n", __func__, mid);
+    return mid;
+}
+static camera_vendor_module_id daredevil_hi846_wide_txd_i_get_otp_vendor_module_id(
+    struct msm_eeprom_ctrl_t *e_ctrl)
+{
+    uint8_t MODULE_INFO_OFFSET = 0x01;//please reference the otp spec.
+    uint8_t MID_FLAG_OFFSET = 0x00;
+    uint8_t mid=0;
+    uint8_t flag=0;
+    uint8_t *buffer = e_ctrl->cal_data.mapdata;
+    bool rc = false;
+
+    flag = buffer[MID_FLAG_OFFSET];
+    if(flag != 0x01){
+	pr_err("Lct %s module id is empty or invialid!", __func__);
+	return MID_NULL;
+    }
+    mid = buffer[MODULE_INFO_OFFSET];
+    rc = (mid == MID_TXD) ? true : false;
+    if(rc == false) 
+		mid = MID_NULL;
+    pr_err("Lct %s mid=0x%x, flag=0x%x\n", __func__, mid, flag);
+    return mid;
+}
+
+static camera_vendor_module_id daredevil_gc8034_wide_byd_ii_get_otp_vendor_module_id(
+    struct msm_eeprom_ctrl_t *e_ctrl)
+{
+	uint8_t MODULE_INFO_OFFSET = 0x01;//please reference the otp spec.
+	uint8_t MID_FLAG_OFFSET = 0x00;
+	uint8_t mid=0;
+	uint8_t flag=0;
+	uint8_t *buffer = e_ctrl->cal_data.mapdata;
+	bool rc = false;
+
+	flag = buffer[MID_FLAG_OFFSET];
+	if(flag != 0x55){
+		pr_err("Lct %s module id is empty or invialid!", __func__);
+		return MID_NULL;
+	}
+	mid = buffer[MODULE_INFO_OFFSET];
+	rc = (mid == MID_BYD) ? true : false;
+	if(rc == false)
+		mid = MID_NULL;
+	pr_err("Lct %s mid=0x%x, flag=0x%x\n", __func__, mid, flag);
+	return mid;
+}
+
+static camera_vendor_module_id daredevil_s5kgm1sp_back_tsp_i_get_otp_vendor_module_id(struct msm_eeprom_ctrl_t *e_ctrl)
+{
+    uint8_t MODULE_INFO_OFFSET = 0x01;//please reference the otp spec.
+    uint8_t MID_FLAG_OFFSET = 0x00;
+    uint8_t mid = 0;
+    uint8_t flag = 0;
+    uint8_t *buffer = e_ctrl->cal_data.mapdata;
+    bool rc = false;
+
+    flag = buffer[MID_FLAG_OFFSET];
+    if(flag != 0x01){
+		pr_err("Lct %s module id is empty or invialid!", __func__);
+		return MID_NULL;
+    }
+    mid = buffer[MODULE_INFO_OFFSET];
+    rc = (mid == MID_TSP) ? true : false;
+    if(rc == false)
+		mid = MID_NULL;
+    pr_err("Lct %s mid=0x%x, flag=0x%x\n", __func__, mid, flag);
+    return mid;
+}
+
+static camera_vendor_module_id daredevil_s5kgm1sp_back_tly_ii_get_otp_vendor_module_id(struct msm_eeprom_ctrl_t *e_ctrl)
+{
+    uint8_t MODULE_INFO_OFFSET = 0x01;//please reference the otp spec.
+    uint8_t MID_FLAG_OFFSET = 0x00;
+    uint8_t mid = 0;
+    uint8_t flag = 0;
+    uint8_t *buffer = e_ctrl->cal_data.mapdata;
+    bool rc = false;
+
+    flag = buffer[MID_FLAG_OFFSET];
+    if(flag != 0x01){
+		pr_err("Lct %s module id is empty or invialid!", __func__);
+		return MID_NULL;
+    }
+    mid = buffer[MODULE_INFO_OFFSET];
+    rc = (mid == MID_TRULY) ? true : false;
+    if(rc == false)
+		mid = MID_NULL;
+    pr_err("Lct %s mid=0x%x, flag=0x%x\n", __func__, mid, flag);
+    return mid;
+}
+
+static camera_vendor_module_id starlord_s5k3p9sx_back_txd_i_get_otp_vendor_module_id(struct msm_eeprom_ctrl_t *e_ctrl)
+{
+    uint8_t MODULE_INFO_OFFSET = 0x01;//please reference the otp spec.
+    uint8_t MID_FLAG_OFFSET = 0x00;
+    uint8_t mid = 0;
+    uint8_t flag = 0;
+    uint8_t *buffer = e_ctrl->cal_data.mapdata;
+    bool rc = false;
+
+    flag = buffer[MID_FLAG_OFFSET];
+    if(flag != 0x01){
+		pr_err("Lct %s module id is empty or invialid!", __func__);
+		return MID_NULL;
+    }
+    mid = buffer[MODULE_INFO_OFFSET];
+    rc = (mid == MID_TXD) ? true : false;
+    if(rc == false)
+		mid = MID_NULL;
+    pr_err("Lct %s mid=0x%x, flag=0x%x\n", __func__, mid, flag);
+    return mid;
+}
+
+static camera_vendor_module_id starlord_hi846_front_txd_i_get_otp_vendor_module_id(struct msm_eeprom_ctrl_t *e_ctrl)
+{
+    uint8_t MODULE_INFO_OFFSET = 0x01;//please reference the otp spec.
+    uint8_t MID_FLAG_OFFSET = 0x00;
+    uint8_t mid = 0;
+    uint8_t flag = 0;
+    uint8_t *buffer = e_ctrl->cal_data.mapdata;
+    bool rc = false;
+
+    flag = buffer[MID_FLAG_OFFSET];
+    if(flag != 0x01){
+		pr_err("Lct %s module id is empty or invialid!", __func__);
+		return MID_NULL;
+    }
+    mid = buffer[MODULE_INFO_OFFSET];
+    rc = (mid == MID_TXD) ? true : false;
+    if(rc == false)
+		mid = MID_NULL;
+    pr_err("Lct %s mid=0x%x, flag=0x%x\n", __func__, mid, flag);
+    return mid;
+}
+#if 0
+static camera_vendor_module_id starlord_hi846_front_hlt_ii_get_otp_vendor_module_id(struct msm_eeprom_ctrl_t *e_ctrl)
+{
+    uint8_t MODULE_INFO_OFFSET = 0x01;//please reference the otp spec.
+    uint8_t MID_FLAG_OFFSET = 0x00;
+    uint8_t mid = 0;
+    uint8_t flag = 0;
+    uint8_t *buffer = e_ctrl->cal_data.mapdata;
+    bool rc = false;
+
+    flag = buffer[MID_FLAG_OFFSET];
+    if(flag != 0x01){
+		pr_err("Lct %s module id is empty or invialid!", __func__);
+		return MID_NULL;
+    }
+    mid = buffer[MODULE_INFO_OFFSET];
+    rc = (mid == MID_HOLITECH) ? true : false;
+    if(rc == false)
+		mid = MID_NULL;
+    pr_err(" Lct %s mid=0x%x, flag=0x%x\n", __func__, mid, flag);
+    return mid;
+}
+#endif
+ 
+
+static camera_vendor_module_id daredevil_s5k3t1sp_front_tsp_i_get_otp_vendor_module_id(struct msm_eeprom_ctrl_t *e_ctrl)
+{
+    uint8_t MODULE_INFO_OFFSET = 0x01;//please reference the otp spec.
+    uint8_t MID_FLAG_OFFSET = 0x00;
+    uint8_t mid = 0;
+    uint8_t flag = 0;
+    uint8_t *buffer = e_ctrl->cal_data.mapdata;
+    bool rc = false;
+
+    flag = buffer[MID_FLAG_OFFSET];
+    if(flag != 0x01){
+		pr_err("Lct %s module id is empty or invialid!", __func__);
+		return MID_NULL;
+    }
+    mid = buffer[MODULE_INFO_OFFSET];
+    rc = (mid == MID_TXD) ? true : false;
+    if(rc == false)
+		mid = MID_NULL;
+    pr_err("Lct %s mid=0x%x, flag=0x%x\n", __func__, mid, flag);
+    return mid;
+}
+
+static camera_vendor_module_id daredevil_s5k3t1sp_front_tru_ii_get_otp_vendor_module_id(struct msm_eeprom_ctrl_t *e_ctrl)
+{
+    uint8_t MODULE_INFO_OFFSET = 0x01;//please reference the otp spec.
+    uint8_t MID_FLAG_OFFSET = 0x00;
+    uint8_t mid = 0;
+    uint8_t flag = 0;
+    uint8_t *buffer = e_ctrl->cal_data.mapdata;
+    bool rc = false;
+
+    flag = buffer[MID_FLAG_OFFSET];
+    if(flag != 0x01){
+		pr_err("Lct %s module id is empty or invialid!", __func__);
+		return MID_NULL;
+    }
+    mid = buffer[MODULE_INFO_OFFSET];
+    rc = (mid == MID_TRULY) ? true : false;
+    if(rc == false)
+		mid = MID_NULL;
+    pr_err("Lct %s mid=0x%x, flag=0x%x\n", __func__, mid, flag);
+    return mid;
+}
+
+
+static uint8_t get_otp_vendor_module_id(struct msm_eeprom_ctrl_t *e_ctrl, const char *eeprom_name)
+{
+	camera_vendor_module_id module_id=MID_NULL;
+
+	if(strcmp(eeprom_name,"daredevil_hi556_aux_tsp_i") == 0) {
+		module_id = hi556_690_tsp_back2_i_get_otp_vendor_module_id(e_ctrl);
+	}
+
+	else if(strcmp(eeprom_name,"starlord_hi556_aux_txd_i") == 0) {
+		module_id = hi556_490_txd_back2_i_get_otp_vendor_module_id(e_ctrl);
+	}
+
+	else if(strcmp(eeprom_name,"daredevil_hi846_wide_txd_i") == 0) {
+		module_id = daredevil_hi846_wide_txd_i_get_otp_vendor_module_id(e_ctrl);
+	}
+
+	else if(strcmp(eeprom_name,"daredevil_gc8034_wide_byd_ii") == 0) {
+		module_id = daredevil_gc8034_wide_byd_ii_get_otp_vendor_module_id(e_ctrl);
+	}
+
+	else if (strcmp(eeprom_name,"starlord_s5k3p9sx_back_txd_i") == 0) {
+		module_id = starlord_s5k3p9sx_back_txd_i_get_otp_vendor_module_id(e_ctrl);
+	}
+
+	else if (strcmp(eeprom_name,"daredevil_s5kgm1sp_back_tsp_i") == 0) {
+		module_id = daredevil_s5kgm1sp_back_tsp_i_get_otp_vendor_module_id(e_ctrl);
+	}
+
+	else if (strcmp(eeprom_name,"daredevil_s5kgm1sp_back_tly_ii") == 0) {
+		module_id = daredevil_s5kgm1sp_back_tly_ii_get_otp_vendor_module_id(e_ctrl);
+	}
+
+	else if (strcmp(eeprom_name,"daredevil_s5k3t1sp_front_tsp_i") == 0) {
+		module_id = daredevil_s5k3t1sp_front_tsp_i_get_otp_vendor_module_id(e_ctrl);
+	}
+	
+	else if (strcmp(eeprom_name,"daredevil_s5k3t1sp_front_tru_ii") == 0) {
+		module_id = daredevil_s5k3t1sp_front_tru_ii_get_otp_vendor_module_id(e_ctrl);
+	}
+
+	else if (strcmp(eeprom_name,"starlord_hi846_front_txd_i") == 0) {
+		module_id = starlord_hi846_front_txd_i_get_otp_vendor_module_id(e_ctrl);
+	}
+#if 0
+        else if (strcmp(eeprom_name,"starlord_hi846_front_hlt_ii") == 0) {
+		module_id = starlord_hi846_front_hlt_ii_get_otp_vendor_module_id(e_ctrl);
+	}
+#endif
+	pr_err("%s eeprom_name=%s, module_id=%d\n",__func__,eeprom_name,module_id);
+	if(module_id>=MID_MAX) module_id = MID_NULL;
+
+	return ((uint8_t)module_id);
+}
 
 static int msm_eeprom_platform_probe(struct platform_device *pdev)
 {
@@ -1721,6 +2098,11 @@ static int msm_eeprom_platform_probe(struct platform_device *pdev)
 		}
 		rc = read_eeprom_memory(e_ctrl, &e_ctrl->cal_data);
 		if (rc < 0) {
+		if(strcmp(eb_info->eeprom_name,"starlord_hi846_front_hlt_ii") == 0)
+				{
+				 strcpy(s_vendor_eeprom[pdev->id].eeprom_name, eb_info->eeprom_name);
+				 pr_err("lxl %s 5555_xxx eeprom-name[%d]:%s\n", __func__,pdev->id,s_vendor_eeprom[pdev->id].eeprom_name);
+				}
 			pr_err("%s read_eeprom_memory failed\n", __func__);
 			goto power_down;
 		}
@@ -1728,6 +2110,13 @@ static int msm_eeprom_platform_probe(struct platform_device *pdev)
 			CDBG("memory_data[%d] = 0x%X\n", j,
 				e_ctrl->cal_data.mapdata[j]);
 
+		if(eb_info->eeprom_name != NULL){
+			s_vendor_eeprom[pdev->id].module_id = get_otp_vendor_module_id(e_ctrl, eb_info->eeprom_name);
+			strcpy(s_vendor_eeprom[pdev->id].eeprom_name, eb_info->eeprom_name);
+		}
+		else{
+			strcpy(s_vendor_eeprom[pdev->id].eeprom_name, "NULL");
+		}
 		e_ctrl->is_supported |= msm_eeprom_match_crc(&e_ctrl->cal_data);
 
 		rc = msm_camera_power_down(power_info,

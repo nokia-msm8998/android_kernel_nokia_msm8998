@@ -833,9 +833,10 @@
 	};
 
 	int_codec: sound {
-		status = "disabled";
+		status = "okay";	//modified by wenhuilong @20190313 for M690 audio bringup
 		compatible = "qcom,sdm660-asoc-snd";
 		qcom,model = "sdm660-snd-card";
+		qcom,wsa-disable;	//added by wenhuilong @20190313 for M690 audio bringup
 		qcom,wcn-btfm;
 		qcom,mi2s-audio-intf;
 		qcom,auxpcm-audio-intf;
@@ -844,12 +845,17 @@
 		qcom,msm-mclk-freq = <9600000>;
 		qcom,msm-mbhc-hphl-swh = <1>;
 		qcom,msm-mbhc-gnd-swh = <1>;
+		qcom,msm-micbias1-ext-cap;	//added by wenhuilong @20190313 for M690 audio bringup
 		qcom,msm-micbias2-ext-cap;
 		qcom,msm-hs-micbias-type = "external";
 		qcom,us-euro-gpios = <&us_euro_gpio>;
 		qcom,cdc-pdm-gpios = <&cdc_pdm_gpios>;
 		qcom,cdc-comp-gpios = <&cdc_comp_gpios>;
 		qcom,cdc-dmic-gpios = <&cdc_dmic_gpios>;
+		//added begin by wenhuilong @20190313 for M690 audio bringup
+		qcom,msm-spk-ext-pa = <&tlmm 64 0>;
+		qcom,spk_ext_pa_det = <&tlmm 74 0>;	//added by wenhuilong @20190420 for will pa compatible
+		//added end by wenhuilong @20190313 for M690 audio bringup
 		qcom,audio-routing =
 			"RX_BIAS", "INT_MCLK0",
 			"SPK_RX_BIAS", "INT_MCLK0",

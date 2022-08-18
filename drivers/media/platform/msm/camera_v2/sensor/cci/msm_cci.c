@@ -32,7 +32,8 @@
 #define CYCLES_PER_MICRO_SEC_DEFAULT 4915
 #define CCI_MAX_DELAY 1000000
 
-#define CCI_TIMEOUT msecs_to_jiffies(100)
+/* modify by liaokesen at 20190318 */
+#define CCI_TIMEOUT msecs_to_jiffies(800)
 
 /* TODO move this somewhere else */
 #define MSM_CCI_DRV_NAME "msm_cci"
@@ -1424,7 +1425,7 @@ static int32_t msm_cci_init(struct v4l2_subdev *sd,
 		pr_err("%s: clk enable failed\n", __func__);
 		goto reg_enable_failed;
 	}
-
+    master = c_ctrl->cci_info->cci_i2c_master;
 	/* Re-initialize the completion */
 	reinit_completion(&cci_dev->cci_master_info[master].reset_complete);
 	for (i = 0; i < NUM_QUEUES; i++)
@@ -1474,12 +1475,12 @@ static int32_t msm_cci_init(struct v4l2_subdev *sd,
 		}
 	}
 
-	cci_dev->cci_master_info[MASTER_0].reset_pending = TRUE;
+	cci_dev->cci_master_info[master].reset_pending = TRUE;
 	msm_camera_io_w_mb(CCI_RESET_CMD_RMSK, cci_dev->base +
 			CCI_RESET_CMD_ADDR);
 	msm_camera_io_w_mb(0x1, cci_dev->base + CCI_RESET_CMD_ADDR);
 	rc = wait_for_completion_timeout(
-		&cci_dev->cci_master_info[MASTER_0].reset_complete,
+		&cci_dev->cci_master_info[master].reset_complete,
 		CCI_TIMEOUT);
 	if (rc <= 0) {
 		pr_err("%s: wait_for_completion_timeout %d\n",
