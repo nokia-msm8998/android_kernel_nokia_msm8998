@@ -432,7 +432,7 @@ int checkLimitsMapAdjTotal(u16 *data, int row, int column, int *max)
     return count; //if count is 0 = OK, test completed successfully
 }
 
-int production_test_ito()
+int production_test_ito(void)
 {
     int res = OK;
     u8 cmd;
@@ -485,7 +485,7 @@ int production_test_ito()
     return res;
 }
 
-int production_test_initialization()
+int production_test_initialization(void)
 {
     int res;
     u8 cmd;
@@ -543,7 +543,7 @@ int production_test_initialization()
 
 }
 
-int ms_compensation_tuning()
+int ms_compensation_tuning(void)
 {
     int res;
     u8 cmd;
@@ -582,7 +582,7 @@ int ms_compensation_tuning()
     return res;
 }
 
-int ss_compensation_tuning()
+int ss_compensation_tuning(void)
 {
     int res;
     u8 cmd;
@@ -620,7 +620,7 @@ int ss_compensation_tuning()
     return res;
 }
 
-int lp_timer_calibration()
+int lp_timer_calibration(void)
 {
     int res;
     u8 cmd;
@@ -658,7 +658,7 @@ int lp_timer_calibration()
     return res;
 }
 
-int save_cx_tuning()
+int save_cx_tuning(void)
 {
     int res;
     u8 cmd;

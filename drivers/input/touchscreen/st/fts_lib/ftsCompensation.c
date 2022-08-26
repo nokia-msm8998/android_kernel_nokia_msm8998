@@ -722,7 +722,7 @@ FAIL:
     return ret;
 
 }
-int ALT_readChipInfo()
+int ALT_readChipInfo(void)
 {
     int ret,i;
     u16 answer;
