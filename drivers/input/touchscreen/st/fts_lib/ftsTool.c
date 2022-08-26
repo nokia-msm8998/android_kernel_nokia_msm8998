@@ -171,7 +171,7 @@ int readB2U16( u16 address, u8* outBuf, int byteToRead)
 }
 
 
-int releaseInformation(){
+int releaseInformation(void){
 	int ret;
 	u8 cmd[1] = { FTS_CMD_RELEASE_INFO };
 	int event_to_search[1];
@@ -694,7 +694,7 @@ int pollForEvent(int * event_to_search, int event_bytes, u8* readData, int time_
 	}
 }
 
-int flushFIFO() {
+int flushFIFO(void) {
 	
 	u8 cmd = FIFO_CMD_FLUSH;								//flush the FIFO
 	if (fts_writeCmd(&cmd, 1)<0) {
@@ -707,7 +707,7 @@ int flushFIFO() {
 
 }
 
-int fts_disableInterrupt() {
+int fts_disableInterrupt(void) {
 	u8 cmd[4] = { FTS_CMD_HW_REG_W, 0x00, 0x00, IER_DISABLE };				//disable interrupt 
 	u16ToU8_be(IER_ADDR, &cmd[1]);
 
@@ -720,7 +720,7 @@ int fts_disableInterrupt() {
 }
 
 
-int fts_enableInterrupt() {
+int fts_enableInterrupt(void) {
 	u8 cmd[4] = { FTS_CMD_HW_REG_W, 0x00, 0x00, IER_ENABLE };				//enable interrupt
 	u16ToU8_be(IER_ADDR, &cmd[1]);
     	if (fts_writeCmd(cmd, 4)<0){
@@ -827,7 +827,7 @@ void setResetGpio(int gpio){
 	logError(1,"%s setResetGpio: reset_gpio = %d\n",tag, reset_gpio);
 }
 
-int fts_system_reset() {
+int fts_system_reset(void) {
 	u8 readData[FIFO_EVENT_SIZE];
 	int event_to_search;
 	int res=-1;
@@ -872,11 +872,11 @@ int fts_system_reset() {
 	
 }
 
-int isSystemResettedDown() {
+int isSystemResettedDown(void) {
 	return system_resetted_down;
 }
 
-int isSystemResettedUp() {
+int isSystemResettedUp(void) {
 	return system_resetted_up;
 }
 
@@ -888,7 +888,7 @@ void setSystemResettedUp(int val) {
 	system_resetted_up = val;
 }
 
-int senseOn() {
+int senseOn(void) {
 	int ret;
 	u8 cmd[1] = { FTS_CMD_MS_MT_SENSE_ON };
 	
@@ -902,7 +902,7 @@ int senseOn() {
 	return OK;
 }
 
-int senseOff() {
+int senseOff(void) {
 	int ret;
 	u8 cmd[1] = { FTS_CMD_MS_MT_SENSE_OFF };
 	
@@ -918,7 +918,7 @@ int senseOff() {
 
 }
 
-int keyOn() {
+int keyOn(void) {
 	int ret;
 	u8 cmd[1] = { FTS_CMD_MS_KEY_ON };
 
@@ -934,7 +934,7 @@ int keyOn() {
 
 }
 
-int keyOff() {
+int keyOff(void) {
 	int ret;
 	u8 cmd[1] = { FTS_CMD_MS_KEY_OFF };
 
