@@ -63,7 +63,7 @@ int isI2cError(int error){
 		return 0;
 }
 
-int dumpErrorInfo(){
+int dumpErrorInfo(void){
 	int ret,i;
 	u8 data[ERROR_INFO_SIZE] = {0};
 	u32 sign =0;	
