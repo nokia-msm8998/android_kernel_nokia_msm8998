@@ -78,7 +78,7 @@ int getOffsetFrame(u16 address, u16 *offset) {
 }
 
 
-int getChannelsLength() {
+int getChannelsLength(void) {
 
 	int ret;
 	u8* data = (u8*)kmalloc(2*sizeof(u8), GFP_KERNEL);	
@@ -366,7 +366,7 @@ int getNmsFrame(u16 type, short ***frames, int *size, int keep_first_row, int fs
 }*/
 
 
-int getSenseLen() {
+int getSenseLen(void) {
 	int ret;
 	if(sense_len!=0)
 		return sense_len;
@@ -382,7 +382,7 @@ int getSenseLen() {
 	}
 }
 
-int getForceLen() {
+int getForceLen(void) {
 	int ret;
 	if (force_len != 0)
 		return force_len;

@@ -331,7 +331,7 @@ int loadCustomGesture(u8 *template, u8 gestureID) {
 }
 
 
-int reloadCustomGesture() {
+int reloadCustomGesture(void) {
 	int res, i;
 
 	logError(0, "%s Starting reload Gesture Template... \n", tag);
