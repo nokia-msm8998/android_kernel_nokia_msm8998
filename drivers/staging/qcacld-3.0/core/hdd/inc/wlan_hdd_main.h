@@ -62,15 +62,28 @@
 #define NUM_TX_QUEUES 4
 #endif
 
-/*
- * API in_compat_syscall() is introduced in 4.6 kernel to check whether we're
- * in a compat syscall or not. It is a new way to query the syscall type, which
- * works properly on all architectures.
+/* HDD_IS_RATE_LIMIT_REQ: Macro helper to implement rate limiting
+ * @flag: The flag to determine if limiting is required or not
+ * @rate: The number of seconds within which if multiple commands come, the
+ *	  flag will be set to true
  *
+ * If the function in which this macro is used is called multiple times within
+ * "rate" number of seconds, the "flag" will be set to true which can be used
+ * to reject/take appropriate action.
  */
-#if (LINUX_VERSION_CODE < KERNEL_VERSION(4, 6, 0))
-static inline bool in_compat_syscall(void) { return is_compat_task(); }
-#endif
+#define HDD_IS_RATE_LIMIT_REQ(flag, rate)\
+	do {\
+		static ulong __last_ticks;\
+		ulong __ticks = jiffies;\
+		flag = false; \
+		if (!time_after(__ticks,\
+		    __last_ticks + rate * HZ)) {\
+			flag = true; \
+		} \
+		else { \
+			__last_ticks = __ticks;\
+		} \
+	} while (0)
 
 #if (LINUX_VERSION_CODE >= KERNEL_VERSION(4, 7, 0)) || \
 	defined(CFG80211_REMOVE_IEEE80211_BACKPORT)
