@@ -884,7 +884,7 @@ static int snd_ctl_elem_read(struct snd_card *card,
 
 	index_offset = snd_ctl_get_ioff(kctl, &control->id);
 	vd = &kctl->vd[index_offset];
-	if (!(vd->access & SNDRV_CTL_ELEM_ACCESS_READ) || kctl->get == NULL)
+	if (!(vd->access & SNDRV_CTL_ELEM_ACCESS_READ) && kctl->get == NULL)
 		return -EPERM;
 
 	snd_ctl_build_ioff(&control->id, kctl, index_offset);
@@ -963,9 +963,9 @@ static int snd_ctl_elem_write_user(struct snd_ctl_file *file,
 	snd_power_lock(card);
 	result = snd_power_wait(card, SNDRV_CTL_POWER_D0);
 	if (result >= 0) {
-		down_write(&card->controls_rwsem);
+		down_read(&card->controls_rwsem);
 		result = snd_ctl_elem_write(card, file, control);
-		up_write(&card->controls_rwsem);
+		up_read(&card->controls_rwsem);
 	}
 	snd_power_unlock(card);
 	if (result >= 0)
