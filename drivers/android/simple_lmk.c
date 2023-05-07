@@ -9,6 +9,7 @@
 #include <linux/mm.h>
 #include <linux/moduleparam.h>
 #include <linux/oom.h>
+#include <linux/ratelimit.h>
 #include <linux/sort.h>
 #include <linux/vmpressure.h>
 
@@ -190,8 +191,8 @@ static void scan_and_kill(void)
 
 	/* Populate the victims array with tasks sorted by adj and then size */
 	pages_found = find_victims(&nr_found);
-	if (unlikely(!pages_found)) {
-		pr_err("No processes available to kill!\n");
+	if (unlikely(!nr_found)) {
+		pr_err_ratelimited("No processes available to kill!\n");
 		return;
 	}
 
