@@ -852,7 +852,7 @@ struct vfe_device {
 	uint32_t recovery_irq1_mask;
 	/* total bandwidth per vfe */
 	uint64_t total_bandwidth;
-	struct isp_kstate *isp_page;
+	struct isp_proc *isp_page;
 };
 
 struct vfe_parent_device {
