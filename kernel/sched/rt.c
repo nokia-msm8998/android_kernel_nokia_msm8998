@@ -2096,7 +2096,6 @@ static int find_best_rt_target(struct task_struct* task, int cpu,
 }
 
 static int find_lowest_rq(struct task_struct *task, int sync)
->>>>>>> f62c230c4d8f (ANDROID: sched/rt: rt cpu selection integration with EAS.)
 {
 	struct sched_domain *sd;
 	struct cpumask *lowest_mask = this_cpu_cpumask_var_ptr(local_cpu_mask);

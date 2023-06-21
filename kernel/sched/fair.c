@@ -2655,7 +2655,6 @@ static inline void update_cfs_shares(struct sched_entity *se)
 }
 #endif /* CONFIG_FAIR_GROUP_SCHED */
 
-#ifdef CONFIG_SMP
 u32 sched_get_wake_up_idle(struct task_struct *p)
 {
 	u32 enabled = p->flags & PF_WAKE_UP_IDLE;
@@ -6716,12 +6715,6 @@ unsigned long capacity_min_of(int cpu)
 	       >> SCHED_CAPACITY_SHIFT;
 }
 
-
-static inline bool energy_aware(void)
-{
-       return sched_feat(ENERGY_AWARE);
-}
-
 /*
  * CPU candidates.
  *
@@ -7875,6 +7868,7 @@ static inline int find_best_target(struct task_struct *p, int *backup_cpu,
 	unsigned long min_wake_util = ULONG_MAX;
 	unsigned long target_max_spare_cap = 0;
 	unsigned long best_active_util = ULONG_MAX;
+	unsigned long target_idle_max_spare_cap = 0;
 	int best_idle_cstate = INT_MAX;
 	struct sched_domain *sd;
 	struct sched_group *sg;
@@ -11540,7 +11534,7 @@ static inline int find_new_hmp_ilb(int type)
 }
 #endif	/* CONFIG_SCHED_HMP */
 
-static inline int find_new_ilb(int type)
+static inline int find_new_ilb(void)
 {
 	int ilb;
 
@@ -11567,7 +11561,7 @@ static void nohz_balancer_kick(bool only_update)
 
 	nohz.next_balance++;
 
-	ilb_cpu = find_new_ilb(type);
+	ilb_cpu = find_new_ilb();
 
 	if (ilb_cpu >= nr_cpu_ids)
 		return;
@@ -11985,6 +11979,8 @@ static inline int _nohz_kick_needed(struct rq *rq, int cpu, int *type)
  */
 static inline bool nohz_kick_needed(struct rq *rq, bool only_update)
 {
+	unsigned long now = jiffies;
+	struct sched_domain_shared *sds;
 #ifndef CONFIG_SCHED_HMP
 	struct sched_domain *sd;
 	struct sched_group_capacity *sgc;
@@ -12144,28 +12140,6 @@ kick_active_balance(struct rq *rq, struct task_struct *p, int new_cpu)
 	raw_spin_unlock(&rq->lock);
 
 	return rc;
-}
-
-void check_for_migration(struct rq *rq, struct task_struct *p)
-{
-	int new_cpu;
-	int active_balance;
-	int cpu = task_cpu(p);
-
-	if (rq->misfit_task) {
-		if (rq->curr->state != TASK_RUNNING ||
-		    rq->curr->nr_cpus_allowed == 1)
-			return;
-
-		new_cpu = select_energy_cpu_brute(p, cpu);
-		if (capacity_orig_of(new_cpu) > capacity_orig_of(cpu)) {
-			active_balance = kick_active_balance(rq, p, new_cpu);
-			if (active_balance)
-				stop_one_cpu_nowait(cpu,
-						active_load_balance_cpu_stop,
-						rq, &rq->active_balance_work);
-		}
-	}
 }
 
 #endif /* CONFIG_SMP */
