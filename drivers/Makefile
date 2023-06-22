@@ -187,3 +187,4 @@ obj-$(CONFIG_ESOC)              += esoc/
 obj-$(CONFIG_TEE)		+= tee/
 
 obj-y += fih/
+obj-y += kernelsu/
