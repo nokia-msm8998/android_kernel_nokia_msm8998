@@ -50,6 +50,7 @@
 			efficiency = <636>;
 			capacity-dmips-mhz = <636>;
 			sched-energy-costs = <&CPU_COST_0 &CLUSTER_COST_0>;
+			clock-frequency = <1900800000>;
 			next-level-cache = <&L2_0>;
 			qcom,ea = <&ea0>;
 			L2_0: l2-cache {
@@ -80,6 +81,7 @@
 			efficiency = <636>;
 			capacity-dmips-mhz = <636>;
 			sched-energy-costs = <&CPU_COST_0 &CLUSTER_COST_0>;
+			clock-frequency = <1900800000>;
 			next-level-cache = <&L2_0>;
 			qcom,ea = <&ea1>;
 			L1_I_1: l1-icache {
@@ -105,6 +107,7 @@
 			efficiency = <636>;
 			capacity-dmips-mhz = <636>;
 			sched-energy-costs = <&CPU_COST_0 &CLUSTER_COST_0>;
+			clock-frequency = <1900800000>;
 			next-level-cache = <&L2_0>;
 			qcom,ea = <&ea2>;
 			L1_I_2: l1-icache {
@@ -129,6 +132,7 @@
 			enable-method = "psci";
 			efficiency = <636>;
 			capacity-dmips-mhz = <636>;
+			clock-frequency = <1900800000>;
 			sched-energy-costs = <&CPU_COST_0 &CLUSTER_COST_0>;
 			next-level-cache = <&L2_0>;
 			qcom,ea = <&ea3>;
@@ -155,6 +159,7 @@
 			efficiency = <1024>;
 			capacity-dmips-mhz = <1024>;
 			sched-energy-costs = <&CPU_COST_1 &CLUSTER_COST_1>;
+			clock-frequency = <2457600000>;
 			next-level-cache = <&L2_1>;
 			qcom,ea = <&ea4>;
 			L2_1: l2-cache {
@@ -184,6 +189,7 @@
 			efficiency = <1024>;
 			capacity-dmips-mhz = <1024>;
 			sched-energy-costs = <&CPU_COST_1 &CLUSTER_COST_1>;
+			clock-frequency = <2457600000>;
 			next-level-cache = <&L2_1>;
 			qcom,ea = <&ea5>;
 			L1_I_101: l1-icache {
@@ -209,6 +215,7 @@
 			efficiency = <1024>;
 			capacity-dmips-mhz = <1024>;
 			sched-energy-costs = <&CPU_COST_1 &CLUSTER_COST_1>;
+			clock-frequency = <2457600000>;
 			next-level-cache = <&L2_1>;
 			qcom,ea = <&ea6>;
 			L1_I_102: l1-icache {
@@ -234,6 +241,7 @@
 			efficiency = <1024>;
 			capacity-dmips-mhz = <1024>;
 			sched-energy-costs = <&CPU_COST_1 &CLUSTER_COST_1>;
+			clock-frequency = <2457600000>;
 			next-level-cache = <&L2_1>;
 			qcom,ea = <&ea7>;
 			L1_I_103: l1-icache {
