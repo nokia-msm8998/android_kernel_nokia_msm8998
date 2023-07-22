@@ -9402,35 +9402,6 @@ static void ufshcd_shutdown_clkscaling(struct ufs_hba *hba)
 		devfreq_remove_device(hba->devfreq);
 }
 
-static void ufshcd_shutdown_clkscaling(struct ufs_hba *hba)
-{
-	bool suspend = false;
-	unsigned long flags;
-
-	spin_lock_irqsave(hba->host->host_lock, flags);
-	if (hba->clk_scaling.is_allowed) {
-		hba->clk_scaling.is_allowed = false;
-		suspend = true;
-	}
-	spin_unlock_irqrestore(hba->host->host_lock, flags);
-
-	/**
-	 * Scaling may be scheduled before, hence make sure it
-	 * doesn't race with shutdown
-	 */
-	if (ufshcd_is_clkscaling_supported(hba)) {
-		device_remove_file(hba->dev, &hba->clk_scaling.enable_attr);
-		cancel_work_sync(&hba->clk_scaling.suspend_work);
-		cancel_work_sync(&hba->clk_scaling.resume_work);
-		if (suspend)
-			ufshcd_suspend_clkscaling(hba);
-	}
-
-	/* Unregister so that devfreq_monitor can't race with shutdown */
-	if (hba->devfreq)
-		devfreq_remove_device(hba->devfreq);
-}
-
 /**
  * ufshcd_shutdown - shutdown routine
  * @hba: per adapter instance
