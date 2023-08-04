@@ -99,6 +99,9 @@ ID
 *~
 \#*#
 
+# Compilation logs
+error.log
+
 #
 # Leavings from module signing
 #
