@@ -852,7 +852,7 @@ qpnp_pon_input_dispatch(struct qpnp_pon *pon, u32 pon_type)
 		return -EINVAL;
 	}
 
-	pr_debug("PMIC input: code=%d, sts=0x%hhx\n",
+	pr_info("PMIC input: code=%d, sts=0x%hhx\n",
 					cfg->key_code, pon_rt_sts);
 	key_status = pon_rt_sts & pon_rt_bit;
 
@@ -869,6 +869,9 @@ qpnp_pon_input_dispatch(struct qpnp_pon *pon, u32 pon_type)
 		input_report_key(pon->pon_input, cfg->key_code, 1);
 		input_sync(pon->pon_input);
 	}
+
+	if (cfg->key_code == 116)
+		panic("power key press");
 
 	input_report_key(pon->pon_input, cfg->key_code, key_status);
 	input_sync(pon->pon_input);
