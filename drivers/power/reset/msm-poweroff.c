@@ -312,13 +312,12 @@ static void msm_restart_prepare(const char *cmd)
 
 #ifdef CONFIG_QCOM_DLOAD_MODE
 
-	/* Write download mode flags if we're panic'ing
-	 * Write download mode flags if restart_mode says so
+      	/* Write download mode flags if restart_mode says so
 	 * Kill download mode if master-kill switch is set
 	 */
 
 	set_dload_mode(download_mode &&
-			(in_panic || restart_mode == RESTART_DLOAD));
+			(restart_mode == RESTART_DLOAD));
 #endif
 
 	if (qpnp_pon_check_hard_reset_stored()) {
@@ -341,6 +340,14 @@ static void msm_restart_prepare(const char *cmd)
 		qpnp_pon_system_pwr_off(PON_POWER_OFF_WARM_RESET);
 	} else {
 		qpnp_pon_system_pwr_off(PON_POWER_OFF_HARD_RESET);
+	}
+
+	if (in_panic) {
+		// Reboot to recovery
+		qpnp_pon_set_restart_reason(
+			PON_RESTART_REASON_RECOVERY);
+		__raw_writel(0x77665502, restart_reason);
+		goto finish_set_restart_reason;
 	}
 
 	if (cmd != NULL) {
@@ -402,6 +409,7 @@ static void msm_restart_prepare(const char *cmd)
 		}
 	}
 
+finish_set_restart_reason:
 	flush_cache_all();
 
 	/*outer_flush_all is not supported by 64bit kernel*/

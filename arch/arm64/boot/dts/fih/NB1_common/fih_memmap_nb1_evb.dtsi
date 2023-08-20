@@ -26,7 +26,6 @@
 			reg = <0 0xa0000000 0 0xb00000>;
 		};
                 ramoops_mem: ramoops_region@a0b00000 { /* for ramoops feature */
-                        compatible = "removed-dma-pool";
                         no-map;
                         reg = <0 0xa0b00000 0 0x200000>;
                 };
