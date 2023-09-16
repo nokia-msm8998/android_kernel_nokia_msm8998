@@ -206,8 +206,8 @@ int __bits_per(unsigned long n)
 	if (n < 2)
 		return 1;
 	if (is_power_of_2(n))
-		return order_base_2(n) + 1;
-	return order_base_2(n);
+		return __order_base_2(n) + 1;
+	return __order_base_2(n);
 }
 
 /**
