@@ -2771,6 +2771,10 @@ const struct sched_class rt_sched_class = {
 	.dec_hmp_sched_stats	= dec_hmp_sched_stats_rt,
 	.fixup_hmp_sched_stats	= fixup_hmp_sched_stats_rt,
 #endif
+
+#ifdef CONFIG_UCLAMP_TASK
+	.uclamp_enabled		= 1,
+#endif
 };
 
 #ifdef CONFIG_SCHED_DEBUG
