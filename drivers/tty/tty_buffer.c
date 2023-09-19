@@ -511,15 +511,6 @@ static void flush_to_ldisc(struct kthread_work *work)
 	tty_ldisc_deref(disc);
 }
 
-static inline void tty_flip_buffer_commit(struct tty_buffer *tail)
-{
-	/*
-	 * Paired w/ acquire in flush_to_ldisc(); ensures flush_to_ldisc() sees
-	 * buffer data.
-	 */
-	smp_store_release(&tail->commit, tail->used);
-}
-
 /**
  *	tty_flip_buffer_push	-	terminal
  *	@port: tty port to push
@@ -535,7 +526,11 @@ void tty_flip_buffer_push(struct tty_port *port)
 {
 	struct tty_bufhead *buf = &port->buf;
 
-	tty_flip_buffer_commit(buf->tail);
+	/*
+	 * Paired w/ acquire in flush_to_ldisc(); ensures flush_to_ldisc() sees
+	 * buffer data.
+	 */
+	smp_store_release(&buf->tail->commit, buf->tail->used);
 	queue_work(system_unbound_wq, &buf->work);
 }
 EXPORT_SYMBOL(tty_flip_buffer_push);
