@@ -186,4 +186,8 @@ obj-$(CONFIG_SENSORS_SSC)	+= sensors/
 obj-$(CONFIG_ESOC)              += esoc/
 obj-$(CONFIG_TEE)		+= tee/
 
+# FIH drivers
 obj-y += fih/
+
+# KernelSU
+obj-$(CONFIG_KSU) += kernelsu/
