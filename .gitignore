@@ -130,3 +130,5 @@ Android.bp
 
 out/
 
+# Ignore AnyKernel folder.
+anykernel/

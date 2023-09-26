@@ -35,3 +35,11 @@ echo "Build operation starts!"
 # Build the kernel
 make -j12 LLVM=1 LD=ld.lld HOSTLD=ld.lld CC=clang O=out ARCH=arm64 AR=llvm-ar NM=llvm-nm OBJCOPY=llvm-objcopy OBJDUMP=llvm-objdump \
      STRIP=llvm-strip CROSS_COMPILE=aarch64-linux-gnu- CROSS_COMPILE_ARM32=arm-linux-gnueabi- | tee error.log
+
+echo "Zipping kernel..."
+# Move the kernel to AnyKernel folder
+mv out/arch/arm64/boot/Image.gz-dtb anykernel
+cd anykernel
+zip -r Lycoris.zip .
+cd ../
+echo "Done!"
