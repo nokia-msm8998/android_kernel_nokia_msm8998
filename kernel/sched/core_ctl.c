@@ -702,10 +702,13 @@ int core_ctl_set_boost(bool boost)
 	}
 	spin_unlock_irqrestore(&state_lock, flags);
 
-	if (boost_state_changed)
-		apply_need(cluster);
-
-	trace_core_ctl_set_boost(cluster->boost, ret);
+	if (boost_state_changed) {
+		index = 0;
+		for_each_cluster(cluster, index) {
+			apply_need(cluster);
+			trace_core_ctl_set_boost(cluster->boost, index, ret);
+		}
+	}
 
 	return ret;
 }
