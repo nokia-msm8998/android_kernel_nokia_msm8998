@@ -143,7 +143,7 @@ static void max_unboost_worker(struct work_struct *work)
 	wake_up(&b->boost_waitq);
 }
 
-static int cpu_thread(void *data)
+static int cpu_boost_thread(void *data)
 {
 	static const struct sched_param sched_max_rt_prio = {
 		.sched_priority = MAX_RT_PRIO - 1
@@ -336,7 +336,7 @@ static int __init cpu_input_boost_init(void)
 		goto unregister_handler;
 	}
 
-	thread = kthread_run_perf_critical(cpu_thread, b, "cpu_boostd");
+	thread = kthread_run(cpu_boost_thread, b, "cpu_boostd");
 	if (IS_ERR(thread)) {
 		ret = PTR_ERR(thread);
 		pr_err("Failed to start CPU boost thread, err: %d\n", ret);
