@@ -3,8 +3,8 @@
 export ARCH=arm64
 export SUBARCH=arm64
 export HEADER_ARCH=arm64
-export PATH="/home/log1cs/clang/bin:$PATH"
-export STRIP="/home/log1cs/clang/bin/aarch64-linux-gnu/bin/strip"
+export CROSS_COMPILE=/home/log1cs/eva/eva-arm64/bin/aarch64-elf-
+export CROSS_COMPILE_ARM32=/home/log1cs/eva/eva-arm/bin/arm-eabi-
 
 DEFCONFIG_FILE=$1
 MAKE_MRPROPER=$2
@@ -33,8 +33,7 @@ make ${DEFCONFIG_FILE} O=out
 echo "Build operation starts!"
 
 # Build the kernel
-make -j12 LLVM=1 LD=ld.lld HOSTLD=ld.lld CC=clang O=out ARCH=arm64 AR=llvm-ar NM=llvm-nm OBJCOPY=llvm-objcopy OBJDUMP=llvm-objdump \
-     STRIP=llvm-strip CROSS_COMPILE=aarch64-linux-gnu- CROSS_COMPILE_ARM32=arm-linux-gnueabi- | tee error.log
+make O=out -j12
 
 echo "Zipping kernel..."
 # Move the kernel to AnyKernel folder
