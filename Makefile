@@ -405,12 +405,14 @@ LINUXINCLUDE    := \
 KBUILD_CPPFLAGS := -D__KERNEL__
 
 KBUILD_CFLAGS   := -Wall -Wundef -Wstrict-prototypes -Wno-trigraphs \
-		   -fno-strict-aliasing -fno-common \
-		   -Werror-implicit-function-declaration \
-		   -Wno-format-security \
-		   -Wno-asm-operand-widths \
-		   -Wno-address-of-packed-member \
-		   -Wno-incompatible-function-pointer-types \
+		   -fno-strict-aliasing -fno-common -Wno-format \
+		   -Werror-implicit-function-declaration -Wno-address \
+		   -Wno-format-security -Wno-misleading-indentation \
+		   -Wno-address-of-packed-member -Wno-unused-variable \
+		   -Wno-duplicate-decl-specifier -Wno-missing-braces -Wno-memset-elt-size \
+		   -Wno-unused-value -Wno-array-compare -Wno-unused-function -Wno-enum-int-mismatch \
+		   -Wno-return-local-addr -Wno-dangling-pointer -Wno-array-parameter \
+		   -Wno-bool-operation -Wno-stringop-overread -Wno-parentheses \
 		   -std=gnu89 $(call cc-option,-fno-PIE)
 
 ifeq ($(TARGET_BOARD_TYPE),auto)
