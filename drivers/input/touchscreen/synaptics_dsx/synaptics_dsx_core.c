@@ -50,7 +50,7 @@
 #include "../../../fih/fih_touch.h"
 extern struct fih_touch_cb touch_cb;
 struct synaptics_rmi4_data *g_rmi4_data;
-#include <../../../video/fbdev/msm/mdss_panel.h>
+#include "../../../video/fbdev/msm/mdss_panel.h"
 //SW8-DH-Double_Tap+]
 
 #define INPUT_PHYS_NAME "synaptics_dsx/touch_input"
