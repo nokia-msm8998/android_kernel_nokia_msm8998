@@ -49,7 +49,7 @@
 
 //SW8-DH-PowerConsumption+[
 #ifdef CONFIG_FIH_NB1
-#include <../video/fbdev/msm/mdss_panel.h>
+#include "../video/fbdev/msm/mdss_panel.h"
 #endif
 //SW8-DH-PowerConsumption+[
 
