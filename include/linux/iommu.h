@@ -275,6 +275,8 @@ extern size_t iommu_unmap(struct iommu_domain *domain, unsigned long iova,
 		       size_t size);
 extern int iommu_unmap_range(struct iommu_domain *domain, unsigned int iova,
 		      unsigned int len);
+extern size_t iommu_unmap_fast(struct iommu_domain *domain,
+			       unsigned long iova, size_t size);
 extern size_t default_iommu_map_sg(struct iommu_domain *domain, unsigned long iova,
 				struct scatterlist *sg,unsigned int nents,
 				int prot);
