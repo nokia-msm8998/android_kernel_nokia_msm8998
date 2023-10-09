@@ -4030,23 +4030,6 @@ __update_load_avg(u64 now, int cpu, struct sched_avg *sa,
  */
 #define UTIL_AVG_UNCHANGED 0x1
 
-static inline void cfs_se_util_change(struct sched_avg *avg)
-{
-	unsigned int enqueued;
-
-	if (!sched_feat(UTIL_EST))
-		return;
-
-	/* Avoid store if the flag has been already set */
-	enqueued = avg->util_est.enqueued;
-	if (!(enqueued & UTIL_AVG_UNCHANGED))
-		return;
-
-	/* Reset flag to report util_avg has been updated */
-	enqueued &= ~UTIL_AVG_UNCHANGED;
-	WRITE_ONCE(avg->util_est.enqueued, enqueued);
-}
-
 /*
  * Signed add and clamp on underflow.
  *
