@@ -733,8 +733,10 @@ void init_entity_runnable_average(struct sched_entity *se)
 {
 	struct sched_avg *sa = &se->avg;
 
-	sa->last_update_time = 0;
+	memset(sa, 0, sizeof(*sa));
 	/*
+	 * util_avg is initialized in post_init_entity_util_avg.
+	 * util_est should start from zero.
 	 * sched_avg's period_contrib should be strictly less then 1024, so
 	 * we give it 1023 to make sure it is almost a period (1024us), and
 	 * will definitely be update (after enqueue).
@@ -756,11 +758,7 @@ void init_entity_runnable_average(struct sched_entity *se)
 	 * However, that functionality has been moved to enqueue.
 	 * It is unclear if we should restore this in enqueue.
 	 */
-	/*
-	 * At this point, util_avg won't be used in select_task_rq_fair anyway
-	 */
-	sa->util_avg = 0;
-	sa->util_sum = 0;
+
 	/* when this task enqueue'ed, it will contribute to its cfs_rq's load_avg */
 }
 
