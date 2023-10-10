@@ -3683,8 +3683,6 @@ static void fixup_hmp_sched_stats_fair(struct rq *rq, struct task_struct *p,
 	}
 }
 
-static int task_will_be_throttled(struct task_struct *p);
-
 #else	/* CONFIG_CFS_BANDWIDTH */
 
 inline void reset_cfs_rq_hmp_stats(int cpu, int reset_cra) { }
@@ -3824,36 +3822,6 @@ static bool do_migration(int reason, int new_cpu, int cpu)
 
 	/* Inter cluster high irqload migrations are OK */
 	return new_cpu != cpu;
-}
-
-/*
- * Check if currently running task should be migrated to a better cpu.
- *
- * Todo: Effect this via changes to nohz_balancer_kick() and load balance?
- */
-void check_for_migration(struct rq *rq, struct task_struct *p)
-{
-	int cpu = cpu_of(rq), new_cpu;
-	int active_balance = 0, reason;
-
-	reason = migration_needed(p, cpu);
-	if (!reason)
-		return;
-
-	raw_spin_lock(&migration_lock);
-	new_cpu = select_best_cpu(p, cpu, reason, 0);
-
-	if (do_migration(reason, new_cpu, cpu)) {
-		active_balance = kick_active_balance(rq, p, new_cpu);
-		if (active_balance)
-			mark_reserved(new_cpu);
-	}
-
-	raw_spin_unlock(&migration_lock);
-
-	if (active_balance)
-		stop_one_cpu_nowait(cpu, active_load_balance_cpu_stop, rq,
-					&rq->active_balance_work);
 }
 
 #ifdef CONFIG_CFS_BANDWIDTH
@@ -5514,35 +5482,6 @@ static inline int cfs_rq_throttled(struct cfs_rq *cfs_rq)
 {
 	return cfs_bandwidth_used() && cfs_rq->throttled;
 }
-
-#ifdef CONFIG_SCHED_HMP
-/*
- * Check if task is part of a hierarchy where some cfs_rq does not have any
- * runtime left.
- *
- * We can't rely on throttled_hierarchy() to do this test, as
- * cfs_rq->throttle_count will not be updated yet when this function is called
- * from scheduler_tick()
- */
-static int task_will_be_throttled(struct task_struct *p)
-{
-	struct sched_entity *se = &p->se;
-	struct cfs_rq *cfs_rq;
-
-	if (!cfs_bandwidth_used())
-		return 0;
-
-	for_each_sched_entity(se) {
-		cfs_rq = cfs_rq_of(se);
-		if (!cfs_rq->runtime_enabled)
-			continue;
-		if (cfs_rq->runtime_remaining <= 0)
-			return 1;
-	}
-
-	return 0;
-}
-#endif
 
 /* check whether cfs_rq, or any parent, is throttled */
 static inline int throttled_hierarchy(struct cfs_rq *cfs_rq)
