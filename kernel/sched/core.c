@@ -5564,6 +5564,7 @@ long __sched io_schedule_timeout(long timeout)
 	int old_iowait = current->in_iowait;
 	struct rq *rq;
 	long ret;
+	struct task_struct *p;
 
 	current->in_iowait = 1;
 	blk_schedule_flush_plug(current);
@@ -5574,7 +5575,7 @@ long __sched io_schedule_timeout(long timeout)
 	ret = schedule_timeout(timeout);
 	current->in_iowait = old_iowait;
 	atomic_dec(&rq->nr_iowait);
-	delayacct_blkio_end();
+	delayacct_blkio_end(p);
 
 	return ret;
 }
