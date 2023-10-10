@@ -2491,6 +2491,7 @@ static void try_to_wake_up_local(struct task_struct *p)
 	trace_sched_waking(p);
 
 	if (!task_on_rq_queued(p)) {
+#ifdef CONFIG_SCHED_WALT
 		u64 wallclock = sched_ktime_clock();
 
 		update_task_ravg(rq->curr, rq, TASK_UPDATE, wallclock, 0);
@@ -2502,6 +2503,7 @@ static void try_to_wake_up_local(struct task_struct *p)
 		walt_update_task_ravg(rq->curr, rq, TASK_UPDATE, wallclock, 0);
 		walt_update_task_ravg(p, rq, TASK_WAKE, wallclock, 0);
 #endif
+
 		if (p->in_iowait) {
 			delayacct_blkio_end(p);
 			atomic_dec(&rq->nr_iowait);
