@@ -90,6 +90,8 @@
 
 #ifdef USE_QC_HIFI_AMP
 #define MSM_HIFI_ON 1
+#else
+#define MSM_HIFI_ON 0
 #endif
 #if defined(CONFIG_FIH_NB1) || defined(CONFIG_FIH_A1N)  || defined(CONFIG_FIH_F11)
 /*MM-JohnHCChiang-BBS log-00+{ */
