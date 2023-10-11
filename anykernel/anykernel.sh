@@ -12,6 +12,7 @@ do.cleanup=1
 do.cleanuponabort=0
 device.name1=NB1
 device.name2=NLA
+device.name3=A1N
 supported.versions=
 supported.patchlevels=
 '; } # end properties
