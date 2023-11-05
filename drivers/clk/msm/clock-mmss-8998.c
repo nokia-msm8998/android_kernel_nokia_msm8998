@@ -2945,6 +2945,7 @@ static struct platform_driver msm_clock_mmss_driver = {
 		.name = "qcom,mmsscc-8998",
 		.of_match_table = msm_clock_mmss_match_table,
 		.owner = THIS_MODULE,
+		.probe_type = PROBE_FORCE_SYNCHRONOUS,
 	},
 };
 

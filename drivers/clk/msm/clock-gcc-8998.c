@@ -2783,6 +2783,7 @@ static struct platform_driver msm_clock_gcc_driver = {
 		.name = "qcom,gcc-8998",
 		.of_match_table = msm_clock_gcc_match_table,
 		.owner = THIS_MODULE,
+		.probe_type = PROBE_FORCE_SYNCHRONOUS,
 	},
 };
 
@@ -2853,6 +2854,7 @@ static struct platform_driver msm_clock_debug_driver = {
 		.name = "qcom,cc-debug-8998",
 		.of_match_table = msm_clock_debug_match_table,
 		.owner = THIS_MODULE,
+		.probe_type = PROBE_FORCE_SYNCHRONOUS,
 	},
 };
 
