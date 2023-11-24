@@ -299,7 +299,7 @@ struct fastrpc_mmap {
 	int uncached;
 	int secure;
 	uintptr_t attr;
-	bool is_filemap; /* flag to indicate map used in process init */
+	bool is_filemap; /*flag to indicate map used in process init*/
 	unsigned int ctx_refs; /* Indicates reference count for context map */
 };
 
@@ -1126,13 +1126,11 @@ static void context_free(struct smq_invoke_ctx *ctx)
 	spin_lock(&ctx->fl->hlock);
 	hlist_del_init(&ctx->hn);
 	spin_unlock(&ctx->fl->hlock);
-	mutex_lock(&ctx->fl->map_mutex);
 	for (i = 0; i < nbufs; ++i) {
 		if (ctx->maps[i] && ctx->maps[i]->ctx_refs)
 			ctx->maps[i]->ctx_refs--;
 		fastrpc_mmap_free(ctx->maps[i]);
 	}
-	mutex_unlock(&ctx->fl->map_mutex);
 	fastrpc_buf_free(ctx->buf, 1);
 	fastrpc_buf_free(ctx->lbuf, 1);
 	ctx->magic = 0;
@@ -1279,7 +1277,6 @@ static int get_args(uint32_t kernel, struct smq_invoke_ctx *ctx)
 					mflags, &ctx->maps[i]);
 		if (ctx->maps[i])
 			ctx->maps[i]->ctx_refs++;
-		mutex_unlock(&ctx->fl->map_mutex);
 		ipage += 1;
 	}
 	metalen = copylen = (size_t)&ipage[0];
@@ -1496,7 +1493,6 @@ static int put_args(uint32_t kernel, struct smq_invoke_ctx *ctx,
 			if (err)
 				goto bail;
 		} else {
-			mutex_lock(&ctx->fl->map_mutex);
 			if (ctx->maps[i]->ctx_refs)
 				ctx->maps[i]->ctx_refs--;
 			fastrpc_mmap_free(ctx->maps[i]);
