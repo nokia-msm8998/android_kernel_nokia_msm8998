@@ -36,15 +36,8 @@ extern int fih_get_blank_mode(void);
 extern int fih_set_blank_mode(int mode);
 extern int fih_get_aod_wled_state(void);
 extern int fih_set_aod_wled_state(int enable);
-extern int fih_set_glance(int enable);
-extern int fih_get_glance(void);
-extern int fih_set_recovery_touch(bool covery);
-extern int fih_get_recovery_touch(void);
 
 extern void mdss_lp_early_config(struct mdss_panel_data *pdata);
 extern void mdss_aod_resume_config(struct mdss_panel_data *pdata);
 extern void fih_mdss_fb_aod_register(struct platform_device *pdev,struct msm_fb_data_type *mfd);
 extern void fih_mdss_fb_get_data(struct msm_fb_data_type *mfd);
-extern void mdss_bl_backup(struct mdss_panel_data *pdata,int level);
-extern int mdss_set_tp_event(struct mdss_panel_data *pdata,int event);
-extern void mdss_cleaup_aod_flag(struct mdss_panel_data *pdata);

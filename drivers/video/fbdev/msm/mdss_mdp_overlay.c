@@ -38,6 +38,12 @@
 #include "mdss_mdp_wfd.h"
 #include "mdss_dsi_clk.h"
 
+#if defined(CONFIG_PXLW_IRIS3)
+#include "mdss_dsi_iris3_ioctl.h"
+#include "mdss_dsi_iris3_pq.h"
+#include "mdss_dsi_iris3.h"
+#endif
+
 #define VSYNC_PERIOD 16
 #define BORDERFILL_NDX	0x0BF000BF
 #define CHECK_BOUNDS(offset, size, max_size) \
@@ -1784,6 +1790,9 @@ static int mdss_mdp_commit_cb(enum mdp_commit_stage_type commit_stage,
 		mutex_unlock(&mdp5_data->ov_lock);
 		break;
 	case MDP_COMMIT_STAGE_READY_FOR_KICKOFF:
+#if defined(CONFIG_PXLW_IRIS3)
+		iris_hdr_csc_frame_ready();
+#endif
 		mutex_lock(&mdp5_data->ov_lock);
 		break;
 	default:
@@ -5254,7 +5263,6 @@ static int __handle_overlay_prepare(struct msm_fb_data_type *mfd,
 		sorted_ovs = kzalloc(num_ovs * sizeof(*ip_ovs), GFP_KERNEL);
 		if (!sorted_ovs) {
 			pr_err("error allocating ovlist mem\n");
-			mutex_unlock(&mdp5_data->ov_lock);
 			return -ENOMEM;
 		}
 		memcpy(sorted_ovs, ip_ovs, num_ovs * sizeof(*ip_ovs));
@@ -5262,7 +5270,6 @@ static int __handle_overlay_prepare(struct msm_fb_data_type *mfd,
 		if (ret) {
 			pr_err("src_split_sort failed. ret=%d\n", ret);
 			kfree(sorted_ovs);
-			mutex_unlock(&mdp5_data->ov_lock);
 			return ret;
 		}
 	}
@@ -5558,7 +5565,14 @@ static int mdss_mdp_overlay_ioctl_handler(struct msm_fb_data_type *mfd,
 		}
 		ret = mdss_fb_set_panel_ppm(mfd, val);
 		break;
-
+#if defined(CONFIG_PXLW_IRIS3)
+	case MSMFB_IRIS_OPERATE_CONF:
+		ret = msmfb_iris_operate_conf(mfd, argp);
+		break;
+	case MSMFB_IRIS_OPERATE_TOOL:
+		ret = msmfb_iris_operate_tool(mfd, argp);
+		break;
+#endif
 	default:
 		break;
 	}
@@ -6385,6 +6399,13 @@ int mdss_mdp_input_event_handler(struct msm_fb_data_type *mfd)
 	return rc;
 }
 
+void mdss_mdp_footswitch_ctrl_handler(bool on)
+{
+	struct mdss_data_type *mdata = mdss_mdp_get_mdata();
+
+	mdss_mdp_footswitch_ctrl(mdata, on);
+}
+
 static void mdss_mdp_signal_retire_fence(struct msm_fb_data_type *mfd,
 					 int retire_cnt)
 {
@@ -6443,6 +6464,14 @@ int mdss_mdp_overlay_init(struct msm_fb_data_type *mfd)
 	mdp5_interface->configure_panel = mdss_mdp_update_panel_info;
 	mdp5_interface->input_event_handler = mdss_mdp_input_event_handler;
 	mdp5_interface->signal_retire_fence = mdss_mdp_signal_retire_fence;
+
+	/*
+	 * Register footswitch control only for primary fb pm
+	 * suspend/resume calls.
+	 */
+	if (mfd->panel_info->is_prim_panel)
+		mdp5_interface->footswitch_ctrl =
+			mdss_mdp_footswitch_ctrl_handler;
 
 	if (mfd->panel_info->type == WRITEBACK_PANEL) {
 		mdp5_interface->atomic_validate =
@@ -6634,6 +6663,10 @@ int mdss_mdp_overlay_init(struct msm_fb_data_type *mfd)
 
 	if (mdss_mdp_pp_overlay_init(mfd))
 		pr_warn("Failed to initialize pp overlay data.\n");
+
+#if defined(CONFIG_PXLW_IRIS3)
+	mdss_dsi_iris_init(mfd);
+#endif
 	return rc;
 init_fail:
 	kfree(mdp5_data);

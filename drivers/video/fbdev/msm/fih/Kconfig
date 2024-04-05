@@ -19,9 +19,3 @@ config PANEL_POWER_CONTROL_FEATURE
 	depends on FIH_PANEL_FEATURE
 	---help---
 	  Support for display power control
-
-config PANEL_COLOR_MANAGERIAL
-	bool "Display color managerial support"
-	depends on FIH_PANEL_FEATURE
-	---help---
-	  Support for display color managerial

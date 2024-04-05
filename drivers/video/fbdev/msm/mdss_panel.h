@@ -65,9 +65,32 @@ struct panel_id {
 /* HDR propeties count */
 #define DISPLAY_PRIMARIES_COUNT	8	/* WRGB x and y values*/
 
+//SW4-HL-Display-ImplementPanelID-00+{_20151112
+enum {	//this id syncs with the item 'fih,panel-id' of each panel's dtsi
+	SIMULATION_PANEL = 0,
+	FIH_ILI7807E_1080P_VIDEO_PANEL = 1,
+	FIH_FT8716U_1080P_CTC_VIDEO_PANEL = 2,		//SW4-JasonSH-Display-BringUpFT8716U-00+_20170619
+	FIH_FT8716U_FHD_CTC_B2N_VIDEO_PANEL = 3,		/* B2N - gatycclu - Add B2N setting */
+	FIH_NT36672_FHD_CTC_B2N_VIDEO_PANEL = 4,		/* B2N - gatycclu - Add B2N 2nd source setting */
+	FIH_NT36672_H_GLASS_FHD_CTC_B2N_VIDEO_PANEL = 5,		/* B2N 2nd source H-GLASS setting */
+	FIH_FT8716_1080P_VIDEO_EVB_PANEL = 11,
+	FIH_FT8716_1080P_VIDEO_EVT_PANEL = 12,
+	FIH_FT8716_FFD_VIDEO_PANEL = 13,
+	FIH_FT8716U_FFD_VIDEO_PANEL = 14,
+	FIH_R69338_1080P_VIDEO_PANEL_PL2 = 15,			//ZZDC sunqiupeng add for bringup PL2 2nd panel@20171226
+	FIH_CTC_OTM1911A_FHD_VIDEO_PANEL = 16,		//SW4-HL-Display-BringUpCTCOTM1911A-00+_20180116
+	FIH_AUO_OTM1911A_FHD_VIDEO_PANEL = 17,		//SW4-HL-Display-OTM1911A-AUO-BringUp-00+_20180221
+    FIH_CTC_JD9522Z_FHD_VIDEO_PANEL = 18,           //SW4-HL-CTL-HDR-ReadLcmSwId-00+_20180330
+    FIH_CTL_CTC_OTM1911A_FHD_VIDEO_PANEL = 19,	//SW4-HL-Display-CTL-GT915L-CTC_n_AUO-BringUp-00+_20180226
+    FIH_CTL_AUO_OTM1911A_FHD_VIDEO_PANEL = 20,      //SW4-HL-CTL-HDR-ReadLcmSwId-00+_20180330
+    FIH_CTL_CTC_JD9522Z_FHD_VIDEO_PANEL = 21,       //SW4-HL-CTL-HDR-ReadLcmSwId-00+_20180330
+    FIH_FT8719_1080P_VIDEO_PANEL = 22,
+};
+//SW4-HL-Display-ImplementPanelID-00+}_20151112
+
 static inline const char *mdss_panel2str(u32 panel)
 {
-	static const char const *names[] = {
+	static const char *names[] = {
 #define PANEL_NAME(n) [n ## _PANEL] = __stringify(n)
 		PANEL_NAME(MIPI_VIDEO),
 		PANEL_NAME(MIPI_CMD),
@@ -83,23 +106,6 @@ static inline const char *mdss_panel2str(u32 panel)
 
 	return names[panel];
 }
-
-/*Panel ID number*/
-enum{
-	UNDEFINE_UNKNOW_PANEL,
-	LGD_LH530QH1_WQXGA_CMD_PANEL,
-	JDI_LPM053A466A_WQXGA_CMD_PANEL,
-	JDI_LPM053A466A_WQXGA_VIDEO_PANEL,
-	LGD_D53G6EA8151_POLED_WQXGA_CMD_PANEL,
-	PANEL_NUM,
-};
-
-/*Touch event*/
-enum {
-	TP_EVENT_UNDEFINE,
-	TP_EVENT_REINIT,
-	TP_EVENT_NUM,
-};
 
 /* panel class */
 enum {
@@ -329,7 +335,6 @@ enum mdss_intf_events {
 	MDSS_EVENT_AVR_MODE,
 	MDSS_EVENT_REGISTER_CLAMP_HANDLER,
 	MDSS_EVENT_DSI_DYNAMIC_BITCLK,
-	MDSS_EVENT_UPDATE_LIVEDISPLAY,
 	MDSS_EVENT_MAX,
 };
 
@@ -782,8 +787,6 @@ struct mdss_dsi_dual_pu_roi {
 	bool enabled;
 };
 
-struct mdss_livedisplay_ctx;
-
 struct mdss_panel_hdr_properties {
 	bool hdr_enabled;
 
@@ -804,8 +807,8 @@ struct mdss_panel_info {
 	u32 yres;
 	u32 physical_width;
 	u32 physical_height;
-	u32 physical_width_full;
-	u32 physical_height_full;
+	u32 physical_width_full;	//SW4-HL-Display-CTS_Xdpi_Ydpi-00+_20151112
+	u32 physical_height_full;	//SW4-HL-Display-CTS_Xdpi_Ydpi-00+_20151112
 	u32 bpp;
 	u32 type;
 	u32 wait_cycle;
@@ -948,8 +951,6 @@ struct mdss_panel_info {
 	 */
 	u32 adjust_timer_delay_ms;
 
-	struct mdss_livedisplay_ctx *livedisplay;
-
 	/* debugfs structure for the panel */
 	struct mdss_panel_debugfs_info *debugfs_info;
 
@@ -964,20 +965,21 @@ struct mdss_panel_info {
 
 	/* esc clk recommended for the panel */
 	u32 esc_clk_rate_hz;
-	u32 panel_id;
+
+	int panel_id;	//SW4-HL-Display-ImplementPanelID-00+_20151112
+
+	//SW4-HL-Display-GlanceMode-00+{_20170524
+	bool aod_enabled;
+
 	bool aod_power_keep;
 	bool aod_power_keep_1p8;
 	bool aod_power_keep_3p3;
 	bool aod_power_keep_lab;
 	bool aod_power_keep_ibb;
+
 	bool aod_ready_on;
-	bool aod_ulps_pwr_feature;
-	bool aod_phy_pwr;
-	bool aod_screen_timeout;
-	int aod_bl_backup;
-	bool panel_power_init;
-	bool color_managerial;
-	int color_managerial_init;
+	//struct wake_lock aod_wake_lock;
+	//SW4-HL-Display-GlanceMode-00+}_20170524
 };
 
 struct mdss_panel_timing {
@@ -1049,11 +1051,9 @@ struct mdss_panel_data {
 	 * are still on; panel will recover after unblank
 	 */
 	bool panel_disable_mode;
-	bool high_brightness_mode;
 
 	int panel_te_gpio;
 	bool is_te_irq_enabled;
-	struct mutex te_mutex;
 	struct completion te_done;
 };
 
@@ -1073,7 +1073,6 @@ static inline void panel_update_te_irq(struct mdss_panel_data *pdata,
 		return;
 	}
 
-	mutex_lock(&pdata->te_mutex);
 	if (enable && !pdata->is_te_irq_enabled) {
 		enable_irq(gpio_to_irq(pdata->panel_te_gpio));
 		pdata->is_te_irq_enabled = true;
@@ -1081,8 +1080,6 @@ static inline void panel_update_te_irq(struct mdss_panel_data *pdata,
 		disable_irq(gpio_to_irq(pdata->panel_te_gpio));
 		pdata->is_te_irq_enabled = false;
 	}
-	mutex_unlock(&pdata->te_mutex);
-
 }
 
 /**

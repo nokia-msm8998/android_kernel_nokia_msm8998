@@ -150,16 +150,40 @@ enum dsi_pm_type {
 	DSI_CORE_PM,
 	DSI_CTRL_PM,
 	DSI_PHY_PM,
-	#ifdef CONFIG_FIH_NB1
-	#ifdef CONFIG_PANEL_POWER_CONTROL_FEATURE
-	DSI_VDDIO_PM,
-	DSI_VPNL_PM,
-	DSI_LAB_PM,
-	DSI_IBB_PM,
-	#endif
-	#endif
-	DSI_MAX_PM,
+	DSI_MAX_PM
 };
+
+//SW4-HL-Display-ImplementCECTCABC-00+{_20160126
+enum {
+	COLOR_TEMP_WARM = 5500,
+	COLOR_TEMP_NORMAL = 6500,
+	COLOR_TEMP_COLD = 7500,
+};
+
+enum {
+	BL_FILTER_DISABLE,
+	BL_FILTER_10 = 10,
+	BL_FILTER_30 = 30,
+	BL_FILTER_50 = 50,
+	BL_FILTER_75 = 75,
+};
+
+enum {
+	CABC_OFF,
+	CABC_UI,
+	CABC_STILL,
+	CABC_MOVING,
+};
+
+// Start
+enum {
+	AIE_OFF,
+	AIE_LOW,
+	AIE_MID,
+	AIE_HIGH,
+};
+// End
+//SW4-HL-Display-ImplementCECTCABC-00+}_20160126
 
 /*
  * DSI controller states.
@@ -371,11 +395,9 @@ struct dsi_panel_timing {
 	struct dsi_panel_cmds on_cmds;
 	struct dsi_panel_cmds post_panel_on_cmds;
 	struct dsi_panel_cmds switch_cmds;
-	#if defined(CONFIG_FIH_NB1) || defined(CONFIG_FIH_A1N)
-	#ifdef CONFIG_AOD_FEATURE
+	#ifdef CONFIG_AOD_FEATURE	//SW4-HL-Display-GlanceMode-00+_20170524
 	struct dsi_panel_cmds aod_resume_cmds;
 	struct dsi_panel_cmds aod_8color_exit_cmds;
-	#endif
 	#endif
 };
 
@@ -474,6 +496,11 @@ struct mdss_dsi_ctrl_pdata {
 	int avdd_en_gpio;
 	bool avdd_en_gpio_invert;
 	int lcd_mode_sel_gpio;
+	int hdr_rst_gpio;					//SW4-HL-Display-CTL-GT915L-CTC_n_AUO-BringUp-00+_20180226
+	int hdr_wakeup_gpio;				//SW4-HL-Display-CTL-GT915L-CTC_n_AUO-BringUp-00+_20180226
+	int hdr_1p8_en_gpio;				//SW4-HL-Display-CTL-GT915L-CTC_n_AUO-BringUp-00+_20180226	
+	int tp_rst_gpio;					//SW4-HL-Display-BringUpILI7807E-00+_20170327
+	int iovdd_enable;					//SW4-JasonSH-Display-BringUpFT8716U-00+_20170619
 	int bklt_ctrl;	/* backlight ctrl */
 	enum dsi_ctrl_op_mode bklt_dcs_op_mode; /* backlight dcs ctrl mode */
 	bool pwm_pmi;
@@ -516,17 +543,16 @@ struct mdss_dsi_ctrl_pdata {
 	struct dsi_panel_cmds lp_on_cmds;
 	struct dsi_panel_cmds lp_off_cmds;
 	struct dsi_panel_cmds status_cmds;
-	#if defined(CONFIG_FIH_NB1) || defined(CONFIG_FIH_A1N)
-	#ifdef CONFIG_AOD_FEATURE
+	#ifdef CONFIG_AOD_FEATURE	//SW4-HL-Display-GlanceMode-00+_20170524
 	struct dsi_panel_cmds aod_suspend_cmds;
 	struct dsi_panel_cmds aod_resume_cmds;
+	struct dsi_panel_cmds panel_on_cmds;
 
 	struct dsi_panel_cmds aod_8color_enter_cmds;
 	struct dsi_panel_cmds post_aod_8color_enter_cmds;
 	struct dsi_panel_cmds aod_8color_exit_cmds;
 	bool cmd_early_lp_exit;
 	int tp_state;
-	#endif
 	#endif
 	u32 *status_valid_params;
 	u32 *status_cmds_rlen;
@@ -536,8 +562,76 @@ struct mdss_dsi_ctrl_pdata {
 	u32 status_error_count;
 	u32 max_status_error_count;
 
+	//SW4-HL-Display-ImplementCECTCABC-00+{_20160126
+	struct dsi_panel_cmds ce_on_cmds;
+	struct dsi_panel_cmds ce_off_cmds;
+
+	struct dsi_panel_cmds ct_normal_cmds;
+	struct dsi_panel_cmds ct_warm_cmds;
+	struct dsi_panel_cmds ct_cold_cmds;
+
+	struct dsi_panel_cmds blf_10_cmds;
+	struct dsi_panel_cmds blf_30_cmds;
+	struct dsi_panel_cmds blf_50_cmds;
+	struct dsi_panel_cmds blf_75_cmds;
+
+	struct dsi_panel_cmds cabc_off_cmds;
+	struct dsi_panel_cmds cabc_ui_cmds;
+	struct dsi_panel_cmds cabc_still_cmds;
+	struct dsi_panel_cmds cabc_moving_cmds;
+
+	// Start
+	struct dsi_panel_cmds aie_off_cmds;
+	struct dsi_panel_cmds aie_low_cmds;
+	struct dsi_panel_cmds aie_mid_cmds;
+	struct dsi_panel_cmds aie_high_cmds;
+	// End
+	//SW4-HL-Display-ImplementCECTCABC-00+}_20160126
+
+	//SW4-HL-Display-SendCECTCABCBeforeInit-00+{_20161213
+	struct dsi_panel_cmds ce_on_cmds_beforeInit;
+	struct dsi_panel_cmds ce_off_cmds_beforeInit;
+
+	struct dsi_panel_cmds ct_normal_cmds_beforeInit;
+	struct dsi_panel_cmds ct_warm_cmds_beforeInit;
+	struct dsi_panel_cmds ct_cold_cmds_beforeInit;
+
+	struct dsi_panel_cmds blf_10_cmds_beforeInit;
+	struct dsi_panel_cmds blf_30_cmds_beforeInit;
+	struct dsi_panel_cmds blf_50_cmds_beforeInit;
+	struct dsi_panel_cmds blf_75_cmds_beforeInit;
+
+	struct dsi_panel_cmds cabc_off_cmds_beforeInit;
+	struct dsi_panel_cmds cabc_ui_cmds_beforeInit;
+	struct dsi_panel_cmds cabc_still_cmds_beforeInit;
+	struct dsi_panel_cmds cabc_moving_cmds_beforeInit;
+
+	// Start
+	struct dsi_panel_cmds aie_off_cmds_beforeInit;
+	struct dsi_panel_cmds aie_low_cmds_beforeInit;
+	struct dsi_panel_cmds aie_mid_cmds_beforeInit;
+	struct dsi_panel_cmds aie_high_cmds_beforeInit;
+	// End
+	//SW4-HL-Display-SendCECTCABCBeforeInit-00+}_20161213
+
 	struct dsi_panel_cmds video2cmd;
 	struct dsi_panel_cmds cmd2video;
+
+	struct dsi_panel_cmds switch_cmdpage_cmds;	//SW4-HL-Display-ShowLCMAndBacklightStatus-00+_20160304
+
+	struct dsi_panel_cmds write_reg_cmds;	//SW4-HL-Display-DynamicReadWriteRegister-00+_20160729
+
+	struct dsi_panel_cmds bist_mode_black_pattern_cmds;	//SW4-HL-Display-FixRedScreenWhileShutdownBacklighLed-00+_20170614
+	struct dsi_panel_cmds bist_mode_off_cmds; 			//SW4-HL-Display-FixRedScreenWhileShutdownBacklighLed-00+_20170614
+
+	struct dsi_panel_cmds glance_mode_off_cmds;	//SW4-HL-Display-ForceLeaveGlanceModeIfPowerStatusIs0xDC-00+_20170822
+
+	//SW4-HL-Display-C1NO-3148-00+{_20180508
+	struct dsi_panel_cmds mipi_term_resistor_04h_cmds;
+	struct dsi_panel_cmds mipi_term_resistor_14h_cmds;
+	struct dsi_panel_cmds mipi_term_resistor_24h_cmds;		
+	struct dsi_panel_cmds mipi_term_resistor_34h_cmds;	
+	//SW4-HL-Display-C1NO-3148-00+}_20180508
 
 	char pps_buf[DSC_PPS_LEN];	/* dsc pps */
 
@@ -619,6 +713,11 @@ struct mdss_dsi_ctrl_pdata {
 	bool update_phy_timing; /* flag to recalculate PHY timings */
 
 	bool phy_power_off;
+ #if defined(CONFIG_PXLW_IRIS3)
+	bool interleave_op_contention;
+	bool bta_error;
+ #endif
+	bool esd_need_reset;
 };
 
 struct dsi_status_data {
@@ -742,6 +841,19 @@ int mdss_dsi_check_panel_status(struct mdss_dsi_ctrl_pdata *ctrl, void *arg);
 
 void mdss_dsi_debug_bus_init(struct mdss_dsi_data *sdata);
 
+// Start
+int mdss_dsi_panel_ce_onoff(struct mdss_dsi_ctrl_pdata *ctrl_pdata, unsigned long enable);
+int mdss_dsi_panel_ct_set(struct mdss_dsi_ctrl_pdata *ctrl_pdata, unsigned long value);
+int mdss_dsi_panel_cabc_set(struct mdss_dsi_ctrl_pdata *ctrl_pdata, unsigned long value);
+int mdss_dsi_panel_aie_set(struct mdss_dsi_ctrl_pdata *ctrl_pdata, unsigned long value);
+// End
+
+//SW4-HL-Display-DynamicReadWriteRegister-00+{_20160729
+void mdss_dsi_panel_read_reg_get(char *reg_val);
+void mdss_dsi_panel_read_reg_set(struct mdss_dsi_ctrl_pdata *ctrl_pdata, unsigned int reg, unsigned int reg_len);
+void mdss_dsi_panel_write_reg_set(struct mdss_dsi_ctrl_pdata *ctrl_pdata, unsigned int len, char *data);
+//SW4-HL-Display-DynamicReadWriteRegister-00+}_20160729
+
 static inline const char *__mdss_dsi_pm_name(enum dsi_pm_type module)
 {
 	switch (module) {
@@ -749,14 +861,6 @@ static inline const char *__mdss_dsi_pm_name(enum dsi_pm_type module)
 	case DSI_CTRL_PM:	return "DSI_CTRL_PM";
 	case DSI_PHY_PM:	return "DSI_PHY_PM";
 	case DSI_PANEL_PM:	return "PANEL_PM";
-	#ifdef CONFIG_FIH_NB1
-	#ifdef CONFIG_PANEL_POWER_CONTROL_FEATURE
-	case DSI_VDDIO_PM:	return "DSI_VDDIO_PM";
-	case DSI_VPNL_PM:	return "DSI_VPNL_PM";
-	case DSI_IBB_PM:	return "DSI_IBB_PM";
-	case DSI_LAB_PM:	return "DSI_LAB_PM";
-	#endif
-	#endif
 	default:		return "???";
 	}
 }
@@ -769,14 +873,6 @@ static inline const char *__mdss_dsi_pm_supply_node_name(
 	case DSI_CTRL_PM:	return "qcom,ctrl-supply-entries";
 	case DSI_PHY_PM:	return "qcom,phy-supply-entries";
 	case DSI_PANEL_PM:	return "qcom,panel-supply-entries";
-	#ifdef CONFIG_FIH_NB1
-	#ifdef CONFIG_PANEL_POWER_CONTROL_FEATURE
-	case DSI_VDDIO_PM:	return "qcom,panel-vddio-supply-entries";
-	case DSI_VPNL_PM:	return "qcom,panel-vpnl-supply-entries";
-	case DSI_IBB_PM:	return "qcom,panel-ibb-supply-entries";
-	case DSI_LAB_PM:	return "qcom,panel-lab-supply-entries";
-	#endif
-	#endif
 	default:		return "???";
 	}
 }
