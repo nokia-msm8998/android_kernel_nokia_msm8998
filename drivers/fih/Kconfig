@@ -1,101 +1,156 @@
-menu "Device Drivers for FIH"
+#
+# fih driver
+#
 
-  config FIH_A1N
-  	bool "FIH A1N project"
-  	default n
-  	help
-  	  support fih A1N project
+menu "fih driver"
 
-  config FIH_NB1
-  	bool "FIH NB1 project"
-  	default n
-  	help
-  	  support fih NB1 project
+config FIH_SDM630_SDM660_PROJS
+	bool "01 FIH_8937_PROJS"
+	help
+	Enable the support for FIH_8937_PROJS flag
 
-  config FIH_APR
-           bool "fih apr"
-           default n
-           help
-             support fih apr virtual file
-
-  config FIH_INFO
-	  bool "fih info"
-	  default n
-	  help
-	    support fih information virtual file
-
-  config FIH_E2P
-	  bool "fih e2p"
-	  default n
-	  help
-	    support fih e2p virtual file
-
-  config FIH_CPU
-	  bool "fih cpu"
-	  default n
-	  help
-	    support fih cpu info virtual file
-
-  config FIH_DRAM
-	  bool "fih DRAM"
-	  default n
-	  help
-	    support fih DRAM info virtual file
-
-  config FIH_HWID
-	  bool "fih hwid"
-	  default n
-	  help
-	    support fih hwid module
-
-  config FIH_DLOAD
-           bool "fih download mode by bset enable"
-           default n
-           help
-             support fih download mode by bset enable
-
-
-        menuconfig FIH_DEBUG
-            bool "FIH DEBUG"
-            default n
-            help
-                Turn on this group to enable FIH's DEBUG configurations menu
-
-        if FIH_DEBUG
-
-            config FIH_RESUME_PERFORMANCE_LOG
-                bool "FIH LOG about resume performance"
-                default n
-                ---help---
-                    Enable resume performance log
-
-            config FIH_DUMP_WAKELOCK
-                bool "FIH DUMP WAKELOCK"
-                depends on PM_SLEEP
-                default n
-                ---help---
-                    Enable to dump wakelock periodically if it active.
-
-            config FIH_CPU_USAGE
-                bool "fih cpu usage information"
-                default n
-                ---help---
-                    Support fih cpu usage information
-
-
-        endif
-
-config FIH_HALL_SENSOR
-	bool "FIH HALL Sensor"
+config FIH_GPIO
+	bool "fih gpio"
 	default n
 	help
-	  support FIH HALL Sensor
+	  support fih gpio function
 
+config FIH_INFO
+	bool "fih info"
+	default y
+	help
+	  support fih info virtual file
 
-  config FIH_GPIO
-      bool "fih gpio"
-      default n
-      help
-        support fih gpio function
+config FIH_MFD
+	bool "fih mfd"
+	default y
+	help
+	  support fih mfd virtual file
 
+config FIH_MT_SLEEP
+	bool "MT sleep current test feature"
+	default n
+	help
+	  Say Y here to enable support the MT sleep current test
+
+config FIH_NV
+	bool "fih nv"
+	default y
+	help
+	  support fih nv virtual file
+
+config FIH_APR
+	bool "fih apr"
+	default y
+	help
+	  support fih apr virtual file
+
+config FIH_UFSINFO
+	bool "fih ufs info"
+	default n
+	help
+	  support fih ufs info virtual file
+
+config FIH_DDR
+	bool "fih ddr"
+	default y
+	help
+	  support fih ddr virtual file
+
+config FIH_SENSOR
+	bool "fih sensor"
+	default y
+	help
+	  support fih sensor virtual file
+
+config FIH_SIBEAM_GPIO
+	bool "fih SIBEAM"
+	default n
+	help
+	  support fih SIBEAM virtual file
+
+config FIH_MFR
+	bool "fih mfr"
+	default y
+	help
+	  support fih modem failure reason virtual file
+
+config FIH_TOUCH
+        bool "fih touch"
+        default y
+        help
+          support fih touch virtual file
+
+config FIH_LCM
+	bool "fih lcm"
+	default y
+	help
+	  support fih lcm function
+
+config FIH_EMMC
+	bool "fih emmc"
+	default y
+	help
+	  support fih emmc function
+
+config FIH_FVER
+	bool "fih fver"
+	default y
+	help
+	  support fih fver function
+
+config FIH_USB
+	bool "fih usb"
+	default y
+	help
+	  support fih emmc function
+
+config FIH_HWCONFIG
+	bool "fih hwcfg/swid/hwid"
+	default y
+	help
+	  support fih hwcfg/swid/hwid function
+
+config FIH_DEVICE_TREE_DEBUG
+	bool "FIH Device Tree Debug"
+	default y
+
+config FIH_HALL_SENSOR
+	bool "FIH Hall sensor"
+	default y
+
+config FIH_CPU_USAGE
+	bool "FIH cpu usage information"
+	default y
+	help
+	  support fih cpu usage information
 endmenu
+
+#Kernel Module sign key from FIH
+config MODULE_SIG_FIH
+	bool "Use static module sign key"
+	depends on MODULE_SIG
+	help
+	  Use the static module sign key
+	  in kernel/cert/fih/
+
+choice
+	prompt "Define fih sig key path"
+	depends on MODULE_SIG_FIH
+	default MODULE_SIG_KEY_IN_NORMAL
+	help
+	  fih sig key path
+
+config MODULE_SIG_KEY_IN_NORMAL
+	bool "Key for normal"
+
+config MODULE_SIG_KEY_IN_FTM
+	bool "Key for normal"
+
+endchoice
+
+config MODULE_SIG_FIH_KEY_PATH
+	string
+	depends on MODULE_SIG_FIH
+	default "${KBUILD_SRC}/certs/fih" if MODULE_SIG_KEY_IN_NORMAL
+	default "../../../mach/QCOM8937/kernel/linux/certs/fih" if MODULE_SIG_KEY_IN_FTM

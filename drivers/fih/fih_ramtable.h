@@ -1,10 +1,10 @@
 #ifndef __FIH_RAMTABLE_H
 #define __FIH_RAMTABLE_H
 
-#define FIH_RAM_BASE					0xA0000000
-#define FIH_RAM_SIZE					0x00B00000
-#define FIH_RAM_SIZE_MB					11
- /* -------------------------------------------------------- */
+#define FIH_RAM_BASE				0xAC000000
+#define FIH_RAM_SIZE				0x00D00000
+#define FIH_RAM_SIZE_MB				13
+/* -------------------------------------------------------- */
 /* modem rf_nv */
 #define FIH_MODEM_RF_NV_BASE			FIH_RAM_BASE
 #define FIH_MODEM_RF_NV_SIZE			0x00200000
@@ -142,9 +142,15 @@
 #define FIH_HWCFG_MEM_ADDR				FIH_HWCFG_BASE
 #define FIH_HWCFG_MEM_SIZE				FIH_HWCFG_SIZE
 
+/* fac */
+#define FIH_FAC_BASE					(FIH_HWCFG_BASE + FIH_HWCFG_SIZE)
+#define FIH_FAC_SIZE					0x00001000
+#define FIH_FAC_MEM_ADDR					FIH_FAC_BASE
+#define FIH_FAC_MEM_SIZE					FIH_FAC_SIZE
+
 /* no use 5 */
-#define FIH_NO_USE_5_BASE				(FIH_HWCFG_BASE + FIH_HWCFG_SIZE)
-#define FIH_NO_USE_5_SIZE				0x00003000
+#define FIH_NO_USE_5_BASE				(FIH_FAC_BASE + FIH_FAC_SIZE)
+#define FIH_NO_USE_5_SIZE				0x00002000
 
 /* fver */
 #define FIH_FVER_BASE					(FIH_NO_USE_5_BASE + FIH_NO_USE_5_SIZE)
@@ -153,7 +159,7 @@
 
 /* sensordata */
 #define FIH_SENSORDATA_BASE				(FIH_FVER_BASE + FIH_FVER_SIZE)
-#define FIH_SENSORDATA_SIZE				0x00004000
+#define FIH_SENSORDATA_SIZE				0x0000C000
 #define FIH_SENSOR_MEM_ADDR				FIH_SENSORDATA_BASE
 #define FIH_SENSOR_MEM_SIZE				FIH_SENSORDATA_SIZE
 
@@ -169,29 +175,11 @@
 #define FIH_MEM_DDR_CDT_ADDR			FIH_MEM_DDR_BASE
 #define FIH_MEM_DDR_CDT_SIZE			FIH_MEM_DDR_SIZE
 
-/* sensor TOF*/
-#define FIH_SENSOR_TOF_BASE				(FIH_MEM_DDR_BASE + FIH_MEM_DDR_SIZE)
-#define FIH_SENSOR_TOF_SIZE				0x00001000
-#define FIH_SENSOR_TOF_MEM_ADDR			FIH_SENSOR_TOF_BASE
-#define FIH_SENSOR_TOF_MEM_SIZE			FIH_SENSOR_TOF_SIZE
-
-/* sensor SSC*/
-#define FIH_SENSOR_SSC_BASE				(FIH_SENSOR_TOF_BASE + FIH_SENSOR_TOF_SIZE)
-#define FIH_SENSOR_SSC_SIZE				0x00008000
-#define FIH_SENSOR_SSC_MEM_ADDR			FIH_SENSOR_SSC_BASE
-#define FIH_SENSOR_SSC_MEM_SIZE			FIH_SENSOR_SSC_SIZE
-
-/* sensordata 2*/
-#define FIH_SENSORDATA2_BASE				(FIH_SENSOR_SSC_BASE + FIH_SENSOR_SSC_SIZE)
-#define FIH_SENSORDATA2_SIZE				0x00006400
-#define FIH_SENSORDATA2_MEM_ADDR			FIH_SENSORDATA2_BASE
-#define FIH_SENSORDATA2_MEM_SIZE			FIH_SENSORDATA2_SIZE
-
 /* no use 6 */
-#define FIH_NO_USE_6_BASE				(FIH_SENSORDATA2_BASE + FIH_SENSORDATA2_SIZE)
-#define FIH_NO_USE_6_SIZE				0x0001FC00
+#define FIH_NO_USE_6_BASE				(FIH_MEM_DDR_BASE + FIH_MEM_DDR_SIZE)
+#define FIH_NO_USE_6_SIZE				0x00027000
 
- /* -------------------------------------------------------- 9MB */
+ /* -------------------------------------------------------- 11MB */
 
 /* pstore */
 #define FIH_PSTORE_BASE					(FIH_NO_USE_6_BASE + FIH_NO_USE_6_SIZE)
@@ -199,56 +187,54 @@
 #define FIH_PSTORE_MEM_ADDR				FIH_PSTORE_BASE
 #define FIH_PSTORE_MEM_SIZE				FIH_PSTORE_SIZE
 
-/* -------------------------------------------------------- 11MB */
+/* -------------------------------------------------------- 13MB */
 
 /**************************************************************
  * START         | SIZE        | TARGET
  * -------------------------------------------------------- 0MB
- *   0xA000_0000 | 0x0020_0000 | modem rf_nv (2MB)
- *   0xA020_0000 | 0x0020_0000 | modem cust_nv (2MB)
- *   0xA040_0000 | 0x0040_0000 | modem default_nv (2MB)
- *   0xA080_0000 | 0x0010_0000 | modem log (1MB)
- *   -------------------------------------------------------- 7MB
- *   0xA090_0000 | 0x0004_0000 | last_alog_main (256KB)
- *   0xA094_0000 | 0x0004_0000 | last_alog_events (256KB)
- *   0xA098_0000 | 0x0004_0000 | last_alog_radio (256KB)
- *   0xA09C_0000 | 0x0004_0000 | last_alog_system (256KB)
- *   0xA0A0_0000 | 0x0004_0000 | last_kmsg (256KB)
- *   0xA0A4_0000 | 0x0002_0000 | last_blog (128KB)
- *   0xA0A6_0000 | 0x0002_0000 | blog (128KB)
- *   -------------------------------------------------------- 8.5MB
- *   0xA0A8_0000 | 0x0000_0040 | hwid:hwcfg (64B)
- *   0xA0A8_0040 | 0x0000_0040 | secboot:devinfo (64B)
- *   0xA0A8_0080 | 0x0000_0100 | secboot:unlock (256B)
- *   0xA0A8_0180 | 0x0000_0080 | sutinfo (128B)
- *   0xA0A8_0200 | 0x0000_0010 | no use 1 (16B)
- *   0xA0A8_0210 | 0x0000_0010 | bset (16B)
- *   0xA0A8_0220 | 0x0000_0010 | bat-id adc (16B)
- *   0xA0A8_0230 | 0x0000_0010 | no use 2 (16B)
- *   0xA0A8_0240 | 0x0000_0020 | apr (32B)
- *   0xA0A8_0260 | 0x0000_0180 | no use 3 (384B)
- *   0xA0A8_03E0 | 0x0000_0020 | mem (32B)
- *   0xA0A8_0400 | 0x0000_0C00 | no use 4 (3KB)
- *   0xA0A8_1000 | 0x0000_1000 | e2p (4KB)
- *   0xA0A8_2000 | 0x0000_1000 | cda (4KB)
- *   0xA0A8_3000 | 0x0000_1000 | note (4KB)
- *   0xA0A8_4000 | 0x0000_1000 | hwcfg (4KB)
- *   0xA0A8_5000 | 0x0000_3000 | no use 5 (12KB)
- *   0xA0A8_8000 | 0x0004_0000 | fver (256KB)
- *   0xA0AC_8000 | 0x0000_4000 | sensordata (16KB)
- *   0xA0AC_C000 | 0x0000_4000 | LCM data (16KB)
- *   0xA0AD_0000 | 0x0000_1000 | DDR CDT (4KB)
- *   0xA0AD_1000 | 0x0000_1000 | sensor TOF (4KB)
- *   0xA0AD_2000 | 0x0000_8000 | sensor SSC (32KB)
- *   0xA0AD_A000 | 0x0000_6400 | sensordata 2 (25KB)
- *   0xA0AE_0400 | 0x0001_FC00 | no use 6 (127KB)
+ *   0xAC00_0000 | 0x0020_0000 | modem rf_nv (2MB)
+ *   0xAC20_0000 | 0x0020_0000 | modem cust_nv (2MB)
+ *   0xAC40_0000 | 0x0040_0000 | modem default_nv (4MB)
+ *   0xAC80_0000 | 0x0010_0000 | modem log (1MB)
  *   -------------------------------------------------------- 9MB
- *   0xA0B0_0000 | 0x0020_0000 | pstore (2MB)
+ *   0xAC90_0000 | 0x0004_0000 | last_alog_main (256KB)
+ *   0xAC94_0000 | 0x0004_0000 | last_alog_events (256KB)
+ *   0xAC98_0000 | 0x0004_0000 | last_alog_radio (256KB)
+ *   0xAC9C_0000 | 0x0004_0000 | last_alog_system (256KB)
+ *   0xACA0_0000 | 0x0004_0000 | last_kmsg (256KB)
+ *   0xACA4_0000 | 0x0002_0000 | last_blog (128KB)
+ *   0xACA6_0000 | 0x0002_0000 | blog (128KB)
+ *   -------------------------------------------------------- 10.5MB
+ *   0xACA8_0000 | 0x0000_0040 | hwid:hwcfg (64B)
+ *   0xACA8_0040 | 0x0000_0040 | secboot:devinfo (64B)
+ *   0xACA8_0080 | 0x0000_0100 | secboot:unlock (256B)
+ *   0xACA8_0180 | 0x0000_0080 | sutinfo (128B)
+ *   0xACA8_0200 | 0x0000_0010 | no use (16B)
+ *   0xACA8_0210 | 0x0000_0010 | bset (16B)
+ *   0xACA8_0220 | 0x0000_0010 | bat-id adc (16B)
+ *   0xACA8_0230 | 0x0000_0010 | no use (16B)
+ *   0xACA8_0240 | 0x0000_0020 | apr (32B)
+ *   0xACA8_0260 | 0x0000_0180 | no use (384B)
+ *   0xACA8_03E0 | 0x0000_0020 | mem (32B)
+ *   0xACA8_0400 | 0x0000_0C00 | no use (3KB)
+ *   0xACA8_1000 | 0x0000_1000 | e2p (4KB)
+ *   0xACA8_2000 | 0x0000_1000 | cda (4KB)
+ *   0xACA8_3000 | 0x0000_1000 | note (4KB)
+ *   0xACA8_4000 | 0x0000_1000 | hwcfg (4KB)
+ *   0xACA8_5000 | 0x0000_1000 | fac (1KB)
+ *   0xACA8_6000 | 0x0000_2000 | no use 5 (12KB)
+ *   0xACA8_8000 | 0x0004_0000 | fver (256KB)
+ *   0xACAC_8000 | 0x0000_C000 | sensordata (48KB)
+ *   0xACAD_4000 | 0x0000_4000 | LCM data (16KB)
+ *   0xACAD_8000 | 0x0000_1000 | DDR CDT (4KB)
+ *   0xACAD_9000 | 0x0002_7000 | no use 6 (156KB)
  *   -------------------------------------------------------- 11MB
- *   0xA0D0_0000 | 0x00B0_0000 | All FIH mem (11MB)
+ *   0xACB0_0000 | 0x0020_0000 | pstore (2MB)
+ *   -------------------------------------------------------- 13MB
+ *   0xACD0_0000 | 0x00D0_0000 | All FIH mem (13MB)
  */
-#define FIH_MEM_DDR_TEST_ADDR    0xA0D00000
-#define FIH_MEM_DDR_TEST_SIZE    0xD7300000
+#define FIH_MEM_DDR_TEST_ADDR    (FIH_PSTORE_BASE + FIH_PSTORE_SIZE + FIH_PSTORE_SIZE)
+#define FIH_MEM_DDR_TEST_SIZE    (0xFE000000 - FIH_MEM_DDR_TEST_ADDR)
 
 #define FIH_MEM_KERNEL_ADDR    0x80000000
 #define FIH_MEM_KERNEL_SIZE    0x05800000

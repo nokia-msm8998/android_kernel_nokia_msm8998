@@ -44,27 +44,49 @@ static unsigned int fih_msm_rd_feature_id(void)
 	return value;
 }
 
+static unsigned int fih_msm_rd_pbl_patch_ver(void)
+{
+	unsigned int *temp;
+	unsigned int value;
+
+	temp = (unsigned int *)ioremap(FIH_MSM_HWIO_FEATURE, sizeof(unsigned int));
+	if (temp == NULL) {
+		pr_err("%s: ioremap fail\n", __func__);
+		return (0);
+	}
+
+	value = (*temp&0x1FC0000)>>0x12;
+
+	iounmap(temp);
+	return value;
+}
+
 static int fih_cpu_read_show(struct seq_file *m, void *v)
 {
 	char msg[32];
 	char buf[4];
-	unsigned int device = fih_msm_rd_jtag_id() & 0x00FFFFFF;
-	unsigned int sample_type = (fih_msm_rd_jtag_id() & 0xFF000000) >> 24;
+	unsigned int device = fih_msm_rd_jtag_id() & 0x0FFFFFFF;
+	unsigned int sample_type = (fih_msm_rd_jtag_id() & 0xF0000000) >> 28;
 	unsigned int featureid = fih_msm_rd_feature_id();
+	unsigned int pbl_patch_ver = fih_msm_rd_pbl_patch_ver();
 
 	switch (device) {
-		case HW_REV_NUM_MSM8998: strcpy(msg, "MSM8998, "); break;
-		default: strcpy(msg, "MSM8998, "); break;
+		case HW_REV_NUM_SDM660: strcpy(msg, "SDM660"); break;
+		case HW_REV_NUM_SDM630: strcpy(msg, "SDM630"); break;
+		case HW_REV_NUM_SDM636: strcpy(msg, "SDM636"); break;
+		default: strcpy(msg, "Unknown"); break;
 	}
 
-	switch (sample_type) {
-		case 0: strcat(msg, "ES1, "); break;
-		case 1: strcat(msg, "ES2, "); break;
-		case 2: strcat(msg, "ES3, "); break;
-		default: strcat(msg, "ES3, "); break;
-	}
-	sprintf(buf, "0x%d", featureid);
+	sprintf(buf, "-%d", featureid);
 	strcat(msg, buf);
+
+	snprintf(buf, sizeof(buf), "(%d), ", pbl_patch_ver);
+	strcat(msg, buf);
+
+	switch (sample_type) {
+		case HW_REV_ES: strcat(msg, "CS, "); break;
+		default: strcpy(msg, "Unknown"); break;
+	}
 
 	seq_printf(m, "%s\n", msg);
 	return 0;
@@ -85,9 +107,8 @@ static struct file_operations cpu_info_file_ops = {
 
 static int __init fih_cpu_init(void)
 {
-	proc_mkdir(FIH_PROC_DIR, NULL);
-	if (proc_create(FIH_PROC_PATH, 0, NULL, &cpu_info_file_ops) == NULL)
-	{
+
+	if (proc_create(FIH_PROC_PATH, 0, NULL, &cpu_info_file_ops) == NULL) {
 		pr_err("fail to create proc/%s\n", FIH_PROC_PATH);
 		return (1);
 	}

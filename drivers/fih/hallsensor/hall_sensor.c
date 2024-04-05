@@ -8,8 +8,7 @@
 #include <linux/regulator/consumer.h>
 #include <linux/of_gpio.h>
 #include <linux/platform_device.h>
-#include <linux/notifier.h>
-#include <linux/fb.h>
+
 //#define HALLSENSOR_VDD_CONTROL
 
 //Should be defined in input.h
@@ -22,13 +21,13 @@ struct hall_info {
     int (*gpio_config)(unsigned gpio, bool configure);
     struct mutex hall_mutex;
     struct work_struct irq_work;
+    struct workqueue_struct *hall_work;
     int irq;
     struct input_dev *input_hall;
     unsigned int keycode_open;	/* input event code (KEY_*, SW_*) for open */
     unsigned int keycode_close;	/* input event code (KEY_*, SW_*) for close */
-    /* power related */
-    struct regulator *vdd;
-    struct notifier_block notifier;
+		/* power related */
+		struct regulator *vdd;
 };
 
 enum hall_status {
@@ -66,54 +65,13 @@ static int hall_gpio_setup(unsigned gpio, bool configure)
     }
     return retval;
 }
-static int hall_fb_state_chg_callback(struct notifier_block *nb, unsigned long val, void *data)
-{
-    struct hall_info *info = container_of(nb, struct hall_info, notifier);
-    struct fb_event *evdata = data;
-    unsigned int blank;
 
-    if (val != FB_EVENT_BLANK)
-        return 0;
-
-    pr_info("hall fb notifier begin!\n");
-
-    if (evdata && evdata->data && val == FB_EVENT_BLANK && info)
-    {
-        blank = *(int *) (evdata->data);
-
-        switch (blank)
-        {
-        case FB_BLANK_POWERDOWN:
-            pr_info("hall FB_BLANK_POWERDOWN, fb enter suspend\n");
-            if(strstr(saved_command_line,"androidboot.mode=2") != NULL) //for FTM mode
-            {
-                gHallEventInfo.disable_event = false;
-                pr_info("%s: FTM Mode enter!! gHallEventInfo.disable_event = %d\n",__func__, gHallEventInfo.disable_event);
-            }
-            else
-                gHallEventInfo.disable_event = true;
-            break;
-
-        case FB_BLANK_UNBLANK:
-            pr_info("hall FB_BLANK_UNBLANK, fb enter resume\n");
-            gHallEventInfo.disable_event = false;
-            break;
-        default:
-            break;
-        }
-    }
-    return NOTIFY_OK;
-
-}
 static struct hall_info hallsensor_info = {
     .irq_flags = IRQF_TRIGGER_FALLING | IRQF_TRIGGER_RISING,
     .irq_gpio = 0,
     .gpio_config = hall_gpio_setup,
 };
-static struct notifier_block hall_notify_block =
-{
-    .notifier_call = hall_fb_state_chg_callback,
-};
+
 static ssize_t enable_switch_store (struct device *dev,
         struct device_attribute *attr,
         const char *buf, size_t count)
@@ -150,12 +108,12 @@ static irqreturn_t hall_irq_handler(int irq, void *handle)
 {
     struct hall_info *pdata = handle;
 
-    if(pdata == NULL){
-		printk("BBox::UEC;8::55\n");
+    if(pdata == NULL)
         return IRQ_HANDLED;
-	}
-
-    schedule_work(&pdata->irq_work);
+    if(pdata->hall_work != NULL)
+        queue_work(pdata->hall_work, &pdata->irq_work);
+    else
+        pr_info("[Hall sensor] : queue_work fail\n");
     //pr_info("[Hall sensor] : %s\n",__FUNCTION__);
 
     return IRQ_HANDLED;
@@ -166,28 +124,24 @@ static void irq_work_func(struct work_struct *work)
     struct hall_info *pdata = container_of((struct work_struct *)work,
                         struct hall_info, irq_work);
 
-    pr_info("[Hall sensor] : irq triggered ! gpio status : %d, gHallEventInfo.disable_event: %d\n", gpio_get_value(hallsensor_info.irq_gpio), gHallEventInfo.disable_event);
+    pr_info("[Hall sensor] : irq triggered ! \n");
+    pr_info("gpio status : %d\n" , gpio_get_value(hallsensor_info.irq_gpio));
 
-    //if(gHallEventInfo.disable_event)
-        //return;
+    if(gHallEventInfo.disable_event)
+        return;
 
     gHallEventInfo.current_status = gpio_get_value(hallsensor_info.irq_gpio);
 
-    if((gHallEventInfo.current_status == HALL_CLOSED) && (gHallEventInfo.disable_event == false)){
+    if(gHallEventInfo.current_status == HALL_CLOSED){
         input_report_key(pdata->input_hall, pdata->keycode_close, 1);
         input_sync(pdata->input_hall);
         input_report_key(pdata->input_hall, pdata->keycode_close, 0);
         input_sync(pdata->input_hall);
-    }else if(gHallEventInfo.current_status == HALL_OPENED){
+    }else{
         input_report_key(pdata->input_hall, pdata->keycode_open, 1);
         input_sync(pdata->input_hall);
         input_report_key(pdata->input_hall, pdata->keycode_open, 0);
         input_sync(pdata->input_hall);
-    }
-    if((gHallEventInfo.current_status != HALL_CLOSED) && (gHallEventInfo.current_status != HALL_OPENED))
-    {
-        pr_err("[Hall sensor] : gpio status fail\n");
-	    printk("BBox::UEC;8::56\n");
     }
 }
 
@@ -208,7 +162,6 @@ static  int hall_sensor_probe(struct platform_device *pdev)
         if (ret < 0) {
             pr_info("%s: Failed to configure GPIO\n",
                     __func__);
-            printk("BBox::UEC;8::54\n");
             return ret;
         }
     }
@@ -217,7 +170,6 @@ static  int hall_sensor_probe(struct platform_device *pdev)
     pdata->input_hall = input_allocate_device();
     if (!pdata->input_hall) {
         pr_info("Not enough memory for input device\n");
-        printk("BBox::UEC;8::54\n");
         return -ENOMEM;
     }
 
@@ -263,18 +215,23 @@ static  int hall_sensor_probe(struct platform_device *pdev)
     if (ret) {
         pr_info("%s: Failed to register input device\n",
                 __func__);
-        printk("BBox::UEC;8::54\n");
         return ret;
     }
+
+    pdata->hall_work = create_workqueue("hallsensor");
+    if(!pdata->hall_work) {
+        pr_info("[Hall sensor]%s create_workqueue fail", __func__);
+        return -1;
+    }
+
+    INIT_WORK(&pdata->irq_work, irq_work_func);
 
     ret = request_irq(pdata->irq, hall_irq_handler,pdata->irq_flags, "hall_sensor", pdata);
     if (ret < 0) {
             pr_info("%s: Failed to request_threaded_irq\n",
             __func__);
-            printk("BBox::UEC;8::54\n");
             return ret;
     }
-
     disable_irq_nosync(pdata->irq);
     enable_irq(pdata->irq);
     if(strstr(saved_command_line,"androidboot.mode=2")!=NULL) //for FTM mode
@@ -282,18 +239,15 @@ static  int hall_sensor_probe(struct platform_device *pdev)
     else
       enable_irq_wake(pdata->irq);
 
-    INIT_WORK(&pdata->irq_work, irq_work_func);
-
     ret = device_create_file(&pdata->input_hall->dev, &dev_attr_Hall_status);
      if (ret) {
-        dev_err(&pdev->dev, "%s: dev_attr_Buzzer failed\n", __func__);
-        printk("BBox::UEC;8::54\n");
+        dev_err(&pdev->dev, "%s: dev_attr_Hall_status failed\n", __func__);
         return ret;
     }
 
     ret = device_create_file(&pdata->input_hall->dev, &dev_attr_Hall_enable);
     if (ret) {
-        dev_err(&pdev->dev, "%s: dev_arrt_Hall_enable failed\n", __func__);
+        dev_err(&pdev->dev, "%s: dev_attr_Hall_enable failed\n", __func__);
     }
 
     ret = sysfs_create_link(pdata->input_hall->dev.kobj.parent,
@@ -306,11 +260,6 @@ static  int hall_sensor_probe(struct platform_device *pdev)
     gHallEventInfo.current_status = gpio_get_value(hallsensor_info.irq_gpio);
     gHallEventInfo.disable_event = false;
 
-    pdata->notifier = hall_notify_block;
-    if (fb_register_client(&pdata->notifier) < 0)
-    {
-        pr_info("[Hall sensor] : %s  ERROR: register notifier failed!\n",__FUNCTION__);
-    }
     pr_info("[Hall sensor] : %s exit\n",__FUNCTION__);
 
     return ret;
@@ -325,6 +274,7 @@ static int hall_sensor_remove(struct platform_device *pdev)
 #endif
 
     pr_info("[Hall sensor] : %s\n",__FUNCTION__);
+    destroy_workqueue(pdata->hall_work);
     input_unregister_device(pdata->input_hall);
     free_irq(pdata->irq, 0);
 

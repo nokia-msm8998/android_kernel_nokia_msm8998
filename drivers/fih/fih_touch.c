@@ -12,86 +12,99 @@
 
 #include "fih_touch.h"
 
-#define FIH_PROC_DIR        "AllHWList"
-#define FIH_PROC_TP_SELF_TEST	"AllHWList/tp_self_test"
-#define FIH_PROC_TP_SELF_TEST_U0	"AllHWList/tp_self_test_U0"
-#define FIH_PROC_TP_IC_FW_VER	"AllHWList/tp_fw_ver"
-#define FIH_PROC_TP_UPGRADE		"AllHWList/tp_upgrade"
-#define FIH_PROC_TP_FILE_FW_FW	"AllHWList/tp_fwim_ver"
-#define FIH_PROC_TP_DOUBLE_TAP  "AllHWList/tp_double_tap"
-#define FIH_PROC_TP_DOWN_GRADE  "AllHWList/tp_fw_back"
-#define FIH_PROC_TP_VENDOR		"AllHWList/tp_vendor"
-#define FIH_PROC_TP_PROX_STATUS  "AllHWList/tp_prox_status"
-#ifdef CONFIG_FIH_A1N
-#define FIH_PROC_TP_SIDE_TOUCH_STATUS  "AllHWList/tp_side_status"
+#define FIH_PROC_DIR					"AllHWList"
+#define FIH_PROC_TOUCH_PATH				"AllHWList/Touch"
+#define FIH_PROC_TP_SELF_TEST			"AllHWList/tp_self_test"
+#define FIH_PROC_TP_IC_FW_VER			"AllHWList/tp_fw_ver"
+#define FIH_PROC_TP_UPGRADE				"AllHWList/tp_upgrade"
+#define FIH_PROC_TP_FILE_FW_FW			"AllHWList/tp_fwim_ver"
+#define FIH_PROC_TP_VENDOR				"AllHWList/tp_vendor"
+#if 0
+#define FIH_PROC_TP_SMART_COVER			"AllHWList/tp_smart_cover"
+#define FIH_PROC_TP_DOWN_GRADE			"AllHWList/tp_fw_back"
+#define FIH_PROC_TP_GESTURE				"AllHWList/tp_gesture"
+#define FIH_PROC_TP_GESTURE_AVAILABLE	"AllHWList/tp_gesture_available"
 #endif
+#define FIH_PROC_TP_DOUBLE_TAP				"AllHWList/tp_double_tap"	//SW4-HL-Touch-ImplementDoubleTap-00+_20170623
 
-//SW8-JH-ALT test+[
-#define FIH_PROC_TP_ALT_RST         "AllHWList/tp_alt_rst"
-#define FIH_PROC_TP_ALT_ST_COUNT    "AllHWList/tp_alt_st_count"
-#define FIH_PROC_TP_ALT_ST_ENABLE   "AllHWList/tp_alt_st_enable"
-#define FIH_PROC_TP_ALT_ST_DISABLE  "AllHWList/tp_alt_st_disable"
-//SW8-JH-ALT test+]
+//Win add for ALT use
+#define FIH_PROC_TP_ALT_RST				"AllHWList/tp_alt_rst"
+#define FIH_PROC_TP_ALT_ST_COUNT		"AllHWList/tp_alt_st_count"
+#define FIH_PROC_TP_ALT_ST_ENABLE		"AllHWList/tp_alt_st_enable"
+#define FIH_PROC_TP_ALT_ST_DISABLE		"AllHWList/tp_alt_st_disable"
+//Win add for ALT use
 
 extern bool ResultSelfTest;
 extern void touch_selftest(void);
-extern void touch_selftest_U0(void);//SW8-DH-TP_Selftest-01+
 extern void touch_tpfwver_read(char *);
 extern void touch_fwback_write(void);
 extern int touch_fwback_read(void);
 extern void touch_tpfwimver_read(char *fw_ver);
+extern int touch_scover_read(void);
+extern int touch_scover_write(int);
 extern void touch_fwupgrade(int);
 extern void touch_fwupgrade_read(char *);
 extern void touch_vendor_read(char *);
-//SW8-JH-ALT test+[
-extern void touch_alt_rst(int);
-extern int touch_alt_st_count(int);
-extern void touch_alt_st_enable(int);
-//SW8-JH-ALT test+]
-#if 0
-extern int touch_scover_read(void);
-extern int touch_scover_write(int);
 extern void touch_gesture_write(int);
 extern int touch_gesture_read(void);
 extern int touch_gesture_available_read(void);
 extern int touch_gesture_available_write(long);
+//win add for ALT test
+extern void touch_alt_rst(int);
+extern int touch_alt_st_count(int);
+extern void touch_alt_st_enable(int);
+//win add for ALT test
+
+#if 0
+EXPORT_SYMBOL(ResultSelfTest);
+EXPORT_SYMBOL(touch_selftest);
+EXPORT_SYMBOL(touch_tpfwver_read);
+EXPORT_SYMBOL(touch_fwback_write);
+EXPORT_SYMBOL(touch_fwback_read);
+EXPORT_SYMBOL(touch_tpfwimver_read);
+EXPORT_SYMBOL(touch_scover_read);
+EXPORT_SYMBOL(touch_scover_write);
+EXPORT_SYMBOL(touch_fwupgrade);
+EXPORT_SYMBOL(touch_fwupgrade_read);
+EXPORT_SYMBOL(touch_vendor_read);
+EXPORT_SYMBOL(touch_gesture_write);
+EXPORT_SYMBOL(touch_gesture_read);
+EXPORT_SYMBOL(touch_gesture_available_read);
+EXPORT_SYMBOL(touch_gesture_available_write);
 #endif
+
 struct fih_touch_cb touch_cb = {
 	.touch_selftest	= NULL,
-	.touch_selftest_U0	= NULL, //SW8-DH-TP_Selftest-01+
 	.touch_selftest_result = NULL,
 	.touch_tpfwver_read = NULL,
 	.touch_tpfwimver_read = NULL,
 	.touch_fwupgrade = NULL,
 	.touch_fwupgrade_read = NULL,
 	.touch_vendor_read = NULL,
-	.touch_vendor_id_read = NULL,
-	.touch_double_tap_read = NULL,
-	.touch_double_tap_write = NULL,
-	.touch_alt_rst = NULL,
-	.touch_alt_st_count = NULL,
-	.touch_alt_st_enable = NULL,
-	.touch_side_touch_enable = NULL,
-	.touch_side_touch_status = NULL,
-#if 0
+	#if 0
 	.touch_scover_write = NULL,
 	.touch_scover_read = NULL,
 	.touch_gesture_write = NULL,
 	.touch_gesture_read = NULL,
 	.touch_gesture_available_read = NULL,
 	.touch_gesture_available_write = NULL,
-#endif
-	
+	#endif
+	.touch_double_tap_read = NULL,
+	.touch_double_tap_write = NULL,
+	.touch_alt_rst = NULL,
+	.touch_alt_st_count = NULL,
+	.touch_alt_st_enable = NULL
 };
+
 int tp_probe_success = 0;	//SW4-HL-TouchPanel-AccordingToTPDriverProbeResultToDecideWhetherToCreateVirtualFileOrNot-00+_20151130
 
 char fih_touch[32] = "unknown";
 void fih_info_set_touch(char *info)
 {
+	pr_info("F@Touch Touch Firmware Set\n");
 	strcpy(fih_touch, info);
 }
 
-#if 0
 static int fih_touch_read_show(struct seq_file *m, void *v)
 {
 	seq_printf(m, "%s\n", fih_touch);
@@ -110,52 +123,7 @@ static struct file_operations touch_info_file_ops = {
 	.llseek  = seq_lseek,
 	.release = single_release
 };
-#endif
-#ifdef CONFIG_FIH_A1N
-static int fih_touch_side_touch_show(struct seq_file *m, void *v)
-{
-	if (touch_cb.touch_side_touch_status != NULL)
-	{
-		pr_info("F@Touch Side Touch Status\n");
-		seq_printf(m, "%d\n", touch_cb.touch_side_touch_status());
-	}
-	return 0;
-}
 
-static int fih_touch_side_touch_proc_open(struct inode *inode, struct file *file)
-{
-	return single_open(file, fih_touch_side_touch_show, NULL);
-};
-
-static ssize_t fih_touch_side_touch_proc_write(struct file *file, const char __user *buffer,
-	size_t count, loff_t *ppos)
-{
-	unsigned int enabled_side_touch;
-	sscanf(buffer, "%u", &enabled_side_touch) ;
-
-	if((enabled_side_touch != 0) &&  (enabled_side_touch != 1))
-	{
-		pr_err("F@Touch %s, wrong value\n", __func__);
-		return -EINVAL;
-	}
-
-	if (touch_cb.touch_double_tap_write != NULL)
-	{
-		pr_info("F@Touch %s side touch\n", enabled_side_touch ? "Enable" : "Disable");
-		touch_cb.touch_side_touch_enable(enabled_side_touch);
-	}
-	return count;
-
-}
-static struct file_operations touch_side_touch_proc_file_ops = {
-	.owner   = THIS_MODULE,
-	.write   = fih_touch_side_touch_proc_write,
-	.open    = fih_touch_side_touch_proc_open,
-	.read    = seq_read,
-	.llseek  = seq_lseek,
-	.release = single_release
-};
-#endif
 //touch self test  start
 static int fih_touch_self_test_show(struct seq_file *m, void *v)
 {
@@ -190,27 +158,6 @@ static struct file_operations touch_self_test_proc_file_ops = {
 	.llseek  = seq_lseek,
 	.release = single_release
 };
-
-static ssize_t fih_touch_self_test_U0_proc_write(struct file *file, const char __user *buffer,
-	size_t count, loff_t *ppos)
-{
-	if(touch_cb.touch_selftest_U0 != NULL)
-	{
-	pr_info("F@Touch Do Touch Selftest_U0\n");
-		touch_cb.touch_selftest_U0();
-	}
-	return count;
-}
-
-static struct file_operations touch_self_test_U0_proc_file_ops = {
-	.owner   = THIS_MODULE,
-	.write   = fih_touch_self_test_U0_proc_write,
-	.open    = fih_touch_self_test_proc_open,
-	.read    = seq_read,
-	.llseek  = seq_lseek,
-	.release = single_release
-};
-
 //touch self test  end
 
 //touch_fwver start
@@ -377,6 +324,50 @@ static struct file_operations touch_vendor_proc_file_ops = {
 	.release = single_release
 };
 //touch_vendor end
+
+#if 0
+//touch_scover start
+static int fih_touch_scover_read_show(struct seq_file *m, void *v)
+{
+	if (touch_cb.touch_scover_read != NULL)
+	{
+		pr_info("F@Touch Read Touch Scover Result\n");
+		seq_printf(m, "%d\n", touch_cb.touch_scover_read());
+	}
+	return 0;
+}
+
+static int fih_touch_scover_proc_open(struct inode *inode, struct file *file)
+{
+	return single_open(file, fih_touch_scover_read_show, NULL);
+};
+
+static ssize_t fih_touch_scover_proc_write(struct file *file, const char __user *buffer,
+	size_t count, loff_t *ppos)
+{
+	int input;
+	if (sscanf(buffer, "%u", &input) != 1)
+	{
+		 return -EINVAL;
+	}
+	if(touch_cb.touch_scover_write != NULL)
+	{
+		pr_info("F@Touch Write Touch Scover Flag To %d\n",input);
+		touch_cb.touch_scover_write(input);
+	}
+	return count;
+}
+
+static struct file_operations touch_scover_proc_file_ops = {
+	.owner   = THIS_MODULE,
+	.write   = fih_touch_scover_proc_write,
+	.open    = fih_touch_scover_proc_open,
+	.read    = seq_read,
+	.llseek  = seq_lseek,
+	.release = single_release
+};
+//touch_scover end
+
 //touch_fwback start
 static int fih_touch_fwback_read_show(struct seq_file *m, void *v)
 {
@@ -414,7 +405,134 @@ static struct file_operations touch_fwback_proc_file_ops = {
 };
 //touch_fwback end
 
-//SW8-DH-Double_Tap-00+[
+//touch_gesture start
+static int fih_touch_gesture_read_show(struct seq_file *m, void *v)
+{
+	if (touch_cb.touch_gesture_read != NULL)
+	{
+		pr_info("F@Touch Read Touch Gesture Flag\n");
+		seq_printf(m, "%d\n", touch_cb.touch_gesture_read());
+	}
+	return 0;
+}
+
+static int fih_touch_gesture_proc_open(struct inode *inode, struct file *file)
+{
+	return single_open(file, fih_touch_gesture_read_show, NULL);
+};
+
+static ssize_t fih_touch_gesture_proc_write(struct file *file, const char __user *buffer,
+	size_t count, loff_t *ppos)
+{
+	char *buf;
+	unsigned int res, gesture = 0;
+
+	if (touch_cb.touch_gesture_write == NULL)
+		return -EINVAL;
+
+	if (count < 1)
+		return -EINVAL;
+
+	buf = kzalloc(count, GFP_KERNEL);
+	if (!buf)
+		return -ENOMEM;
+
+	if (copy_from_user(buf, buffer, count))
+		return -EFAULT;
+	gesture = simple_strtoul(buf, NULL, 10);
+
+	if((gesture != 0) && (gesture !=1))
+	{
+		pr_err("F@Touch %s, wrong value, gesture = %d, *buf = %x\n", __func__, gesture, *buf);
+		return -EINVAL;
+	}
+	if (touch_cb.touch_gesture_write != NULL)
+	{
+		pr_info("F@Touch Set double tap\n");
+    pr_info("F@Touch Write Touch Gesture(%d)\n", gesture);
+		touch_cb.touch_gesture_write(double_tap);
+	}
+
+	if (res < 0)
+	{
+		kfree(buf);
+		return res;
+	}
+
+	kfree(buf);
+
+	/* claim that we wrote everything */
+	return count;
+}
+
+static struct file_operations touch_gesture_proc_file_ops = {
+	.owner   = THIS_MODULE,
+	.write   = fih_touch_gesture_proc_write,
+	.open    = fih_touch_gesture_proc_open,
+	.read    = seq_read,
+	.llseek  = seq_lseek,
+	.release = single_release
+};
+//touch_gesture end
+
+//touch_gesture available start
+static int fih_touch_gesture_available_read_show(struct seq_file *m, void *v)
+{
+	if (touch_cb.touch_gesture_available_read != NULL)
+	{
+		pr_info("F@Touch Read Touch Gesture Available Status\n");
+		seq_printf(m, "%d\n", touch_cb.touch_gesture_available_read());
+	}
+	return 0;
+}
+
+static int fih_touch_gesture_available_proc_open(struct inode *inode, struct file *file)
+{
+	return single_open(file, fih_touch_gesture_available_read_show, NULL);
+};
+
+static ssize_t fih_touch_gesture_available_proc_write(struct file *file, const char __user *buffer,
+	size_t count, loff_t *ppos)
+{
+	long input =0;
+	char buf[65];
+	int num = 0;
+
+	memset(buf,0,sizeof(buf));
+	if(count > 65)
+		num = 65;
+	else
+		num = count;
+	if(copy_from_user(buf,buffer,num))
+	{
+		pr_info("F@TOUCH copy from user error!");
+		return -EFAULT;
+	}
+	pr_info("F@Touch Write Touch Gesture available buf=%s\n",buf);
+
+	if (kstrtoul(buf, 10, &input))
+		return -EINVAL;
+
+	if(touch_cb.touch_gesture_available_write != NULL)
+	{
+		pr_info("F@Touch Write Touch Gesture available(%ld)\n", input);
+		touch_cb.touch_gesture_available_write(input);
+	}
+	return count;
+}
+
+static struct file_operations touch_gesture_available_proc_file_ops = {
+	.owner   = THIS_MODULE,
+	.write   = fih_touch_gesture_available_proc_write,
+	.open    = fih_touch_gesture_available_proc_open,
+	.read    = seq_read,
+	.llseek  = seq_lseek,
+	.release = single_release
+};
+//touch_gesture available end
+#endif
+
+//SW4-HL-Touch-ImplementDoubleTap-00+{_20170623
 static int fih_touch_double_tap_read_show(struct seq_file *m, void *v)
 {
 	if (touch_cb.touch_double_tap_read != NULL)
@@ -473,65 +591,6 @@ static ssize_t fih_touch_double_tap_proc_write(struct file *file, const char __u
 	return count;
 }
 
-
-static int fih_touch_prox_status_read_show(struct seq_file *m, void *v)
-{
-	if (touch_cb.touch_prox_status_read != NULL)
-	{
-		pr_info("F@Touch Read prox_status\n");
-		seq_printf(m, "%u\n", touch_cb.touch_prox_status_read());
-	}
-	return 0;
-}
-
-static int fih_touch_prox_status_proc_open(struct inode *inode, struct file *file)
-{
-	return single_open(file, fih_touch_prox_status_read_show, NULL);
-};
-
-static ssize_t fih_touch_prox_status_proc_write(struct file *file, const char __user *buffer,
-	size_t count, loff_t *ppos)
-{
-	unsigned int prox_status = 0;
-	char *buf;
-	unsigned int res;
-	if (touch_cb.touch_prox_status_write == NULL)
-		return -EINVAL;
-
-	if (count < 1)
-		return -EINVAL;
-
-	buf = kzalloc(count, GFP_KERNEL);
-	if (!buf)
-		return -ENOMEM;
-
-	if (copy_from_user(buf, buffer, count))
-		return -EFAULT;
-	prox_status = simple_strtoul(buf, NULL, 10);
-	if((prox_status != 0) && (prox_status !=1))
-	{
-		pr_err("F@Touch, prox_status %s, wrong value, prox_status = %d\n", __func__, prox_status);
-		return -EINVAL;
-	}
-	if (touch_cb.touch_prox_status_write != NULL)
-	{
-		pr_info("F@Touch Set prox_status\n");
-		touch_cb.touch_prox_status_write(prox_status);
-	}
-
-	if (res < 0)
-	{
-		kfree(buf);
-		return res;
-	}
-
-	kfree(buf);
-
-	/* claim that we wrote everything */
-	return count;
-}
-
-
 static struct file_operations touch_double_tap_proc_file_ops = {
 	.owner   = THIS_MODULE,
 	.write   = fih_touch_double_tap_proc_write,
@@ -540,29 +599,21 @@ static struct file_operations touch_double_tap_proc_file_ops = {
 	.llseek  = seq_lseek,
 	.release = single_release
 };
-static struct file_operations touch_prox_status_proc_file_ops = {
-	.owner   = THIS_MODULE,
-	.write   = fih_touch_prox_status_proc_write,
-	.open    = fih_touch_prox_status_proc_open,
-	.read    = seq_read,
-	.llseek  = seq_lseek,
-	.release = single_release
-};
+//SW4-HL-Touch-ImplementDoubleTap-00+}_20170623
 
-//SW8-DH-Double_Tap-00+]
-//SW8-JH-ALT test+[
+//win add for ALT test
 static int fih_touch_alt_rst_show(struct seq_file *m, void *v)
 {
-       return 0;
+	return 0;
 }
 
 static int fih_touch_alt_rst_proc_open(struct inode *inode, struct file *file)
 {
-       return single_open(file, fih_touch_alt_rst_show, NULL);
+	return single_open(file, fih_touch_alt_rst_show, NULL);
 };
 
 static ssize_t fih_touch_alt_rst_proc_write(struct file *file, const char __user *buffer,
-       size_t count, loff_t *ppos)
+	size_t count, loff_t *ppos)
 {
 	unsigned int ALT_Reset = 0;
 	char *buf;
@@ -604,52 +655,52 @@ static ssize_t fih_touch_alt_rst_proc_write(struct file *file, const char __user
 }
 
 static struct file_operations touch_alt_rst_file_ops = {
-       .owner   = THIS_MODULE,
-       .open    = fih_touch_alt_rst_proc_open,
-       .write   = fih_touch_alt_rst_proc_write,
-       .read    = seq_read,
-       .llseek  = seq_lseek,
-       .release = single_release
+	.owner   = THIS_MODULE,
+	.open    = fih_touch_alt_rst_proc_open,
+	.write   = fih_touch_alt_rst_proc_write,
+	.read    = seq_read,
+	.llseek  = seq_lseek,
+	.release = single_release
 };
 
 static int fih_touch_alt_st_count_show(struct seq_file *m, void *v)
 {
-       int count=0;
+	int count=0;
 
-       if(touch_cb.touch_alt_st_count != NULL)
-       {
-              pr_info("F@Touch Read ALT ST Test count\n");
-              count = touch_cb.touch_alt_st_count();
-              seq_printf(m, "%d", count);
-       }
-       return 0;
+	if(touch_cb.touch_alt_st_count != NULL)
+	{
+		pr_info("F@Touch Read ALT ST Test count\n");
+		count = touch_cb.touch_alt_st_count();
+		seq_printf(m, "%d", count);
+	}
+	return 0;
 }
 
 static int fih_touch_alt_st_count_proc_open(struct inode *inode, struct file *file)
 {
-       return single_open(file, fih_touch_alt_st_count_show, NULL);
+	return single_open(file, fih_touch_alt_st_count_show, NULL);
 };
 
 static struct file_operations touch_alt_st_count_file_ops = {
-       .owner   = THIS_MODULE,
-       .open    = fih_touch_alt_st_count_proc_open,
-       .read    = seq_read,
-       .llseek  = seq_lseek,
-       .release = single_release
+	.owner   = THIS_MODULE,
+	.open    = fih_touch_alt_st_count_proc_open,
+	.read    = seq_read,
+	.llseek  = seq_lseek,
+	.release = single_release
 };
 
 static int fih_touch_alt_st_enable_show(struct seq_file *m, void *v)
 {
-       return 0;
+	return 0;
 }
 
 static int fih_touch_alt_st_enable_proc_open(struct inode *inode, struct file *file)
 {
-       return single_open(file, fih_touch_alt_st_enable_show, NULL);
+	return single_open(file, fih_touch_alt_st_enable_show, NULL);
 };
 
 static ssize_t fih_touch_alt_st_enable_proc_write(struct file *file, const char __user *buffer,
-       size_t count, loff_t *ppos)
+	size_t count, loff_t *ppos)
 {
 	unsigned int ALT_st_enable = 0;
 	char *buf;
@@ -690,44 +741,36 @@ static ssize_t fih_touch_alt_st_enable_proc_write(struct file *file, const char 
 	return count;
 }
 static struct file_operations touch_alt_st_enable_file_ops = {
-       .owner   = THIS_MODULE,
-       .open    = fih_touch_alt_st_enable_proc_open,
-       .write   = fih_touch_alt_st_enable_proc_write,
-       .read    = seq_read,
-       .llseek  = seq_lseek,
-       .release = single_release
+	.owner   = THIS_MODULE,
+	.open    = fih_touch_alt_st_enable_proc_open,
+	.write   = fih_touch_alt_st_enable_proc_write,
+	.read    = seq_read,
+	.llseek  = seq_lseek,
+	.release = single_release
 };
-//SW8-JH-ALT test+]
+//win add for ALT test
+
 static int __init fih_touch_init(void)
 {
-        int retry_count = 50;
-        while(!tp_probe_success && retry_count-- > 0)    
-        {   
-             if((retry_count % 10) == 9)
-                 pr_err("waitng for touch panel probe ready %d\n",retry_count%10);
-             msleep(100);
-        }; 
 	if(tp_probe_success)	//SW4-HL-TouchPanel-AccordingToTPDriverProbeResultToDecideWhetherToCreateVirtualFileOrNot-00+_20151130
 	{
 		pr_err("panel probe success, create proc file\n");
+
+		if (proc_create(FIH_PROC_TOUCH_PATH, 0, NULL, &touch_info_file_ops) == NULL)
+		{
+			pr_err("fail to create proc/%s\n", FIH_PROC_TOUCH_PATH);
+			return (1);
+		}
+
 		//F@Touch Self Test
 		if (proc_create(FIH_PROC_TP_SELF_TEST, 0, NULL, &touch_self_test_proc_file_ops) == NULL)
-        {
-            proc_mkdir(FIH_PROC_DIR, NULL);
-            if (proc_create(FIH_PROC_TP_SELF_TEST, 0, NULL, &touch_self_test_proc_file_ops) == NULL)
-            {
-			pr_err("fail to create proc/%s\n", FIH_PROC_TP_SELF_TEST);
-			return (1);
-            }
-        }
-		if (proc_create(FIH_PROC_TP_SELF_TEST_U0, 0, NULL, &touch_self_test_U0_proc_file_ops) == NULL)
-        		{
-		            proc_mkdir(FIH_PROC_DIR, NULL);
-		            if (proc_create(FIH_PROC_TP_SELF_TEST_U0, 0, NULL, &touch_self_test_U0_proc_file_ops) == NULL)
-		            {
-			pr_err("fail to create proc/%s\n", FIH_PROC_TP_SELF_TEST_U0);
-			return (1);
-		            }
+		{
+			proc_mkdir(FIH_PROC_DIR, NULL);
+			if (proc_create(FIH_PROC_TP_SELF_TEST, 0, NULL, &touch_self_test_proc_file_ops) == NULL)
+			{
+				pr_err("fail to create proc/%s\n", FIH_PROC_TP_SELF_TEST);
+				return (1);
+			}
 		}
 
 		//F@Touch Read IC's firmware version
@@ -757,46 +800,59 @@ static int __init fih_touch_init(void)
 			pr_err("fail to create proc/%s\n", FIH_PROC_TP_VENDOR);
 			return (1);
 		}
-		if (proc_create(FIH_PROC_TP_DOWN_GRADE, 0, NULL, &touch_fwback_proc_file_ops) == NULL) 
+
+		#if 0
+		//F@Touch Set Smart cover
+		if (proc_create(FIH_PROC_TP_SMART_COVER, 0, NULL, &touch_scover_proc_file_ops) == NULL)
+		{
+			pr_err("fail to create proc/%s\n", FIH_PROC_TP_SMART_COVER);
+			return (1);
+		}
+
+		if (proc_create(FIH_PROC_TP_DOWN_GRADE, 0, NULL, &touch_fwback_proc_file_ops) == NULL)
 		{
 			pr_err("fail to create proc/%s\n", FIH_PROC_TP_DOWN_GRADE);
 			return (1);
 		}
-		if (proc_create(FIH_PROC_TP_DOUBLE_TAP, 0, NULL, &touch_double_tap_proc_file_ops) == NULL) 
+
+		if (proc_create(FIH_PROC_TP_GESTURE, 0, NULL, &touch_gesture_proc_file_ops) == NULL)
+		{
+			pr_err("fail to create proc/%s\n", FIH_PROC_TP_GESTURE);
+			return (1);
+		}
+
+		if (proc_create(FIH_PROC_TP_GESTURE_AVAILABLE, 0, NULL, &touch_gesture_available_proc_file_ops) == NULL)
+		{
+			pr_err("fail to create proc/%s\n", FIH_PROC_TP_GESTURE_AVAILABLE);
+			return (1);
+		}
+		#endif
+		//SW4-HL-Touch-ImplementDoubleTap-00+{_20170623
+		if (proc_create(FIH_PROC_TP_DOUBLE_TAP, 0, NULL, &touch_double_tap_proc_file_ops) == NULL)
 		{
 			pr_err("fail to create proc/%s\n", FIH_PROC_TP_DOUBLE_TAP);
 			return (1);
 		}
-		if (proc_create(FIH_PROC_TP_PROX_STATUS, 0, NULL, &touch_prox_status_proc_file_ops) == NULL) 
-		{
-			pr_err("fail to create proc/%s\n", FIH_PROC_TP_PROX_STATUS);
-			return (1);
-		}
-//SW8-JH-ALT test+[
-		//F@Touch ALT test
+		//SW4-HL-Touch-ImplementDoubleTap-00+}_20170623
+
+		//win add for ALT test
 		if (proc_create(FIH_PROC_TP_ALT_RST, 0, NULL, &touch_alt_rst_file_ops) == NULL)
 		{
-			   pr_err("fail to create proc/%s\n", FIH_PROC_TP_ALT_RST);
-			   return (1);
+			pr_err("fail to create proc/%s\n", FIH_PROC_TP_ALT_RST);
+			return (1);
 		}
 		if (proc_create(FIH_PROC_TP_ALT_ST_COUNT, 0, NULL, &touch_alt_st_count_file_ops) == NULL)
 		{
-			   pr_err("fail to create proc/%s\n", FIH_PROC_TP_ALT_ST_COUNT);
-			   return (1);
+			pr_err("fail to create proc/%s\n", FIH_PROC_TP_ALT_ST_COUNT);
+			return (1);
 		}
 		if (proc_create(FIH_PROC_TP_ALT_ST_ENABLE, 0, NULL, &touch_alt_st_enable_file_ops) == NULL)
 		{
-			   pr_err("fail to create proc/%s\n", FIH_PROC_TP_ALT_ST_ENABLE);
-			   return (1);
-		}
-//SW8-JH-ALT test+]
-#ifdef CONFIG_FIH_A1N
-		if (proc_create(FIH_PROC_TP_SIDE_TOUCH_STATUS, 0, NULL, &touch_side_touch_proc_file_ops) == NULL)
-		{
-			pr_err("fail to create proc/%s\n", FIH_PROC_TP_SIDE_TOUCH_STATUS);
+			pr_err("fail to create proc/%s\n", FIH_PROC_TP_ALT_ST_ENABLE);
 			return (1);
 		}
-#endif
+		//win add for ALT test
+
 	}
 	else
 	{
@@ -810,12 +866,12 @@ static void __exit fih_touch_exit(void)
 {
 	if(tp_probe_success)	//SW4-HL-TouchPanel-AccordingToTPDriverProbeResultToDecideWhetherToCreateVirtualFileOrNot-00+_20151130
 	{
-		remove_proc_entry(FIH_PROC_TP_SELF_TEST, NULL);
-		remove_proc_entry(FIH_PROC_TP_SELF_TEST_U0, NULL);
+		//remove_proc_entry(FIH_PROC_TP_SELF_TEST, NULL);
 		remove_proc_entry(FIH_PROC_TP_IC_FW_VER, NULL);
 		remove_proc_entry(FIH_PROC_TP_FILE_FW_FW, NULL);
 		remove_proc_entry(FIH_PROC_TP_UPGRADE, NULL);
 		remove_proc_entry(FIH_PROC_TP_VENDOR, NULL);
+		remove_proc_entry(FIH_PROC_TP_DOUBLE_TAP, NULL);	//SW4-HL-Touch-ImplementDoubleTap-00+_20170623
 	}
 }
 

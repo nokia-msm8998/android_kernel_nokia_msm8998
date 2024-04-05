@@ -1,338 +1,252 @@
 #include <linux/kernel.h>
 #include <linux/module.h>
 #include <linux/string.h>
+#include <linux/io.h>
+#include <linux/of_device.h>
 #include <linux/proc_fs.h>
-#include <fih/hwid.h>
 #include <linux/seq_file.h>
 
+static char devmodel[8];
+static char baseband[8];
+static char bandinfo[256];
+static char hwmodel[8];
+static char simslot[3];
+static char fqcxmlpath[64];
 
-static int fih_info_proc_open_project_show(struct seq_file *m, void *v)
+static int fih_info_proc_show_devmodel(struct seq_file *m, void *v)
 {
-	char msg[8];
-
-	switch (fih_hwid_fetch(FIH_HWID_PRJ)) {
-		case FIH_PRJ_A1N: strcpy(msg, "A1N"); break;
-		default: strcpy(msg, "N/A"); break;
-	}
-	seq_printf(m, "%s\n", msg);
-
+	seq_printf(m, "%s\n", devmodel);
 	return 0;
 }
 
-static int fih_info_proc_open_hw_rev_show(struct seq_file *m, void *v)
+static int fih_info_proc_open_devmodel(struct inode *inode, struct file *file)
 {
-	char msg[8];
+	return single_open(file, fih_info_proc_show_devmodel, NULL);
+}
 
-	switch (fih_hwid_fetch(FIH_HWID_REV)) {
-		case FIH_REV_EVB:  strcpy(msg, "EVB"); break;
-		case FIH_REV_EVB1:  strcpy(msg, "EVB1"); break;
-		case FIH_REV_EVB2:  strcpy(msg, "EVB2"); break;
-		case FIH_REV_EVT:  strcpy(msg, "1.0"); break;
-		case FIH_REV_EVT0_5: strcpy(msg, "1.0.5"); break;
-		case FIH_REV_EVT1:  strcpy(msg, "1.1"); break;
-		case FIH_REV_EVT1_1:  strcpy(msg, "1.1.1"); break;
-		case FIH_REV_EVT1_2:  strcpy(msg, "1.1.2"); break;
-		case FIH_REV_EVT1_5:  strcpy(msg, "1.1.5"); break;
-		case FIH_REV_DVT:  strcpy(msg, "2.0"); break;
-		case FIH_REV_DVT1:  strcpy(msg, "2.1"); break;
-		case FIH_REV_DVT1_5:  strcpy(msg, "2.1.5"); break;
-		case FIH_REV_DVT2: strcpy(msg, "2.2"); break;
-		case FIH_REV_DVT2_5: strcpy(msg, "2.2.5"); break;
-		case FIH_REV_DVT3: strcpy(msg, "2.3"); break;
-		case FIH_REV_PVT:  strcpy(msg, "3.0"); break;
-		case FIH_REV_PVT1:  strcpy(msg, "3.1"); break;
-		case FIH_REV_PVT2: strcpy(msg, "3.2"); break;
-		case FIH_REV_MP:   strcpy(msg, "5.0"); break;
-		case FIH_REV_MP1:   strcpy(msg, "5.1"); break;
-		case FIH_REV_MP2:  strcpy(msg, "5.2"); break;
-		default: strcpy(msg, "N/A"); break;
-	}
-	seq_printf(m, "%s\n", msg);
+static const struct file_operations fih_info_fops_devmodel = {
+	.open    = fih_info_proc_open_devmodel,
+	.read    = seq_read,
+	.llseek  = seq_lseek,
+	.release = single_release,
+};
 
+static int fih_info_proc_show_baseband(struct seq_file *m, void *v)
+{
+	seq_printf(m, "%s\n", baseband);
 	return 0;
 }
 
-static int fih_info_proc_open_rf_band_show(struct seq_file *m, void *v)
+static int fih_info_proc_open_baseband(struct inode *inode, struct file *file)
 {
-	char msg[128];
+	return single_open(file, fih_info_proc_show_baseband, NULL);
+}
 
-	switch (fih_hwid_fetch(FIH_HWID_RF)) {
-		case FIH_BAND_G_850_900_1800_1900_W_1_2_5_8_L_1_2_3_4_5_7_8_20_28_38_40_41:
-			strcpy(msg, "G_850_900_1800_1900^W_1_2_5_8^L_1_2_3_4_5_7_8_20_28_38_40_41"); break;
-		case FIH_BAND_G_850_900_1800_1900_W_1_2_5_8_L_1_2_3_4_5_7_8_20_28_38_40_41_SS:
-			strcpy(msg, "G_850_900_1800_1900^W_1_2_5_8^L_1_2_3_4_5_7_8_20_28_38_40_41"); break;
-		case FIH_BAND_G_850_900_1800_1900_W_1_2_5_8_C_0_T_34_39_L_1_2_3_4_5_7_8_28_38_39_40_41:
-			strcpy(msg, "G_850_900_1800_1900^W_1_2_5_8^C_0^T_34_39^L_1_2_3_4_5_7_8_28_38_39_40_41"); break;
-		case FIH_BAND_G_850_900_1800_1900_W_1_2_5_8_T_34_39_L_1_2_3_4_5_7_8_20_28_38_39_40_41:
-			strcpy(msg, "G_850_900_1800_1900^W_1_2_5_8^T_34_39^L_1_2_3_4_5_7_8_20_28_38_39_40_41"); break;
-		case FIH_BAND_G_850_900_1800_1900_W_1_2_4_5_8_L_1_2_3_4_5_7_8_20_28_38_40_41:
-			strcpy(msg, "G_850_900_1800_1900^W_1_2_4_5_8^L_1_2_3_4_5_7_8_20_28_38_40_41"); break;
-		case FIH_BAND_G_850_900_1800_1900_W_1_2_4_5_8_L_1_2_3_4_5_7_8_20_28_38_40_41_SS:
-			strcpy(msg, "G_850_900_1800_1900^W_1_2_4_5_8^L_1_2_3_4_5_7_8_20_28_38_40_41"); break;
-		case FIH_BAND_G_850_900_1800_1900_W_1_2_5_8_C_0_T_34_39_L_1_2_3_4_5_7_8_12_13_17_20_28_38_39_40_41_66:
-			strcpy(msg, "G_850_900_1800_1900^W_1_2_5_8^C_0^T_34_39^L_1_2_3_4_5_7_8_12_13_17_20_28_38_39_40_41_66"); break;
-		case FIH_BAND_G_850_900_1800_1900_W_1_2_5_8_C_0_T_34_39_L_1_2_3_4_5_7_8_12_13_17_20_28_38_39_40_41_66_SS:
-			strcpy(msg, "G_850_900_1800_1900^W_1_2_5_8^C_0^T_34_39^L_1_2_3_4_5_7_8_12_13_17_20_28_38_39_40_41_66"); break;
-		case FIH_BAND_G_850_900_1800_1900_W_1_2_5_8_L_1_2_3_4_5_7_8_12_13_17_20_28_38_40_41_SS:
-			strcpy(msg, "G_850_900_1800_1900^W_1_2_5_8^L_1_2_3_4_5_7_8_12_13_17_20_28_38_40_41"); break;
-		case FIH_BAND_G_850_900_1800_1900_W_1_2_5_8_C_0_T_34_39_L_1_2_3_4_5_7_8_20_28_34_38_39_40_41_SS:
-			strcpy(msg, "G_850_900_1800_1900^W_1_2_5_8^C_0^T_34_39^L_1_2_3_4_5_7_8_20_28_34_38_39_40_41"); break;
-		case FIH_BAND_G_850_900_1800_1900_W_1_2_5_8_L_1_2_3_4_5_7_8_12_13_17_20_28_38_40_41_66_SS:
-			strcpy(msg, "G_850_900_1800_1900^W_1_2_5_8^L_1_2_3_4_5_7_8_12_13_17_20_28_38_40_41_66"); break;
-		case FIH_BAND_G_850_900_1800_1900_W_1_2_4_5_8_L_1_2_3_4_5_7_8_12_13_17_20_28_38_40_41_SS:
-			strcpy(msg, "G_850_900_1800_1900^W_1_2_4_5_8^L_1_2_3_4_5_7_8_12_13_17_20_28_38_40_41"); break;
-		case FIH_BAND_G_850_900_1800_1900_W_1_2_5_8_T_34_39_L_1_3_5_7_8_28_34_38_39_40_41: /* F11 */
-			strcpy(msg, "G_850_900_1800_1900^W_1_2_5_8^T_34_39^L_1_3_5_7_8_28_34_38_39_40_41"); break;
-		/* NO BAND */
-		case FIH_RF_NONE: strcpy(msg, "NONE"); break;
-		default: strcpy(msg, "UNKNOWN\n"); break;
-	}
-	seq_printf(m, "%s\n", msg);
+static const struct file_operations fih_info_fops_baseband = {
+	.open    = fih_info_proc_open_baseband,
+	.read    = seq_read,
+	.llseek  = seq_lseek,
+	.release = single_release,
+};
 
+static int fih_info_proc_show_bandinfo(struct seq_file *m, void *v)
+{
+	seq_printf(m, "%s\n", bandinfo);
 	return 0;
 }
 
-static int fih_info_proc_open_hwmodel_show(struct seq_file *m, void *v)
+static int fih_info_proc_open_bandinfo(struct inode *inode, struct file *file)
 {
-	char msg[8];
+	return single_open(file, fih_info_proc_show_bandinfo, NULL);
+}
 
-	switch (fih_hwid_fetch(FIH_HWID_PRJ)) {
-		case FIH_PRJ_A1N:
-			if (fih_hwid_fetch(FIH_HWID_RF) == FIH_BAND_G_850_900_1800_1900_W_1_2_5_8_C_0_T_34_39_L_1_2_3_4_5_7_8_20_28_34_38_39_40_41_SS)
-				strcpy(msg, "A1C");
-			else
-				strcpy(msg, "A1N");
-			break;
-		default: strcpy(msg, "N/A"); break;
-	}
+static const struct file_operations fih_info_fops_bandinfo = {
+	.open    = fih_info_proc_open_bandinfo,
+	.read    = seq_read,
+	.llseek  = seq_lseek,
+	.release = single_release,
+};
 
-	/* special case for same skuid to different customer */
-	//strcat(msg, "_XX");
-
-	seq_printf(m, "%s\n", msg);
-
+static int fih_info_proc_show_hwmodel(struct seq_file *m, void *v)
+{
+	seq_printf(m, "%s\n", hwmodel);
 	return 0;
-}
-
-static int fih_info_proc_open_hwcfg_show(struct seq_file *m, void *v)
-{
-	struct st_hwid_table tb;
-
-	fih_hwid_read(&tb);
-	/*
-		mpp: r1, r2, r3
-		info: prj, rev, rf
-		device tree: dtm, dtn
-		driver: btn, uart
-	*/
-	seq_printf(m, "r1=%d\nr2=%d\nr3=%d\nprj=%d\nrev=%d\nrf=%d\ndtm=%d\ndtn=%d\nbtn=%d\nuart=%d\n\n",
-		tb.r1, tb.r2, tb.r3, tb.prj, tb.rev, tb.rf, tb.dtm, tb.dtn, tb.btn, tb.uart);
-
-	return 0;
-}
-
-static int fih_info_proc_open_simslot_show(struct seq_file *m, void *v)
-{
-	int slot = 0;
-
-	switch (fih_hwid_fetch(FIH_HWID_RF)) {
-		case FIH_BAND_G_850_900_1800_1900_W_1_2_5_8_L_1_2_3_4_5_7_8_20_28_38_40_41: slot = 2; break;
-		case FIH_BAND_G_850_900_1800_1900_W_1_2_5_8_L_1_2_3_4_5_7_8_20_28_38_40_41_SS: slot = 1; break;
-		case FIH_BAND_G_850_900_1800_1900_W_1_2_5_8_C_0_T_34_39_L_1_2_3_4_5_7_8_28_38_39_40_41: slot = 2; break;
-		case FIH_BAND_G_850_900_1800_1900_W_1_2_5_8_T_34_39_L_1_2_3_4_5_7_8_20_28_38_39_40_41: slot = 2; break;
-		case FIH_BAND_G_850_900_1800_1900_W_1_2_4_5_8_L_1_2_3_4_5_7_8_20_28_38_40_41: slot = 2; break;
-		case FIH_BAND_G_850_900_1800_1900_W_1_2_4_5_8_L_1_2_3_4_5_7_8_20_28_38_40_41_SS: slot = 1; break;
-		case FIH_BAND_G_850_900_1800_1900_W_1_2_5_8_C_0_T_34_39_L_1_2_3_4_5_7_8_12_13_17_20_28_38_39_40_41_66_SS: slot = 1; break;
-		case FIH_BAND_G_850_900_1800_1900_W_1_2_5_8_C_0_T_34_39_L_1_2_3_4_5_7_8_12_13_17_20_28_38_39_40_41_66: slot = 2; break;
-		case FIH_BAND_G_850_900_1800_1900_W_1_2_5_8_L_1_2_3_4_5_7_8_12_13_17_20_28_38_40_41_SS: slot = 1; break;
-		case FIH_BAND_G_850_900_1800_1900_W_1_2_5_8_C_0_T_34_39_L_1_2_3_4_5_7_8_20_28_34_38_39_40_41_SS: slot = 1; break;
-		case FIH_BAND_G_850_900_1800_1900_W_1_2_5_8_L_1_2_3_4_5_7_8_12_13_17_20_28_38_40_41_66_SS: slot = 1; break;
-		case FIH_BAND_G_850_900_1800_1900_W_1_2_4_5_8_L_1_2_3_4_5_7_8_12_13_17_20_28_38_40_41_SS: slot = 1; break;
-		case FIH_BAND_G_850_900_1800_1900_W_1_2_5_8_T_34_39_L_1_3_5_7_8_28_34_38_39_40_41: slot = 2; break; /* F11 */
-		default: slot = 0; break;
-	}
-	seq_printf(m, "%d\n", slot);
-
-	return 0;
-}
-
-static int fih_info_proc_open_module_show(struct seq_file *m, void *v)
-{
-	char msg[8];
-
-	switch (fih_hwid_fetch(FIH_HWID_PRJ)) {
-		case FIH_PRJ_PM1: strcpy(msg, "PM1"); break;
-		case FIH_PRJ_NB1: strcpy(msg, "NB1"); break;
-		case FIH_PRJ_A1N: strcpy(msg, "A1N"); break;
-		default: strcpy(msg, "N/A"); break;
-	}
-
-	seq_printf(m, "%s\n", msg);
-
-	return 0;
-}
-
-static int fih_info_proc_read_fqc_xml_show(struct seq_file *m, void *v)
-{
-	if(fih_hwid_fetch(FIH_HWID_PRJ)==FIH_PRJ_NB1) {
-		if(fih_hwid_fetch(FIH_HWID_RF)==FIH_BAND_G_850_900_1800_1900_W_1_2_5_8_L_1_2_3_4_5_7_8_20_28_38_40_41_SS ||
-		   fih_hwid_fetch(FIH_HWID_RF)==FIH_BAND_G_850_900_1800_1900_W_1_2_4_5_8_L_1_2_3_4_5_7_8_20_28_38_40_41_SS) {
-			seq_printf(m, "system/etc/fqc_NB1_1.xml\n");
-		}else {
-			seq_printf(m, "system/etc/fqc_NB1_2.xml\n");
-		}
-	}
-	else if(fih_hwid_fetch(FIH_HWID_PRJ)==FIH_PRJ_A1N) {
-		seq_printf(m, "system/etc/fqc_A1N.xml\n");
-	}
-	else {
-		seq_printf(m, "system/etc/fqc.xml\n");
-	}
-	return 0;
-}
-
-static int fih_info_proc_open_project(struct inode *inode, struct file *file)
-{
-	return single_open(file, fih_info_proc_open_project_show, NULL);
-}
-
-static int fih_info_proc_open_hw_rev(struct inode *inode, struct file *file)
-{
-	return single_open(file, fih_info_proc_open_hw_rev_show, NULL);
-}
-
-static int fih_info_proc_open_rf_band(struct inode *inode, struct file *file)
-{
-	return single_open(file, fih_info_proc_open_rf_band_show, NULL);
 }
 
 static int fih_info_proc_open_hwmodel(struct inode *inode, struct file *file)
 {
-	return single_open(file, fih_info_proc_open_hwmodel_show, NULL);
+	return single_open(file, fih_info_proc_show_hwmodel, NULL);
 }
 
-static int fih_info_proc_open_hwcfg(struct inode *inode, struct file *file)
+static const struct file_operations fih_info_fops_hwmodel = {
+	.open    = fih_info_proc_open_hwmodel,
+	.read    = seq_read,
+	.llseek  = seq_lseek,
+	.release = single_release,
+};
+
+static int fih_info_proc_show_simslot(struct seq_file *m, void *v)
 {
-	return single_open(file, fih_info_proc_open_hwcfg_show, NULL);
+	seq_printf(m, "%s\n", simslot);
+	return 0;
 }
 
 static int fih_info_proc_open_simslot(struct inode *inode, struct file *file)
 {
-	return single_open(file, fih_info_proc_open_simslot_show, NULL);
+	return single_open(file, fih_info_proc_show_simslot, NULL);
 }
 
-static int fih_info_proc_open_module(struct inode *inode, struct file *file)
-{
-	return single_open(file, fih_info_proc_open_module_show, NULL);
-}
-
-static int fqc_xml_proc_open(struct inode *inode, struct file *file)
-{
-	return single_open(file, fih_info_proc_read_fqc_xml_show, NULL);
-};
-
-/* This structure gather "function" that manage the /proc file
- */
-static const struct file_operations project_file_ops = {
-	.owner   = THIS_MODULE,
-	.open	 = fih_info_proc_open_project,
-	.read    = seq_read
-};
-
-static const struct file_operations hw_rev_file_ops = {
-	.owner   = THIS_MODULE,
-	.open    = fih_info_proc_open_hw_rev,
-	.read    = seq_read
-};
-
-static const struct file_operations rf_band_file_ops = {
-	.owner   = THIS_MODULE,
-	.open    = fih_info_proc_open_rf_band,
-	.read    = seq_read
-};
-
-static const struct file_operations hwmodel_file_ops = {
-	.owner   = THIS_MODULE,
-	.open    = fih_info_proc_open_hwmodel,
-	.read    = seq_read
-};
-
-static const struct file_operations hwcfg_file_ops = {
-	.owner   = THIS_MODULE,
-	.open    = fih_info_proc_open_hwcfg,
-	.read    = seq_read
-};
-
-static const struct file_operations simslot_file_ops = {
-	.owner   = THIS_MODULE,
+static const struct file_operations fih_info_fops_simslot = {
 	.open    = fih_info_proc_open_simslot,
-	.read    = seq_read
-};
-
-static const struct file_operations module_file_ops = {
-	.owner   = THIS_MODULE,
-	.open    = fih_info_proc_open_module,
-	.read    = seq_read
-};
-
-static struct file_operations fqc_xml_file_ops = {
-	.owner   = THIS_MODULE,
-	.open    = fqc_xml_proc_open,
 	.read    = seq_read,
 	.llseek  = seq_lseek,
-	.release = single_release
+	.release = single_release,
+};
+
+static int fih_info_proc_show_fqcxmlpath(struct seq_file *m, void *v)
+{
+	seq_printf(m, "/system/etc/%s\n", fqcxmlpath);
+	return 0;
+}
+
+static int fih_info_proc_open_fqcxmlpath(struct inode *inode, struct file *file)
+{
+	return single_open(file, fih_info_proc_show_fqcxmlpath, NULL);
+}
+
+static const struct file_operations fih_info_fops_fqcxmlpath = {
+	.open    = fih_info_proc_open_fqcxmlpath,
+	.read    = seq_read,
+	.llseek  = seq_lseek,
+	.release = single_release,
+};
+
+static int fih_info_property(struct platform_device *pdev)
+{
+	int rc = 0;
+	static const char *p_chr;
+
+	p_chr = of_get_property(pdev->dev.of_node, "fih-info,devmodel", NULL);
+	if (!p_chr) {
+		pr_info("%s:%d, devmodel not specified\n", __func__, __LINE__);
+	} else {
+		strlcpy(devmodel, p_chr, sizeof(devmodel));
+		pr_info("%s: devmodel = %s\n", __func__, devmodel);
+	}
+
+	p_chr = of_get_property(pdev->dev.of_node, "fih-info,baseband", NULL);
+	if (!p_chr) {
+		pr_info("%s:%d, baseband not specified\n", __func__, __LINE__);
+	} else {
+		strlcpy(baseband, p_chr, sizeof(baseband));
+		pr_info("%s: baseband = %s\n", __func__, baseband);
+	}
+
+	p_chr = of_get_property(pdev->dev.of_node, "fih-info,bandinfo", NULL);
+	if (!p_chr) {
+		pr_info("%s:%d, bandinfo not specified\n", __func__, __LINE__);
+	} else {
+		strlcpy(bandinfo, p_chr, sizeof(bandinfo));
+		pr_info("%s: bandinfo = %s\n", __func__, bandinfo);
+	}
+
+	p_chr = of_get_property(pdev->dev.of_node, "fih-info,hwmodel", NULL);
+	if (!p_chr) {
+		pr_info("%s:%d, hwmodel not specified\n", __func__, __LINE__);
+	} else {
+		strlcpy(hwmodel, p_chr, sizeof(hwmodel));
+		pr_info("%s: hwmodel = %s\n", __func__, hwmodel);
+	}
+
+	p_chr = of_get_property(pdev->dev.of_node, "fih-info,simslot", NULL);
+	if (!p_chr) {
+		pr_info("%s:%d, simslot not specified\n", __func__, __LINE__);
+	} else {
+		strlcpy(simslot, p_chr, sizeof(simslot));
+		pr_info("%s: simslot = %s\n", __func__, simslot);
+	}
+
+	p_chr = of_get_property(pdev->dev.of_node, "fih-info,fqcxmlpath", NULL);
+	if (!p_chr) {
+		pr_info("%s:%d, fqcxmlpath not specified\n", __func__, __LINE__);
+	} else {
+		strlcpy(fqcxmlpath, p_chr, sizeof(fqcxmlpath));
+		pr_info("%s: fqcxmlpath = %s\n", __func__, fqcxmlpath);
+	}
+
+	return rc;
+}
+
+static int fih_info_probe(struct platform_device *pdev)
+{
+	int rc = 0;
+
+	if (!pdev || !pdev->dev.of_node) {
+		pr_err("%s: Unable to load device node\n", __func__);
+		return -ENOTSUPP;
+	}
+
+	rc = fih_info_property(pdev);
+	if (rc) {
+		pr_err("%s Unable to set property\n", __func__);
+		return rc;
+	}
+
+	proc_create("devmodel", 0, NULL, &fih_info_fops_devmodel);
+	proc_create("baseband", 0, NULL, &fih_info_fops_baseband);
+	proc_create("bandinfo", 0, NULL, &fih_info_fops_bandinfo);
+	proc_create("hwmodel",  0, NULL, &fih_info_fops_hwmodel);
+	proc_create("SIMSlot",  0, NULL, &fih_info_fops_simslot);
+	proc_create("fqc_xml",  0, NULL, &fih_info_fops_fqcxmlpath);
+
+	return rc;
+}
+
+static int fih_info_remove(struct platform_device *pdev)
+{
+	remove_proc_entry ("bandinfo", NULL);
+	remove_proc_entry ("baseband", NULL);
+	remove_proc_entry ("devmodel", NULL);
+	remove_proc_entry ("hwmodel",  NULL);
+	remove_proc_entry ("SIMSlot",  NULL);
+	remove_proc_entry ("fqc_xml",  NULL);
+
+	return 0;
+}
+
+static const struct of_device_id fih_info_dt_match[] = {
+	{.compatible = "fih_info"},
+	{}
+};
+MODULE_DEVICE_TABLE(of, fih_info_dt_match);
+
+static struct platform_driver fih_info_driver = {
+	.probe = fih_info_probe,
+	.remove = fih_info_remove,
+	.shutdown = NULL,
+	.driver = {
+		.name = "fih_info",
+		.of_match_table = fih_info_dt_match,
+	},
 };
 
 static int __init fih_info_init(void)
 {
+	int ret;
 
-	if (proc_create("devmodel", 0, NULL, &project_file_ops) == NULL) {
-		pr_err("fail to create proc/devmodel\n");
+	ret = platform_driver_register(&fih_info_driver);
+	if (ret) {
+		pr_err("%s: failed!\n", __func__);
+		return ret;
 	}
 
-	if (proc_create("baseband", 0, NULL, &hw_rev_file_ops) == NULL) {
-		pr_err("fail to create proc/baseband\n");
-	}
-
-	if (proc_create("bandinfo", 0, NULL, &rf_band_file_ops) == NULL) {
-		pr_err("fail to create proc/bandinfo\n");
-	}
-
-	if (proc_create("hwmodel", 0, NULL, &hwmodel_file_ops) == NULL) {
-		pr_err("fail to create proc/hwmodel\n");
-	}
-
-	if (proc_create("hwcfg", 0, NULL, &hwcfg_file_ops) == NULL) {
-		pr_err("fail to create proc/hwcfg\n");
-	}
-
-	if (proc_create("SIMSlot", 0, NULL, &simslot_file_ops) == NULL) {
-		pr_err("fail to create proc/SIMSlot\n");
-	}
-
-	if (proc_create("MODULE", 0, NULL, &module_file_ops) == NULL) {
-		pr_err("fail to create proc/MODULE\n");
-	}
-
-	if (proc_create("fqc_xml", 0, NULL, &fqc_xml_file_ops) == NULL) {
-		pr_err("fail to create proc/fqc_xml\n");
-	}
-
-	return (0);
+	return ret;
 }
+module_init(fih_info_init);
 
 static void __exit fih_info_exit(void)
 {
-
-	remove_proc_entry("devmodel", NULL);
-	remove_proc_entry("baseband", NULL);
-	remove_proc_entry("bandinfo", NULL);
-	remove_proc_entry("hwmodel", NULL);
-	remove_proc_entry("hwcfg", NULL);
-	remove_proc_entry("SIMSlot", NULL);
-	remove_proc_entry("MODULE", NULL);
-	remove_proc_entry("fqc_xml", NULL);
+	platform_driver_unregister(&fih_info_driver);
 }
-
-module_init(fih_info_init);
 module_exit(fih_info_exit);
+

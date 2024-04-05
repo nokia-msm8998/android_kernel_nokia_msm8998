@@ -7,39 +7,23 @@
 #include <linux/seq_file.h>
 #include <linux/file.h>
 #include <linux/uaccess.h>
-#include <linux/rtc.h>
-
-#include <fih/fih_pon.h>
-#include <fih/fih_poff.h>
-#include <fih/fih_rere.h>
+	
+#include "fih_pon.h"
+#include "fih_poff.h"
+#include "fih_rere.h"
 
 static char pon[16];
 static char poff[16];
 static char rere[16];
-static char ramp[16];
-static void dump_poweron_cause(unsigned long data);
-static DEFINE_TIMER(dump_poweron_cause_timer, dump_poweron_cause, 0, 0);
-
-static void fih_apr_marker(char *annotation)
-{
-	struct timespec ts;
-	struct rtc_time tm;
-
-	getnstimeofday(&ts);
-	rtc_time_to_tm(ts.tv_sec, &tm);
-	pr_info("APR: %s %d-%02d-%02d %02d:%02d:%02d.%09lu UTC\n",
-		annotation, tm.tm_year + 1900, tm.tm_mon + 1, tm.tm_mday,
-		tm.tm_hour, tm.tm_min, tm.tm_sec, ts.tv_nsec);
-}
-
+	
 ssize_t fih_apr_proc_write_pon(struct file *file, const char __user *buffer,
 	size_t count, loff_t *ppos)
 {
 	unsigned char tmp[16];
 	unsigned int size;
-
+	
 	size = (count > sizeof(tmp))? sizeof(tmp):count;
-
+	
 	if (copy_from_user(tmp, buffer, size)) {
 		pr_err("%s: copy_from_user fail\n", __func__);
 		return -EFAULT;
@@ -51,7 +35,7 @@ ssize_t fih_apr_proc_write_pon(struct file *file, const char __user *buffer,
 	
 	return size;
 }
-
+	
 static int fih_apr_proc_read_pon(struct seq_file *m, void *v)
 {
 	seq_printf(m, "%s\n", pon);
@@ -135,76 +119,44 @@ static int fih_apr_property(struct platform_device *pdev)
 		strlcpy(rere, p_chr, sizeof(rere));
 		pr_info("%s: rebootreason = %s\n", __func__, rere);
 	}
-
-	p_chr = of_get_property(pdev->dev.of_node, "fih-apr,ramdumpstatus", NULL);
-	if (!p_chr) {
-		pr_info("%s:%d, ramdumpstatus not specified\n", __func__, __LINE__);
-	} else {
-		strlcpy(ramp, p_chr, sizeof(ramp));
-		pr_info("%s: ramdumpstatus = %s\n", __func__, ramp);
-	}
-	
 	
 	return rc;
 }
-
-extern void qpnp_pon_dump_reason(void);
-
-static void dump_poweron_cause(unsigned long data)
-{
-	unsigned long pn = simple_strtoul(pon,  NULL, 0);
-	unsigned long pf = simple_strtoul(poff, NULL, 0);
-	unsigned long re = simple_strtoul(rere, NULL, 0);
-	unsigned long rp = simple_strtoul(ramp, NULL, 0);
-
-	fih_apr_marker("Delay");
-
-	pr_info("%s: pon_=0x%08lx\n", __func__, pn);
-	pr_info("%s: poff=0x%08lx\n", __func__, pf);
-	pr_info("%s: rere=0x%08lx\n", __func__, re);
-	pr_info("%s: ramp=0x%08lx\n", __func__, rp);
-
-	qpnp_pon_dump_reason();
-
-	del_timer(&dump_poweron_cause_timer);
-}
-
+	
 static void fih_apr_bbslog(void)
 {
 	unsigned long pn = simple_strtoul(pon,  NULL, 0);
 	unsigned long pf = simple_strtoul(poff, NULL, 0);
 	unsigned long re = simple_strtoul(rere, NULL, 0);
-	unsigned long rp = simple_strtoul(ramp, NULL, 0);
 
 	pr_info("%s: pon_=0x%08lx\n", __func__, pn);
 	pr_info("%s: poff=0x%08lx\n", __func__, pf);
 	pr_info("%s: rere=0x%08lx\n", __func__, re);
-	pr_info("%s: ramp=0x%08lx\n", __func__, rp);
 
 	if (pf & FIH_POFF_UVLO)
-		printk("BBox::UEC;40::16\n");
+		printk("BBox::UEC;40::16;UNDER_VOLAGE\n");
 	if (pf & FIH_POFF_OVLO)
-		printk("BBox::UEC;40::17\n");
+		printk("BBox::UEC;40::17;OVER_VOLAGE\n");
 	if ((pf & FIH_POFF_OTST3)||(re == FIH_RERE_OVER_TAMPERATURE))
-		printk("BBox::UEC;40::18\n");
+		printk("BBox::UEC;40::18;OVER_TEMPERATURE\n");
 	if (!(pn & FIH_PON_FIH_APR_MASK))
-		printk("BBox::UEC;40::19\n");
+		printk("BBox::UEC;40::19;SHDN_USER\n");
 	if (pn & FIH_PON_APR_SYSTEM_CRASH)
-		printk("BBox::UEC;40::20\n");
+		printk("BBox::UEC;40::20;SYSTEM_CRASH\n");
 	if ((pn & FIH_PON_PMIC_C_KPDPWR)&&(pf & FIH_POFF_S3_RESET))
-		printk("BBox::UEC;40::21\n");
+		printk("BBox::UEC;40::21;HARD_RESET\n");
 	if (pn & FIH_PON_PMIC_C_SMPL)
-		printk("BBox::UEC;40::22\n");
+		printk("BBox::UEC;40::22;SMPL\n");
 	if (pf & FIH_POFF_UVLO)
-		printk("BBox::UEC;40::23\n");
+		printk("BBox::UEC;40::23;UVLO\n");
 	if (pn & FIH_PON_PMIC_W_GP2)
-		printk("BBox::UEC;40::24\n");
+		printk("BBox::UEC;40::24;GP2\n");
 	if (pn & FIH_PON_APR_KERNEL_PANIC)
-		printk("BBox::UEC;40::25\n");
+		printk("BBox::UEC;40::25;KERNEL_PANIC\n");
 	if (pn & FIH_PON_APR_UNKNOWN_RESET)
-		printk("BBox::UEC;40::26\n");
+		printk("BBox::UEC;40::26;UNKNOWN_RESET\n");
 	if (pn & FIH_PON_APR_MODEM_FATAL)
-		printk("BBox::UEC;40::27\n");
+		printk("BBox::UEC;40::27;MODEM_FATAL\n");
 }
 
 static int fih_apr_probe(struct platform_device *pdev)
@@ -221,26 +173,22 @@ static int fih_apr_probe(struct platform_device *pdev)
 		pr_err("%s Unable to set property\n", __func__);
 		return rc;
 	}
-
-	fih_apr_marker("Startup");
-
+	
 	fih_apr_bbslog();
 
 	proc_create("poweroncause", 0, NULL, &fih_apr_fops_pon);
 	proc_create("poweroffcause", 0, NULL, &fih_apr_fops_poff);
 	proc_create("rebootreason", 0, NULL, &fih_apr_fops_rere);
-
-        mod_timer(&dump_poweron_cause_timer, jiffies + 30*HZ);
-
+	
 	return rc;
 }
-
+	
 static int fih_apr_remove(struct platform_device *pdev)
 {
 	remove_proc_entry ("poweroncause", NULL);
 	remove_proc_entry ("poweroffcause", NULL);
 	remove_proc_entry ("rebootreason", NULL);
-
+	
 	return 0;
 }
 	
