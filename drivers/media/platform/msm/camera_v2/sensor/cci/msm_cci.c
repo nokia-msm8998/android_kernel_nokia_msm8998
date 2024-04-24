@@ -1706,6 +1706,9 @@ static int32_t msm_cci_config(struct v4l2_subdev *sd,
 	struct msm_camera_cci_ctrl *cci_ctrl)
 {
 	int32_t rc = 0;
+	struct cci_device *cci_dev = v4l2_get_subdevdata(sd);
+
+	mutex_lock(&cci_dev->mutex);
 	CDBG("%s line %d cmd %d\n", __func__, __LINE__,
 		cci_ctrl->cmd);
 	switch (cci_ctrl->cmd) {
@@ -1739,6 +1742,7 @@ static int32_t msm_cci_config(struct v4l2_subdev *sd,
 	}
 	CDBG("%s line %d rc %d\n", __func__, __LINE__, rc);
 	cci_ctrl->status = rc;
+	mutex_unlock(&cci_dev->mutex);
 	return rc;
 }
 
@@ -2131,6 +2135,7 @@ static int msm_cci_probe(struct platform_device *pdev)
 		pr_err("%s: no enough memory\n", __func__);
 		return -ENOMEM;
 	}
+	mutex_init(&new_cci_dev->mutex);
 	v4l2_subdev_init(&new_cci_dev->msm_sd.sd, &msm_cci_subdev_ops);
 	new_cci_dev->msm_sd.sd.internal_ops = &msm_cci_internal_ops;
 	snprintf(new_cci_dev->msm_sd.sd.name,
