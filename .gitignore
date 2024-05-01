@@ -125,4 +125,5 @@ android/configs/android-*.cfg
 #
 Android.bp
 
+error.log
 out/
