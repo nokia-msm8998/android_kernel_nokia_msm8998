@@ -1,0 +1,24 @@
+menu "Nokia M690 M490 Fingerprints"
+
+config SILEAD_FP
+	tristate "silead fingerprint drivers"
+	default n
+	help
+	  Say Y here if you want to use silead fingerprint soc drivers.
+
+	  If unsure, say N.
+
+config SUNWAVE_FP
+       tristate "Sunwave Fingerprint"
+       default n
+       help
+		  Say Y here if you want to use Sunwave fingerprint soc drivers.
+
+config CDFINGER_FP
+       tristate "Cdfinger Fingerprint"
+       default n
+       help
+		  Say Y here if you want to use Cdfinger fingerprint soc drivers.
+
+
+endmenu
