@@ -438,6 +438,9 @@ struct fg_chip {
 	int			last_recharge_volt_mv;
 	int			delta_temp_irq_count;
 	int			esr_timer_charging_default[NUM_ESR_TIMERS];
+#ifdef CONFIG_MACH_LONGCHEER
+	int                     battery_full_design;//add for the total capacity of batt in  2017.11.29
+#endif
 	enum slope_limit_status	slope_limit_sts;
 	enum esr_filter_status	esr_flt_sts;
 	bool			profile_available;

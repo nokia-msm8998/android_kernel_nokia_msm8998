@@ -84,7 +84,11 @@ static struct notifier_block panic_blk = {
 #endif
 
 static int dload_type = SCM_DLOAD_FULLDUMP;
+#ifndef CONFIG_MACH_LONGCHEER
 static int download_mode = 1;
+#else
+static int download_mode = 0; // modified by wangyibo for vts at 20190605
+#endif
 static struct kobject dload_kobj;
 static void *dload_mode_addr, *dload_type_addr;
 static bool dload_mode_enabled;
@@ -356,7 +360,15 @@ static void msm_restart_prepare(const char *cmd)
 					     restart_reason);
 			}
 		} else if (!strncmp(cmd, "edl", 3)) {
+#ifdef CONFIG_MACH_LONGCHEER
+			if (0) {
+				enable_emergency_dload_mode();
+			} else {
+				pr_notice("This command already been disabled\n");
+			}
+#else
 			enable_emergency_dload_mode();
+#endif
 		} else {
 			__raw_writel(0x77665501, restart_reason);
 		}

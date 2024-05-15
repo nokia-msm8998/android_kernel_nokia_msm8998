@@ -1341,15 +1341,29 @@ int qcom_batt_init(void)
 	chip->slave_pct = 50;
 	chip->restricted_current = DEFAULT_RESTRICTED_CURRENT_UA;
 
-	chip->pl_ws = wakeup_source_register("qcom-battery");
-	if (!chip->pl_ws)
-		goto cleanup;
-
+#ifdef CONFIG_MACH_LONGCHEER
+/*queue work must init befor vote() modified by wangyibo at 20190315 start*/
 	INIT_DELAYED_WORK(&chip->status_change_work, status_change_work);
 	INIT_DELAYED_WORK(&chip->pl_taper_work, pl_taper_work);
 	INIT_WORK(&chip->pl_disable_forever_work, pl_disable_forever_work);
 	INIT_DELAYED_WORK(&chip->pl_awake_work, pl_awake_work);
 	INIT_DELAYED_WORK(&chip->fcc_step_update_work, fcc_step_update_work);
+/*queue work must init befor vote() modified by wangyibo at 20190315 end*/
+#endif
+
+	chip->pl_ws = wakeup_source_register("qcom-battery");
+	if (!chip->pl_ws)
+		goto cleanup;
+
+#ifndef CONFIG_MACH_LONGCHEER
+/*queue work must init befor vote() modified by wangyibo at 20190315 start*/
+	INIT_DELAYED_WORK(&chip->status_change_work, status_change_work);
+	INIT_DELAYED_WORK(&chip->pl_taper_work, pl_taper_work);
+	INIT_WORK(&chip->pl_disable_forever_work, pl_disable_forever_work);
+	INIT_DELAYED_WORK(&chip->pl_awake_work, pl_awake_work);
+	INIT_DELAYED_WORK(&chip->fcc_step_update_work, fcc_step_update_work);
+/*queue work must init befor vote() modified by wangyibo at 20190315 end*/
+#endif
 
 	chip->fcc_votable = create_votable("FCC", VOTE_MIN,
 					pl_fcc_vote_callback,

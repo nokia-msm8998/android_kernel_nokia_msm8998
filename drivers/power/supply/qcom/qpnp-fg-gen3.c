@@ -1035,6 +1035,16 @@ static int fg_get_batt_profile(struct fg_chip *chip)
 		return -ENODATA;
 	}
 
+#ifdef CONFIG_MACH_LONGCHEER
+	//begin for the total capacity of batt in  2017.11.29
+	rc = of_property_read_u32(profile_node, "qcom,nom-batt-capacity-mah", &chip->battery_full_design);
+	if (rc < 0) {
+		pr_err("No profile data available\n");
+		return -ENODATA;
+	}
+	//end for the total capacity of batt in  2017.11.29
+#endif
+
 	if (len != PROFILE_LEN) {
 		pr_err("battery profile incorrect size: %d\n", len);
 		return -EINVAL;
@@ -4938,7 +4948,11 @@ static int fg_parse_ki_coefficients(struct fg_chip *chip)
 #define DEFAULT_CHG_TERM_CURR_MA	100
 #define DEFAULT_CHG_TERM_BASE_CURR_MA	75
 #define DEFAULT_SYS_TERM_CURR_MA	-125
+#ifndef CONFIG_MACH_LONGCHEER
 #define DEFAULT_CUTOFF_CURR_MA		500
+#else
+#define DEFAULT_CUTOFF_CURR_MA		200
+#endif
 #define DEFAULT_DELTA_SOC_THR		1
 #define DEFAULT_RECHARGE_SOC_THR	95
 #define DEFAULT_BATT_TEMP_COLD		0
@@ -5095,7 +5109,11 @@ static int fg_parse_dt(struct fg_chip *chip)
 	if (rc < 0)
 		chip->dt.sys_term_curr_ma = DEFAULT_SYS_TERM_CURR_MA;
 	else
+#ifndef CONFIG_MACH_LONGCHEER
 		chip->dt.sys_term_curr_ma = temp;
+#else
+		chip->dt.sys_term_curr_ma = -temp;
+#endif
 
 	rc = of_property_read_u32(node, "qcom,fg-chg-term-base-current", &temp);
 	if (rc < 0)

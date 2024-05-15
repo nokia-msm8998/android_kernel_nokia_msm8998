@@ -25,6 +25,9 @@
 #include "battery.h"
 #include "step-chg-jeita.h"
 #include "storm-watch.h"
+#ifdef CONFIG_MACH_LONGCHEER
+#include "fg-core.h"
+#endif
 
 #define smblib_err(chg, fmt, ...)		\
 	pr_err("%s: %s: " fmt, chg->name,	\
@@ -1825,6 +1828,69 @@ int smblib_get_prop_from_bms(struct smb_charger *chg,
 	return rc;
 }
 
+#ifdef CONFIG_MACH_LONGCHEER
+//begin for the total capacity of batt in  2017.11.29
+int smblib_get_prop_battery_full_design(struct smb_charger *chg,
+				     union power_supply_propval *val)
+{
+	struct fg_chip *chip;
+
+	if (!chg->bms_psy)
+		return -EINVAL;
+	chip = power_supply_get_drvdata(chg->bms_psy);
+	if (chip->battery_full_design)
+		val->intval =  chip->battery_full_design;
+	else
+		val->intval = 3500;
+	return 0;
+}
+//end for the total capacity of batt in  2017.11.29
+//begin for system app to control battery charging in 2019.12.25
+int lct_set_prop_input_suspend(struct smb_charger *chg, const union power_supply_propval *val)
+{
+	int rc = 0;
+	union power_supply_propval pval = {0, };
+
+	pr_err("[%s] val=%d\n", __func__, val->intval);
+	if (val->intval) {
+		pval.intval = 0;
+#if 0
+		rc = smblib_set_dc_suspend(chg, false);
+		if (rc) {
+			pr_err("Couldn't enable charge rc=%d\n", rc);
+		}
+		rc = smblib_set_usb_suspend(chg, false);
+		if (rc)
+			pr_err("Couldn't enable usb charge rc=%d\n", rc);
+		vote(chg->pl_disable_votable, USER_VOTER, (bool)pval.intval, 0);
+		vote(chg->chg_disable_votable, DEFAULT_VOTER, false, 0);
+#endif
+		smblib_set_prop_input_suspend(chg, &pval);
+	} else {
+		pval.intval = 1;
+		chg->pl_psy =  power_supply_get_by_name("parallel");
+		if (chg->pl_psy) {
+			power_supply_set_property(chg->pl_psy, POWER_SUPPLY_PROP_INPUT_SUSPEND, &pval);
+		}
+		smblib_set_prop_input_suspend(chg, &pval);
+#if 0
+		vote(chg->chg_disable_votable, DEFAULT_VOTER, true, 0);
+		vote(chg->pl_disable_votable, USER_VOTER, (bool)pval.intval, 0);
+		smblib_set_prop_sdp_current_max(chg, &pval);
+		rc = smblib_set_dc_suspend(chg, true);
+		if (rc)
+			pr_err("Couldn't enable dc charge rc=%d\n", rc);
+		rc = smblib_set_usb_suspend(chg, true);
+		if (rc)
+			pr_err("Couldn't disenable usb charge rc=%d\n", rc);
+#endif
+	}
+	power_supply_changed(chg->batt_psy);
+	return rc;
+}
+//end for system app to control battery charging in 2019.12.25
+#endif
+
 /***********************
  * BATTERY PSY SETTERS *
  ***********************/
@@ -2485,11 +2551,21 @@ int smblib_get_prop_die_health(struct smb_charger *chg,
 
 #define SDP_CURRENT_UA			500000
 #define CDP_CURRENT_UA			1500000
+#ifndef CONFIG_MACH_LONGCHEER
 #define DCP_CURRENT_UA			1500000
 #define HVDCP_CURRENT_UA		3000000
+#else
+#define DCP_CURRENT_UA			2000000  //custom defined by wangyibo FCC=2A at 20190419
+#define HVDCP_CURRENT_UA		2000000  //custom defined by wangyibo FCC=2A at 20190419
+#endif
 #define TYPEC_DEFAULT_CURRENT_UA	900000
 #define TYPEC_MEDIUM_CURRENT_UA		1500000
+#ifndef CONFIG_MACH_LONGCHEER
 #define TYPEC_HIGH_CURRENT_UA		3000000
+#else
+#define TYPEC_HIGH_CURRENT_UA		2000000  //custom defined by wangyibo FCC=2A at 20190419
+#endif
+
 static int get_rp_based_dcp_current(struct smb_charger *chg, int typec_mode)
 {
 	int rp_ua;
@@ -2538,6 +2614,11 @@ static int smblib_handle_usb_current(struct smb_charger *chg,
 			 */
 			typec_mode = smblib_get_prop_typec_mode(chg);
 			rp_ua = get_rp_based_dcp_current(chg, typec_mode);
+#ifdef CONFIG_MACH_LONGCHEER
+			//NHK_M690_A01-999 NHK_M490_A01-10 set usb float current to 500mA by wangyibo at 20190424 start
+			rp_ua = SDP_CURRENT_UA;
+			//NHK_M690_A01-999 NHK_M490_A01-10 set usb float current to 500mA by wangyibo at 20190424 end
+#endif
 			rc = vote(chg->usb_icl_votable, LEGACY_UNKNOWN_VOTER,
 								true, rp_ua);
 			if (rc < 0)
@@ -4170,6 +4251,9 @@ static void smblib_handle_rp_change(struct smb_charger *chg, int typec_mode)
 	vote(chg->usb_icl_votable, LEGACY_UNKNOWN_VOTER, true, rp_ua);
 }
 
+#ifdef CONFIG_TOUCHSCREEN_HIMAX_COMMON
+extern void himax_update_usb_state(int insert);
+#endif
 static void smblib_handle_typec_cc_state_change(struct smb_charger *chg)
 {
 	int typec_mode;
@@ -4187,11 +4271,17 @@ static void smblib_handle_typec_cc_state_change(struct smb_charger *chg)
 		chg->typec_present = true;
 		smblib_dbg(chg, PR_MISC, "TypeC %s insertion\n",
 			smblib_typec_mode_name[chg->typec_mode]);
+#ifdef CONFIG_TOUCHSCREEN_HIMAX_COMMON
+		himax_update_usb_state(true);
+#endif
 		smblib_handle_typec_insertion(chg);
 	} else if (chg->typec_present &&
 				chg->typec_mode == POWER_SUPPLY_TYPEC_NONE) {
 		chg->typec_present = false;
 		smblib_dbg(chg, PR_MISC, "TypeC removal\n");
+#ifdef CONFIG_TOUCHSCREEN_HIMAX_COMMON
+		himax_update_usb_state(false);
+#endif
 		smblib_handle_typec_removal(chg);
 	}
 

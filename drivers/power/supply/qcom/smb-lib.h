@@ -264,6 +264,9 @@ struct smb_charger {
 	struct power_supply_desc	usb_psy_desc;
 	struct power_supply		*usb_main_psy;
 	struct power_supply		*usb_port_psy;
+#ifdef CONFIG_MACH_LONGCHEER
+	struct power_supply             *pl_psy;
+#endif
 	enum power_supply_type		real_charger_type;
 
 	/* notifiers */
@@ -527,7 +530,15 @@ int smblib_get_prop_from_bms(struct smb_charger *chg,
 int smblib_set_prop_pr_swap_in_progress(struct smb_charger *chg,
 				const union power_supply_propval *val);
 void smblib_usb_typec_change(struct smb_charger *chg);
-
+#ifdef CONFIG_MACH_LONGCHEER
+//add for the total capacity of batt in 2017.11.29
+int smblib_get_prop_battery_full_design(struct smb_charger *chg,
+				     union power_supply_propval *val);
+//begin for system app to control battery charging in 2019.12.25
+int lct_set_prop_input_suspend(struct smb_charger *chg,
+				const union power_supply_propval *val);
+//end for system app to control battery charging in 2019.12.25
+#endif
 int smblib_init(struct smb_charger *chg);
 int smblib_deinit(struct smb_charger *chg);
 #endif /* __SMB2_CHARGER_H */
