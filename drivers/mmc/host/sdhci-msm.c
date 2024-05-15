@@ -4424,6 +4424,43 @@ static bool sdhci_msm_is_bootdevice(struct device *dev)
 	return true;
 }
 
+#ifdef CONFIG_MACH_LONGCHEER
+/* add card detect by wangyibo at 20190313 start */
+static struct kobject *card_slot_device = NULL;
+static struct sdhci_host *card_host =NULL;
+static ssize_t card_slot_status_show(struct device *dev,
+					       struct device_attribute *attr, char *buf)
+{
+	return snprintf(buf, PAGE_SIZE, "%d\n", mmc_gpio_get_cd(card_host->mmc));
+}
+
+static DEVICE_ATTR(card_slot_status, S_IRUGO ,
+						card_slot_status_show, NULL);
+
+int32_t card_slot_init_device_name(void)
+{
+	int32_t error = 0;
+	if(card_slot_device != NULL){
+		pr_err("card_slot already created\n");
+		return 0;
+	}
+	card_slot_device = kobject_create_and_add("card_slot", NULL);
+	if (card_slot_device == NULL) {
+		printk("%s: card_slot register failed\n", __func__);
+		error = -ENOMEM;
+		return error ;
+	}
+	error = sysfs_create_file(card_slot_device, &dev_attr_card_slot_status.attr);
+	if (error) {
+		printk("%s: card_slot_status_create_file failed\n", __func__);
+		kobject_del(card_slot_device);
+	}
+
+	return 0 ;
+}
+/* add card detect by wangyibo at 20190313 end*/
+#endif
+
 static int sdhci_msm_probe(struct platform_device *pdev)
 {
 	const struct sdhci_msm_offset *msm_host_offset;
@@ -4925,6 +4962,13 @@ static int sdhci_msm_probe(struct platform_device *pdev)
 		ret = device_create_file(&pdev->dev, &msm_host->polling);
 		if (ret)
 			goto remove_max_bus_bw_file;
+#ifdef CONFIG_MACH_LONGCHEER
+		} else {
+		/* add card detect by wangyibo at 20190313 start */
+		card_host = dev_get_drvdata(&pdev->dev);
+		card_slot_init_device_name();
+		}
+#endif
 	}
 
 	msm_host->auto_cmd21_attr.show = show_auto_cmd21;
