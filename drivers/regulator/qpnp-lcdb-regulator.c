@@ -26,6 +26,12 @@
 #include <linux/regulator/machine.h>
 #include <linux/qpnp/qpnp-revid.h>
 
+#ifdef CONFIG_MACH_LONGCHEER
+/*modify by shenwenbin for open double tap wakeup 20190516 begin*/
+#include <linux/lct_tp_fm_info.h>
+/*modify by shenwenbin for open double tap wakeup 20190516 end*/
+#endif
+
 #define QPNP_LCDB_REGULATOR_DRIVER_NAME		"qcom,qpnp-lcdb-regulator"
 
 /* LCDB */
@@ -793,6 +799,16 @@ static irqreturn_t qpnp_lcdb_sc_irq_handler(int irq, void *data)
 	rc = qpnp_lcdb_read(lcdb, lcdb->base + INT_RT_STATUS_REG, &val, 1);
 	if (rc < 0)
 		goto irq_handled;
+
+#ifdef CONFIG_MACH_LONGCHEER
+        /*modify by shenwenbin for open double tap wakeup 20190516 begin*/
+        //printk("swb.%s set wakeup note\n",__func__);
+        if(tp_gesture_wakeup() == 1)
+             lcdb->ttw_enable = true;
+        else
+             lcdb->ttw_enable = false;
+        /*modify by shenwenbin for open double tap wakeup 20190516 end*/
+#endif
 
 	if (val & SC_ERROR_RT_STS_BIT) {
 		rc = qpnp_lcdb_read(lcdb,
