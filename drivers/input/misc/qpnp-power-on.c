@@ -474,6 +474,81 @@ static ssize_t qpnp_pon_dbc_store(struct device *dev,
 
 static DEVICE_ATTR(debounce_us, 0664, qpnp_pon_dbc_show, qpnp_pon_dbc_store);
 
+#ifdef CONFIG_MACH_LONGCHEER
+// NHK_M690_A01-702 delete power key when OTA update by wangyibo at 20190318 start
+static struct qpnp_pon_config *
+qpnp_get_cfg(struct qpnp_pon *pon, u32 pon_type);
+static ssize_t qpnp_kpdpwr_reset_show(struct device *dev,
+				struct device_attribute *attr, char *buf)
+{
+	struct qpnp_pon *pon = dev_get_drvdata(dev);
+	int val;
+	int rc;
+
+#if 0
+	rc = spmi_ext_register_readl(pon->spmi->ctrl, pon->spmi->sid,QPNP_PON_S3_SRC(pon), &val, 1);
+	if (rc) {
+		pr_err("Unable to read pon_dbc_ctl rc=%d\n", rc);
+		return rc;
+	}
+
+	rc = spmi_ext_register_readl(pon->spmi->ctrl, pon->spmi->sid,QPNP_PON_KPDPWR_S2_CNTL2(pon), &val, 1);
+	if (rc) {
+		pr_err("Unable to read pon_dbc_ctl rc=%d\n", rc);
+		return rc;
+	}
+#else
+	rc = regmap_read(pon->regmap, QPNP_PON_KPDPWR_S2_CNTL2(pon), &val);
+	if (rc) {
+		dev_err(&pon->pdev->dev, "Unable to read PON RT status\n");
+		goto err_return;
+	}
+
+#endif
+	pr_err("[%s] val=0x%x\n", __func__, val);
+
+	val &= QPNP_PON_S2_RESET_ENABLE;
+	val = val >> 7;
+
+	return snprintf(buf, QPNP_PON_BUFFER_SIZE, "%d\n", val);
+err_return:
+	return -1;
+}
+
+static ssize_t qpnp_kpdpwr_reset_store(struct device *dev,
+				struct device_attribute *attr,
+				const char *buf, size_t size)
+{
+	struct qpnp_pon *pon = dev_get_drvdata(dev);
+	u32 value;
+	int rc;
+
+	if (size > QPNP_PON_BUFFER_SIZE)
+		return -EINVAL;
+
+	rc = kstrtou32(buf, 10, &value);
+	if (rc)
+		return rc;
+
+	pr_err("[%s] val=0x%x\n", __func__, value);
+	value = value << 7;
+	//value &= QPNP_PON_S2_RESET_ENABLE;
+#if 1
+	rc = qpnp_pon_masked_write(pon, QPNP_PON_KPDPWR_S2_CNTL2(pon), QPNP_PON_S2_RESET_ENABLE, value);
+	if (rc) {
+		dev_err(&pon->pdev->dev,
+				"Unable to configure S2 enable\n");
+	}
+#else
+	rc = qpnp_pon_masked_write(pon, QPNP_PON_KPDPWR_S2_CNTL2(pon), QPNP_PON_S2_RESET_ENABLE, value);
+#endif
+	return size;
+}
+
+static DEVICE_ATTR(kpdpwr_reset, 0664, qpnp_kpdpwr_reset_show, qpnp_kpdpwr_reset_store);
+// NHK_M690_A01-702 delete power key when OTA update by wangyibo at 20190318 end
+#endif
+
 static int qpnp_pon_reset_config(struct qpnp_pon *pon,
 		enum pon_power_off_type type)
 {
@@ -2341,6 +2416,17 @@ static int qpnp_pon_probe(struct platform_device *pdev)
 		dev_err(&pdev->dev, "sys file creation failed rc: %d\n", rc);
 		return rc;
 	}
+
+#ifdef CONFIG_MACH_LONGCHEER
+	// NHK_M690_A01-702 delete power key when OTA update by wangyibo at 20190318 start
+    	/*add for OTA mask powerkey*/
+	rc = device_create_file(&pdev->dev, &dev_attr_kpdpwr_reset);
+	if (rc) {
+		dev_err(&pdev->dev, "kpdpwr_reset sys file creation failed rc: %d\n", rc);
+		return rc;
+	}
+	// NHK_M690_A01-702 delete power key when OTA update by wangyibo at 20190318 end
+#endif
 
 	if (of_property_read_bool(pdev->dev.of_node,
 					"qcom,secondary-pon-reset")) {
