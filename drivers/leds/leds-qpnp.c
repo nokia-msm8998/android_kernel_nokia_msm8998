@@ -2185,6 +2185,36 @@ static int qpnp_pwm_init(struct pwm_config_data *pwm_cfg,
 	return 0;
 }
 
+#ifdef CONFIG_MACH_LONGCHEER
+static ssize_t pwm_us_show(struct device *dev, struct device_attribute *attr, char *buf)
+{
+	struct qpnp_led_data *led;
+	struct led_classdev *led_cdev = dev_get_drvdata(dev);
+	struct pwm_config_data *pwm_cfg;
+
+	led = container_of(led_cdev, struct qpnp_led_data, cdev);
+
+	switch (led->id) {
+	case QPNP_ID_LED_MPP:
+		pwm_cfg = led->mpp_cfg->pwm_cfg;
+		break;
+	case QPNP_ID_RGB_RED:
+	case QPNP_ID_RGB_GREEN:
+	case QPNP_ID_RGB_BLUE:
+		pwm_cfg = led->rgb_cfg->pwm_cfg;
+		break;
+	case QPNP_ID_KPDBL:
+		pwm_cfg = led->kpdbl_cfg->pwm_cfg;
+		break;
+	default:
+		dev_err(&led->pdev->dev, "Invalid LED id type for pwm_us\n");
+		return snprintf(buf, PAGE_SIZE, "%d\n", -1);
+	}
+
+	return snprintf(buf, PAGE_SIZE, "%d\n", pwm_cfg->pwm_period_us);
+}
+#endif
+
 static ssize_t pwm_us_store(struct device *dev,
 	struct device_attribute *attr,
 	const char *buf, size_t count)
@@ -2245,6 +2275,36 @@ static ssize_t pwm_us_store(struct device *dev,
 	qpnp_led_set(&led->cdev, led->cdev.brightness);
 	return count;
 }
+
+#ifdef CONFIG_MACH_LONGCHEER
+static ssize_t pause_lo_show(struct device *dev, struct device_attribute *attr, char *buf)
+{
+	struct qpnp_led_data *led;
+	struct led_classdev *led_cdev = dev_get_drvdata(dev);
+	struct pwm_config_data *pwm_cfg;
+
+	led = container_of(led_cdev, struct qpnp_led_data, cdev);
+
+	switch (led->id) {
+	case QPNP_ID_LED_MPP:
+		pwm_cfg = led->mpp_cfg->pwm_cfg;
+		break;
+	case QPNP_ID_RGB_RED:
+	case QPNP_ID_RGB_GREEN:
+	case QPNP_ID_RGB_BLUE:
+		pwm_cfg = led->rgb_cfg->pwm_cfg;
+		break;
+	case QPNP_ID_KPDBL:
+		pwm_cfg = led->kpdbl_cfg->pwm_cfg;
+		break;
+	default:
+		dev_err(&led->pdev->dev, "Invalid LED id type for lut_params.lut_pause_lo\n");
+		return snprintf(buf, PAGE_SIZE, "%d\n", -1);
+	}
+
+	return snprintf(buf, PAGE_SIZE, "%d\n",  pwm_cfg->lut_params.lut_pause_lo);
+}
+#endif
 
 static ssize_t pause_lo_store(struct device *dev,
 	struct device_attribute *attr,
@@ -2307,6 +2367,36 @@ static ssize_t pause_lo_store(struct device *dev,
 	return count;
 }
 
+#ifdef CONFIG_MACH_LONGCHEER
+static ssize_t pause_hi_show(struct device *dev, struct device_attribute *attr, char *buf)
+{
+	struct qpnp_led_data *led;
+	struct led_classdev *led_cdev = dev_get_drvdata(dev);
+	struct pwm_config_data *pwm_cfg;
+
+	led = container_of(led_cdev, struct qpnp_led_data, cdev);
+
+	switch (led->id) {
+	case QPNP_ID_LED_MPP:
+		pwm_cfg = led->mpp_cfg->pwm_cfg;
+		break;
+	case QPNP_ID_RGB_RED:
+	case QPNP_ID_RGB_GREEN:
+	case QPNP_ID_RGB_BLUE:
+		pwm_cfg = led->rgb_cfg->pwm_cfg;
+		break;
+	case QPNP_ID_KPDBL:
+		pwm_cfg = led->kpdbl_cfg->pwm_cfg;
+		break;
+	default:
+		dev_err(&led->pdev->dev, "Invalid LED id type for lut_params.lut_pause_hi\n");
+		return snprintf(buf, PAGE_SIZE, "%d\n", -1);
+	}
+
+	return snprintf(buf, PAGE_SIZE, "%d\n",  pwm_cfg->lut_params.lut_pause_hi);
+}
+#endif
+
 static ssize_t pause_hi_store(struct device *dev,
 	struct device_attribute *attr,
 	const char *buf, size_t count)
@@ -2367,6 +2457,36 @@ static ssize_t pause_hi_store(struct device *dev,
 	qpnp_led_set(&led->cdev, led->cdev.brightness);
 	return count;
 }
+
+#ifdef CONFIG_MACH_LONGCHEER
+static ssize_t start_idx_show(struct device *dev, struct device_attribute *attr, char *buf)
+{
+	struct qpnp_led_data *led;
+	struct led_classdev *led_cdev = dev_get_drvdata(dev);
+	struct pwm_config_data *pwm_cfg;
+
+	led = container_of(led_cdev, struct qpnp_led_data, cdev);
+
+	switch (led->id) {
+	case QPNP_ID_LED_MPP:
+		pwm_cfg = led->mpp_cfg->pwm_cfg;
+		break;
+	case QPNP_ID_RGB_RED:
+	case QPNP_ID_RGB_GREEN:
+	case QPNP_ID_RGB_BLUE:
+		pwm_cfg = led->rgb_cfg->pwm_cfg;
+		break;
+	case QPNP_ID_KPDBL:
+		pwm_cfg = led->kpdbl_cfg->pwm_cfg;
+		break;
+	default:
+		dev_err(&led->pdev->dev, "Invalid LED id type for start_idx\n");
+		return snprintf(buf, PAGE_SIZE, "%d\n", -1);
+	}
+
+	return snprintf(buf, PAGE_SIZE, "%d\n",  pwm_cfg->duty_cycles->start_idx);
+}
+#endif
 
 static ssize_t start_idx_store(struct device *dev,
 	struct device_attribute *attr,
@@ -2430,6 +2550,36 @@ static ssize_t start_idx_store(struct device *dev,
 	return count;
 }
 
+#ifdef CONFIG_MACH_LONGCHEER
+static ssize_t ramp_step_ms_show(struct device *dev, struct device_attribute *attr, char *buf)
+{
+	struct qpnp_led_data *led;
+	struct led_classdev *led_cdev = dev_get_drvdata(dev);
+	struct pwm_config_data *pwm_cfg;
+
+	led = container_of(led_cdev, struct qpnp_led_data, cdev);
+
+	switch (led->id) {
+	case QPNP_ID_LED_MPP:
+		pwm_cfg = led->mpp_cfg->pwm_cfg;
+		break;
+	case QPNP_ID_RGB_RED:
+	case QPNP_ID_RGB_GREEN:
+	case QPNP_ID_RGB_BLUE:
+		pwm_cfg = led->rgb_cfg->pwm_cfg;
+		break;
+	case QPNP_ID_KPDBL:
+		pwm_cfg = led->kpdbl_cfg->pwm_cfg;
+		break;
+	default:
+		dev_err(&led->pdev->dev, "Invalid LED id type for ramp_steps_ms\n");
+		return snprintf(buf, PAGE_SIZE, "%d\n", -1);
+	}
+
+	return snprintf(buf, PAGE_SIZE, "%d\n", pwm_cfg->lut_params.ramp_step_ms);
+}
+#endif
+
 static ssize_t ramp_step_ms_store(struct device *dev,
 	struct device_attribute *attr,
 	const char *buf, size_t count)
@@ -2491,6 +2641,36 @@ static ssize_t ramp_step_ms_store(struct device *dev,
 	return count;
 }
 
+#ifdef CONFIG_MACH_LONGCHEER
+static ssize_t lut_flags_show(struct device *dev, struct device_attribute *attr, char *buf)
+{
+	struct qpnp_led_data *led;
+	struct led_classdev *led_cdev = dev_get_drvdata(dev);
+	struct pwm_config_data *pwm_cfg;
+
+	led = container_of(led_cdev, struct qpnp_led_data, cdev);
+
+	switch (led->id) {
+	case QPNP_ID_LED_MPP:
+		pwm_cfg = led->mpp_cfg->pwm_cfg;
+		break;
+	case QPNP_ID_RGB_RED:
+	case QPNP_ID_RGB_GREEN:
+	case QPNP_ID_RGB_BLUE:
+		pwm_cfg = led->rgb_cfg->pwm_cfg;
+		break;
+	case QPNP_ID_KPDBL:
+		pwm_cfg = led->kpdbl_cfg->pwm_cfg;
+		break;
+	default:
+		dev_err(&led->pdev->dev, "Invalid LED id type for lut_flags\n");
+		return snprintf(buf, PAGE_SIZE, "%d\n", -1);
+	}
+
+	return snprintf(buf, PAGE_SIZE, "%d\n",  pwm_cfg->lut_params.flags);
+}
+#endif
+
 static ssize_t lut_flags_store(struct device *dev,
 	struct device_attribute *attr,
 	const char *buf, size_t count)
@@ -2551,6 +2731,49 @@ static ssize_t lut_flags_store(struct device *dev,
 	qpnp_led_set(&led->cdev, led->cdev.brightness);
 	return count;
 }
+
+#ifdef CONFIG_MACH_LONGCHEER
+static ssize_t duty_pcts_show(struct device *dev, struct device_attribute *attr, char *buf)
+{
+	int i = 0;
+	int max_duty_pcts;
+	struct qpnp_led_data *led;
+	struct led_classdev *led_cdev = dev_get_drvdata(dev);
+	struct pwm_config_data *pwm_cfg;
+	char temp[512] = {0};
+	int *previous_duty_pcts;
+	led = container_of(led_cdev, struct qpnp_led_data, cdev);
+
+	switch (led->id) {
+	case QPNP_ID_LED_MPP:
+		max_duty_pcts = PWM_LUT_MAX_SIZE;
+		pwm_cfg = led->mpp_cfg->pwm_cfg;
+		previous_duty_pcts = pwm_cfg->duty_cycles->duty_pcts;
+		break;
+	case QPNP_ID_RGB_RED:
+	case QPNP_ID_RGB_GREEN:
+	case QPNP_ID_RGB_BLUE:
+		pwm_cfg = led->rgb_cfg->pwm_cfg;
+		max_duty_pcts = PWM_LUT_MAX_SIZE;
+		previous_duty_pcts = pwm_cfg->duty_cycles->duty_pcts;
+		break;
+	case QPNP_ID_KPDBL:
+		pwm_cfg = led->kpdbl_cfg->pwm_cfg;
+		max_duty_pcts = PWM_GPLED_LUT_MAX_SIZE;
+		previous_duty_pcts = pwm_cfg->duty_cycles->duty_pcts;
+		break;
+	default:
+		dev_err(&led->pdev->dev, "Invalid LED id type for duty_pcts\n");
+		return snprintf(buf, PAGE_SIZE, "%d\n", -1);
+	}
+
+	for (i = 0; i <pwm_cfg->duty_cycles->num_duty_pcts; i++) {
+		snprintf(temp, PAGE_SIZE, "%s,%d", temp, previous_duty_pcts[i]);
+	}
+
+	return snprintf(buf, PAGE_SIZE, "%s\n",  temp);
+}
+#endif
 
 static ssize_t duty_pcts_store(struct device *dev,
 	struct device_attribute *attr,
@@ -2859,6 +3082,15 @@ static ssize_t rgb_blink_store(struct device *dev,
 
 static DEVICE_ATTR(led_mode, 0664, NULL, led_mode_store);
 static DEVICE_ATTR(strobe, 0664, NULL, led_strobe_type_store);
+#ifdef CONFIG_MACH_LONGCHEER
+static DEVICE_ATTR(pwm_us, 0664, pwm_us_show, pwm_us_store);
+static DEVICE_ATTR(pause_lo, 0664, pause_lo_show, pause_lo_store);
+static DEVICE_ATTR(pause_hi, 0664, pause_hi_show, pause_hi_store);
+static DEVICE_ATTR(start_idx, 0664, start_idx_show, start_idx_store);
+static DEVICE_ATTR(ramp_step_ms, 0664, ramp_step_ms_show, ramp_step_ms_store);
+static DEVICE_ATTR(lut_flags, 0664, lut_flags_show, lut_flags_store);
+static DEVICE_ATTR(duty_pcts, 0664, duty_pcts_show, duty_pcts_store);
+#else
 static DEVICE_ATTR(pwm_us, 0664, NULL, pwm_us_store);
 static DEVICE_ATTR(pause_lo, 0664, NULL, pause_lo_store);
 static DEVICE_ATTR(pause_hi, 0664, NULL, pause_hi_store);
@@ -2866,6 +3098,7 @@ static DEVICE_ATTR(start_idx, 0664, NULL, start_idx_store);
 static DEVICE_ATTR(ramp_step_ms, 0664, NULL, ramp_step_ms_store);
 static DEVICE_ATTR(lut_flags, 0664, NULL, lut_flags_store);
 static DEVICE_ATTR(duty_pcts, 0664, NULL, duty_pcts_store);
+#endif
 static DEVICE_ATTR(blink, 0664, NULL, blink_store);
 static DEVICE_ATTR(rgb_blink, 0664, NULL, rgb_blink_store);
 
