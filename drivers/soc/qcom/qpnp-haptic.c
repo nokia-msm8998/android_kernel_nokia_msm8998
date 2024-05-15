@@ -1965,7 +1965,11 @@ static int qpnp_hap_auto_res_enable(struct qpnp_hap *hap, int enable)
 	if (hap->pmic_subtype == PM660_SUBTYPE)
 		rc = qpnp_hap_masked_write_reg(hap,
 				QPNP_HAP_AUTO_RES_CTRL(hap->base),
+#ifndef CONFIG_MACH_LONGCHEER
 				QPNP_HAP_AUTO_RES_MASK, val);
+#else
+                                QPNP_HAP_AUTO_RES_MASK, 0);
+#endif
 	else
 		rc = qpnp_hap_sec_masked_write_reg(hap,
 				QPNP_HAP_TEST2_REG(hap->base),

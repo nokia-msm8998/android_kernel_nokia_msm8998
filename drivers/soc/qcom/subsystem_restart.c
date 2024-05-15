@@ -1104,6 +1104,9 @@ int subsystem_restart_dev(struct subsys_device *dev)
 		return -EBUSY;
 	}
 
+#ifdef CONFIG_MACH_LONGCHEER
+	dev->restart_level = 1;
+#endif
 	pr_info("Restart sequence requested for %s, restart_level = %s.\n",
 		name, restart_levels[dev->restart_level]);
 
