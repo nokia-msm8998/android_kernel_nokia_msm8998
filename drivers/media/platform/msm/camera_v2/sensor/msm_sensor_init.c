@@ -55,6 +55,10 @@ static int msm_sensor_wait_for_probe_done(struct msm_sensor_init_t *s_init)
 	return rc;
 }
 
+#ifdef CONFIG_MACH_LONGCHEER
+extern int i2c_devinfo_device_write(char *buf);//add i2c devinfo for runintest gepengpeng 20190515
+#endif
+
 /* Static function definition */
 static int32_t msm_sensor_driver_cmd(struct msm_sensor_init_t *s_init,
 	void *arg)
@@ -75,6 +79,26 @@ static int32_t msm_sensor_driver_cmd(struct msm_sensor_init_t *s_init,
 		rc = msm_sensor_driver_probe(cfg->cfg.setting,
 			&cfg->probed_info,
 			cfg->entity_name);
+#ifdef CONFIG_MACH_LONGCHEER
+		switch (cfg->probed_info.position) {
+		case BACK_CAMERA_B:
+			i2c_devinfo_device_write(rc < 0 ? "BCAMM:0;":"BCAMM:1;");
+			break;
+		case FRONT_CAMERA_B:
+			i2c_devinfo_device_write(rc < 0 ? "FCAMM:0;":"FCAMM:1;");
+			break;
+		case AUX_CAMERA_B:
+			i2c_devinfo_device_write(rc < 0 ? "BCAMA:0;":"BCAMA:1;");
+			break;
+		case WIDE_CAMERA_B:
+			i2c_devinfo_device_write(rc < 0 ? "BCAMW:0;":"BCAMW:1;");
+			break;
+		default:
+			pr_err("i2c runintest invalid position\n");
+			break;
+		}
+		pr_err("i2c runintest rc = %d,position = %d\n",rc,cfg->probed_info.position);
+#endif
 		mutex_unlock(&s_init->imutex);
 		if (rc < 0)
 			pr_err("%s failed (non-fatal) rc %d", __func__, rc);

@@ -32,7 +32,11 @@
 #define CYCLES_PER_MICRO_SEC_DEFAULT 4915
 #define CCI_MAX_DELAY 1000000
 
+#ifdef CONFIG_MACH_LONGCHEER
+#define CCI_TIMEOUT msecs_to_jiffies(800)
+#else
 #define CCI_TIMEOUT msecs_to_jiffies(100)
+#endif
 
 /* TODO move this somewhere else */
 #define MSM_CCI_DRV_NAME "msm_cci"
@@ -1425,6 +1429,10 @@ static int32_t msm_cci_init(struct v4l2_subdev *sd,
 		goto reg_enable_failed;
 	}
 
+#ifdef CONFIG_MACH_LONGCHEER
+    	master = c_ctrl->cci_info->cci_i2c_master;
+#endif
+
 	/* Re-initialize the completion */
 	reinit_completion(&cci_dev->cci_master_info[master].reset_complete);
 	for (i = 0; i < NUM_QUEUES; i++)
@@ -1474,12 +1482,20 @@ static int32_t msm_cci_init(struct v4l2_subdev *sd,
 		}
 	}
 
+#ifdef CONFIG_MACH_LONGCHEER
+	cci_dev->cci_master_info[master].reset_pending = TRUE;
+#else
 	cci_dev->cci_master_info[MASTER_0].reset_pending = TRUE;
+#endif
 	msm_camera_io_w_mb(CCI_RESET_CMD_RMSK, cci_dev->base +
 			CCI_RESET_CMD_ADDR);
 	msm_camera_io_w_mb(0x1, cci_dev->base + CCI_RESET_CMD_ADDR);
 	rc = wait_for_completion_timeout(
+#ifdef CONFIG_MACH_LONGCHEER
+		&cci_dev->cci_master_info[master].reset_complete,
+#else
 		&cci_dev->cci_master_info[MASTER_0].reset_complete,
+#endif
 		CCI_TIMEOUT);
 	if (rc <= 0) {
 		pr_err("%s: wait_for_completion_timeout %d\n",
