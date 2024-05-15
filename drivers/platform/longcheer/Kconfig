@@ -1,0 +1,7 @@
+# Longcheer configuration options
+config MACH_LONGCHEER
+	default n
+	depends on ARCH_QCOM
+	bool "Longcheer board"
+	help
+	  Support for Nokia Longcheer boards
