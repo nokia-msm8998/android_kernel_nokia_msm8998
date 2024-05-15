@@ -14,8 +14,8 @@ qcom,qrd_msm8998_skuk_3000mah {
 	/* QRD8997_ST1031GA_3000mAh_averaged_MasterSlave_Jan10th2017 */
 	qcom,max-voltage-uv = <4400000>;
 	qcom,fg-cc-cv-threshold-mv = <4390>;
-	qcom,fastchg-current-ma = <3000>;
-	qcom,batt-id-kohm = <68>;
+	qcom,fastchg-current-ma = <2000>;
+	qcom,batt-id-kohm = <50>;
 	qcom,battery-beta = <3380>;
 	qcom,battery-type = "qrd8997_st1031ga_3000mah";
 	qcom,checksum = <0xD299>;

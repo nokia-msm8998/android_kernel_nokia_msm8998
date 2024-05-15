@@ -1,4 +1,4 @@
-/* Copyright (c) 2016-2017, The Linux Foundation. All rights reserved.
+/* Copyright (c) 2018, The Linux Foundation. All rights reserved.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License version 2 and
@@ -6,36 +6,26 @@
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
  * GNU General Public License for more details.
  */
 
-
 /dts-v1/;
+/plugin/;
 
-#include "sdm660.dtsi"
-#include "sdm660-mtp.dtsi"
-//#include "sdm660-external-codec.dtsi"
-#include "sdm660-internal-codec.dtsi"	//modified by wenhuilong @20190313 for M690 audio bringup
+#include <dt-bindings/clock/qcom,cpu-osm.h>
+#include <dt-bindings/clock/qcom,rpmcc.h>
+#include <dt-bindings/clock/qcom,mmcc-sdm660.h>
+#include <dt-bindings/regulator/qcom,rpm-smd-regulator.h>
+#include <dt-bindings/interrupt-controller/arm-gic.h>
+
+#include "sdm660-vts.dtsi"
 
 / {
-	model = "Qualcomm Technologies, Inc. SDM 660 PM660 + PM660L MTP";
+	model = "Qualcomm Technologies, Inc. SDM 660 PM660 + PM660L MTP overlay";
 	compatible = "qcom,sdm660-mtp", "qcom,sdm660", "qcom,mtp";
 	qcom,board-id = <8 0>;
 	qcom,pmic-id = <0x0001001b 0x0101011a 0x0 0x0>,
 			<0x0001001b 0x0201011a 0x0 0x0>,
 			<0x0001001b 0x0102001a 0x0 0x0>;
 };
-
-&tavil_snd {
-	qcom,msm-mbhc-moist-cfg = <0>, <0>, <3>;
-};
-
-&slim_aud {
-	/delete-node/tasha_codec;
-};
-
-&soc {
-	/delete-node/sound-9335;
-};
-

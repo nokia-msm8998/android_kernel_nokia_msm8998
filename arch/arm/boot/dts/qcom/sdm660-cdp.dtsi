@@ -55,6 +55,7 @@
 
 &i2c_6 { /* BLSP1 QUP6 (NFC) */
 	status = "okay";
+/* rm nxp nfc by henry.liu for m690
 	nq@28 {
 		compatible = "qcom,nq-nci";
 		reg = <0x28>;
@@ -73,6 +74,7 @@
 		clocks = <&clock_rpmcc RPM_LN_BB_CLK3_PIN>;
 		clock-names = "ref_clk";
 	};
+*/
 };
 
 &mdss_mdp {
@@ -84,7 +86,7 @@
 };
 
 &mdss_dsi0 {
-	qcom,dsi-pref-prim-pan = <&dsi_dual_nt35597_truly_video>;
+	qcom,dsi-pref-prim-pan = <&dsi_nt35695b_truly_fhd_video>;
 	pinctrl-names = "mdss_default", "mdss_sleep";
 	pinctrl-0 = <&mdss_dsi_active &mdss_te_active>;
 	pinctrl-1 = <&mdss_dsi_suspend &mdss_te_suspend>;
@@ -93,7 +95,7 @@
 };
 
 &mdss_dsi1 {
-	qcom,dsi-pref-prim-pan = <&dsi_dual_nt35597_truly_video>;
+	qcom,dsi-pref-prim-pan = <&dsi_nt35695b_truly_fhd_video>;
 	pinctrl-names = "mdss_default", "mdss_sleep";
 	pinctrl-0 = <&mdss_dsi_active &mdss_te_active>;
 	pinctrl-1 = <&mdss_dsi_suspend &mdss_te_suspend>;
@@ -105,6 +107,7 @@
 	qcom,led-strings-list = [01 02];
 };
 
+/*
 &dsi_dual_nt35597_truly_video {
 	qcom,mdss-dsi-bl-pmic-control-type = "bl_ctrl_wled";
 	qcom,mdss-dsi-bl-min-level = <1>;
@@ -153,6 +156,7 @@
 	qcom,partial-update-enabled = "single_roi";
 	qcom,panel-roi-alignment = <720 128 720 128 1440 128>;
 };
+*/
 
 &dsi_nt35695b_truly_fhd_video {
 	qcom,mdss-dsi-bl-pmic-control-type = "bl_ctrl_wled";
@@ -161,6 +165,7 @@
 	qcom,panel-supply-entries = <&dsi_panel_pwr_supply>;
 };
 
+/*
 &dsi_nt35695b_truly_fhd_cmd {
 	qcom,mdss-dsi-bl-pmic-control-type = "bl_ctrl_wled";
 	qcom,mdss-dsi-bl-min-level = <1>;
@@ -197,6 +202,7 @@
 	qcom,mdss-dsi-bl-max-level = <4095>;
 	qcom,panel-supply-entries = <&dsi_panel_pwr_supply>;
 };
+*/
 
 &mdss_dp_ctrl {
 	pinctrl-names = "mdss_dp_active", "mdss_dp_sleep";

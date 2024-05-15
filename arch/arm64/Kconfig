@@ -202,6 +202,18 @@ config NEED_SG_DMA_LENGTH
 config SMP
 	def_bool y
 
+config SPEAKER_EXT_PA
+    default y
+    bool "Speaker external PA"
+    help
+        Support for external PA.
+
+config SPEAKER_EXT_PA_AW87318
+    default y
+    bool "Speaker external PA AW87318"
+    help
+        Support for the AW87318.
+
 config HOTPLUG_SIZE_BITS
 	int "Memory hotplug block size(28 => 256MB 30 => 1GB)"
 	depends on SPARSEMEM

@@ -281,6 +281,27 @@
 		};
 	};
 
+	//xiaopei add sar sensor ldoa18 always-on,2019-3-16 begin
+	rpm-regulator-ldoa18 {
+		compatible = "qcom,rpm-smd-regulator-resource";
+		qcom,resource-name = "ldoa";
+		qcom,resource-id = <18>;
+		qcom,regulator-type = <0>;
+		status = "okay";
+		regulator-always-on;
+		regulator-l18 {
+			compatible = "qcom,rpm-smd-regulator";
+			regulator-name = "pm660_l18";
+			qcom,set = <3>;		
+			regulator-min-microvolt = <2850000>;
+			regulator-max-microvolt = <2850000>;
+			qcom,init-voltage = <2850000>;
+			status = "okay";
+			regulator-always-on;
+		};
+	};
+	//xiaopei add sar sensor ldoa18 always-on,2019-3-16 End
+
 	rpm-regulator-ldoa19 {
 		compatible = "qcom,rpm-smd-regulator-resource";
 		qcom,resource-name = "ldoa";

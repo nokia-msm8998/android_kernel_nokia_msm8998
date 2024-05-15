@@ -38,7 +38,7 @@
 };
 
 &mdss_dsi0 {
-	qcom,dsi-pref-prim-pan = <&dsi_dual_nt36850_truly_cmd>;
+	qcom,dsi-pref-prim-pan = <&dsi_ft8719_tianma_fhdplus_video>;
 	pinctrl-names = "mdss_default", "mdss_sleep";
 	pinctrl-0 = <&mdss_dsi_active &mdss_te_active>;
 	pinctrl-1 = <&mdss_dsi_suspend &mdss_te_suspend>;
@@ -47,7 +47,7 @@
 };
 
 &mdss_dsi1 {
-	qcom,dsi-pref-prim-pan = <&dsi_dual_nt36850_truly_cmd>;
+	qcom,dsi-pref-prim-pan = <&dsi_ft8719_tianma_fhdplus_video>;
 	pinctrl-names = "mdss_default", "mdss_sleep";
 	pinctrl-0 = <&mdss_dsi_active &mdss_te_active>;
 	pinctrl-1 = <&mdss_dsi_suspend &mdss_te_suspend>;
@@ -55,12 +55,14 @@
 	qcom,platform-te-gpio = <&tlmm 59 0>;
 };
 
+/*
 &dsi_dual_nt36850_truly_cmd {
 	qcom,mdss-dsi-bl-pmic-control-type = "bl_ctrl_wled";
 	qcom,mdss-dsi-bl-min-level = <1>;
 	qcom,mdss-dsi-bl-max-level = <4095>;
 	qcom,panel-supply-entries = <&dsi_panel_pwr_supply>;
 };
+*/
 
 &pm660l_wled {
 	qcom,led-strings-list = [00 01];

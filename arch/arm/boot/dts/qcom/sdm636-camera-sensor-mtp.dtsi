@@ -12,6 +12,7 @@
  */
 
 &cci {
+#if 0
 	actuator0: qcom,actuator@0 {
 		cell-index = <0>;
 		reg = <0x0>;
@@ -47,4 +48,5 @@
 		qcom,cam-vreg-max-voltage = <3400000>;
 		qcom,cam-vreg-op-mode = <100000>;
 	};
+#endif
 };

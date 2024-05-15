@@ -199,6 +199,8 @@
 			snps,disable-clk-gating;
 			snps,has-lpm-erratum;
 			snps,is-utmi-l1-suspend;
+			/*NHK_M690_A01-1006 idle power 16mA add by wangyibo at 20190422*/
+			maximum-speed = "high-speed";
 			snps,hird-threshold = /bits/ 8 <0x0>;
 		};
 

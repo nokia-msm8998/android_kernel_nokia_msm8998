@@ -15,8 +15,8 @@
 / {
 	mtp_batterydata: qcom,battery-data {
 		qcom,batt-id-range-pct = <15>;
-		#include "fg-gen3-batterydata-itech-3000mah.dtsi"
-		#include "fg-gen3-batterydata-ascent-3450mah.dtsi"
+		#include "fg-gen3-batterydata-m690-Veken-3500mAH.dtsi"
+		#include "fg-gen3-batterydata-m690-ATL-3500mAH.dtsi"
 	};
 };
 
@@ -68,25 +68,66 @@
 	};
 };
 
+&spi_4 { 
+        status = "okay";
+        focaltech@0{
+		compatible = "focaltech,fts";
+                #address-cells = <1>;
+                #size-cells = <1>;
+                reg = <0>; // Chip select 0 
+                spi-max-frequency = <5000000>;
+                spi-cpha;
+		interrupt-parent = <&tlmm>;
+		interrupts = <67 0x2>;
+		vdd-supply = <&pm660_l11>;
+		// pins used by touchscreen 
+                pinctrl-names = "pmx_ts_active","pmx_ts_suspend","pmx_ts_release";
+                pinctrl-0 = <&ts_int_active &ts_reset_active>;
+                pinctrl-1 = <&ts_int_suspend &ts_reset_suspend>;
+                pinctrl-2 = <&ts_release>;
+		focaltech,name = "fts_ts";
+		focaltech,reset-gpio = <&tlmm 66 0x01>;
+		focaltech,irq-gpio = <&tlmm 67 0x02>;
+		focaltech,display-coords = <0 0 1080 2340>;
+		focaltech,max-touch-number = <10>;
+	};
+
+        himax-ts@1{
+		compatible = "himax,hxcommon";
+                #address-cells = <1>;
+                #size-cells = <1>;
+                reg = <1>; // Chip select 1 
+                spi-max-frequency = <10000000>; //modify by shenwenbin for wakeup slowly 20190610
+                //spi-cpol;
+		//spi-cpha;
+		interrupt-parent = <&tlmm>;
+		interrupts = <67 0x2008>;
+		vdd-supply = <&pm660_l11>;
+                himax,panel-coords      = <0 1080 0 2340>;
+                himax,display-coords    = <0 1080 0 2340>;
+		himax,rst-gpio          = <&tlmm 66 0x00>;
+		himax,irq-gpio          = <&tlmm 67 0x2008>;
+                report_type             = <1>;
+	};
+};
+
 &i2c_6 { /* BLSP1 QUP6 (NFC) */
 	status = "okay";
-	nq@28 {
-		compatible = "qcom,nq-nci";
-		reg = <0x28>;
-		qcom,nq-irq = <&tlmm 28 0x00>;
-		qcom,nq-ven = <&tlmm 29 0x00>;
-		qcom,nq-firm = <&tlmm 30 0x00>;
-		qcom,nq-clkreq = <&pm660_gpios 4 0x00>;
-		qcom,nq-esepwr = <&tlmm 31 0x00>;
+	sec-nfc@27 {
+		compatible = "sec-nfc";
+		reg = <0x27>;
+		sec-nfc,irq-gpio = <&tlmm 28 0x00>;
+		sec-nfc,ven-gpio = <&tlmm 29 0x00>;
+		sec-nfc,firm-gpio = <&tlmm 30 0x00>;
+		sec-nfc,clk_req-gpio = <&pm660_gpios 4 0x00>;
 		interrupt-parent = <&tlmm>;
-		qcom,clk-src = "BBCLK3";
 		interrupts = <28 0>;
 		interrupt-names = "nfc_irq";
 		pinctrl-names = "nfc_active", "nfc_suspend";
 		pinctrl-0 = <&nfc_int_active &nfc_enable_active>;
 		pinctrl-1 = <&nfc_int_suspend &nfc_enable_suspend>;
-		clocks = <&clock_rpmcc RPM_LN_BB_CLK3_PIN>;
-		clock-names = "ref_clk";
+		clocks = <&clock_rpmcc RPM_LN_BB_CLK3>;
+		clock-names = "OSC_NFC";
 	};
 };
 
@@ -95,20 +136,21 @@
 };
 
 &mdss_dsi {
-	hw-config = "split_dsi";
+	hw-config = "single_dsi";
 };
 
 &mdss_dsi0 {
-	qcom,dsi-pref-prim-pan = <&dsi_dual_nt35597_truly_video>;
+	qcom,dsi-pref-prim-pan = <&dsi_ft8719_tianma_fhdplus_video>;
 	pinctrl-names = "mdss_default", "mdss_sleep";
-	pinctrl-0 = <&mdss_dsi_active &mdss_te_active>;
-	pinctrl-1 = <&mdss_dsi_suspend &mdss_te_suspend>;
+	pinctrl-0 = <&px8418_reset_active &mdss_dsi_active &mdss_te_active>;
+	pinctrl-1 = <&px8418_reset_suspend &mdss_dsi_suspend &mdss_te_suspend>;
 	qcom,platform-reset-gpio = <&tlmm 53 0>;
+	qcom,px8418-reset-gpio = <&tlmm 25 0>;
 	qcom,platform-te-gpio = <&tlmm 59 0>;
 };
 
 &mdss_dsi1 {
-	qcom,dsi-pref-prim-pan = <&dsi_dual_nt35597_truly_video>;
+	qcom,dsi-pref-prim-pan = <&dsi_ft8719_tianma_fhdplus_video>;
 	pinctrl-names = "mdss_default", "mdss_sleep";
 	pinctrl-0 = <&mdss_dsi_active &mdss_te_active>;
 	pinctrl-1 = <&mdss_dsi_suspend &mdss_te_suspend>;
@@ -126,9 +168,24 @@
 };
 
 &pm660l_wled {
-	qcom,led-strings-list = [01 02];
+	qcom,led-strings-list = [00 01 02];
 };
 
+&dsi_ft8719_tianma_fhdplus_video {
+        qcom,mdss-dsi-bl-pmic-control-type = "bl_ctrl_wled";
+        qcom,mdss-dsi-bl-min-level = <1>;
+        qcom,mdss-dsi-bl-max-level = <4095>;
+        qcom,panel-supply-entries = <&dsi_panel_pwr_supply>;
+};
+
+&dsi_hx83112a_hlt_fhdplus_video {
+        qcom,mdss-dsi-bl-pmic-control-type = "bl_ctrl_wled";
+        qcom,mdss-dsi-bl-min-level = <1>;
+        qcom,mdss-dsi-bl-max-level = <4095>;
+        qcom,panel-supply-entries = <&dsi_panel_pwr_supply>;
+};
+/*modify by shenwenbin for M690 display 20190312 end*/
+/*
 &dsi_dual_nt35597_truly_video {
 	qcom,mdss-dsi-bl-pmic-control-type = "bl_ctrl_wled";
 	qcom,mdss-dsi-bl-min-level = <1>;
@@ -165,14 +222,14 @@
 	qcom,mdss-dsi-bl-max-level = <4095>;
 	qcom,panel-supply-entries = <&dsi_panel_pwr_supply>;
 };
-
+*/
 &dsi_nt35695b_truly_fhd_video {
 	qcom,mdss-dsi-bl-pmic-control-type = "bl_ctrl_wled";
 	qcom,mdss-dsi-bl-min-level = <1>;
 	qcom,mdss-dsi-bl-max-level = <4095>;
 	qcom,panel-supply-entries = <&dsi_panel_pwr_supply>;
 };
-
+/*
 &dsi_nt35695b_truly_fhd_cmd {
 	qcom,mdss-dsi-bl-pmic-control-type = "bl_ctrl_wled";
 	qcom,mdss-dsi-bl-min-level = <1>;
@@ -190,6 +247,7 @@
 	qcom,mdss-dsi-bl-max-level = <4095>;
 	qcom,panel-supply-entries = <&dsi_panel_pwr_supply>;
 };
+*/
 
 &sdhc_1 {
 	/* device core power supply */
@@ -241,7 +299,7 @@
 			1 &intc 0 0 221 0
 			2 &tlmm 54 0>;
 	interrupt-names = "hc_irq", "pwr_irq", "status_irq";
-	cd-gpios = <&tlmm 54 0x1>;
+	cd-gpios = <&tlmm 54 0x0>;
 
 	qcom,clk-rates = <400000 20000000 25000000 50000000 100000000
 								200000000>;
@@ -254,6 +312,35 @@
 	qcom,msm-ssc-sensors {
 		compatible = "qcom,msm-ssc-sensors";
 	};
+	/* modify by zhoudan for fingerprint 20190311 begin */
+	sunwave_fp {
+		compatible = "fingerprint,sunwave_fp";
+		interrupt-parent = <&tlmm>;
+		interrupt = <72 0x0>;
+		VDD-supply = <&pm660l_l3>;
+		sunwave,gpio_irq = <&tlmm 72 0x00>;
+		sunwave,gpio_reset = <&tlmm 20 0x00>;
+		status = "ok";
+	};
+	silead_fp {
+		compatible = "sil,silead_fp";
+		qcom,qup-id=<3>;
+		interrupt-parent = <&tlmm>;
+		interrupt = <72 0x2008>;
+		avdd-supply = <&pm660l_l3>;
+		irq-gpios = <&tlmm 72 0x00>;
+		rst-gpios = <&tlmm 20 0x00>;
+		status = "ok";
+	};
+	cdfinger_fingerprint {
+		compatible = "cdfinger,fingerprint";
+		interrupt-parent = <&tlmm>;
+		interrupts = <72 0x0>;
+		vdd-supply = <&pm660l_l3>;
+		cdfinger,reset_gpio = <&tlmm 20 0>;
+		cdfinger,irq_gpio = <&tlmm 72 0>;
+	};
+	/* modify by zhoudan for fingerprint 20190311 end */
 };
 
 &mem_client_3_size {
@@ -264,6 +351,8 @@
 	qcom,battery-data = <&mtp_batterydata>;
 };
 
+/*M690 donnot support parallel charging delete by wangyibo at 20190315*/
+/*
 &i2c_2 {
 	status = "ok";
 	smb1351-charger@1d {
@@ -275,3 +364,23 @@
 		qcom,parallel-en-pin-polarity = <1>;
 	};
 };
+*/
+
+
+//xiaopei add sar sensor begin 
+&i2c_7 {
+	status =  "okay";
+	abov_sar@20 {				
+				compatible = "abov,abov_sar";
+				//gpio-irq = <70>;                  
+				gpio-irq-std =<&tlmm 70 0>;
+				reg = <0x20>;
+				reg_array_len = <0x03>;
+				reg_array_val = <0x07 0x00 0x08 0x1F 0xFB 0x01>;
+				cap,use_channel_prx = <0x00>;
+				cap,use_channel_drx = <0x01>;
+				cap,use_channel_wifi = <0x02>;
+				label = "AbovCapSense";
+	           };
+};
+//xiaopei add sar sensor End
