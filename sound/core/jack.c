@@ -363,7 +363,11 @@ void snd_jack_report(struct snd_jack *jack, int status)
 	if (!jack->input_dev)
 		return;
 
+#ifdef CONFIG_MACH_LONGCHEER
+	for (i = 0; i < ARRAY_SIZE(jack->key)-3; i++) {
+#else
 	for (i = 0; i < ARRAY_SIZE(jack->key); i++) {
+#endif
 		int testbit = SND_JACK_BTN_0 >> i;
 
 		if (jack->type & testbit)

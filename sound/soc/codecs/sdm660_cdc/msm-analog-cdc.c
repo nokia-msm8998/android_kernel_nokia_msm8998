@@ -34,6 +34,10 @@
 #include "../../msm/sdm660-common.h"
 #include "../wcd-mbhc-v2.h"
 
+#ifdef CONFIG_MACH_LONGCHEER
+#include <linux/of_gpio.h>
+#endif
+
 #define DRV_NAME "pmic_analog_codec"
 #define SDM660_CDC_RATES (SNDRV_PCM_RATE_8000 | SNDRV_PCM_RATE_16000 |\
 			SNDRV_PCM_RATE_32000 | SNDRV_PCM_RATE_44100 |\
@@ -59,7 +63,11 @@
 #define SPK_PMD 2
 #define SPK_PMU 3
 
+#ifndef CONFIG_MACH_LONGCHEER
 #define MICBIAS_DEFAULT_VAL 1800000
+#else
+#define MICBIAS_DEFAULT_VAL 2700000	//modified from 1800000 to 2700000 by wenhuilong @20190531 for high impendance headphone mic
+#endif
 #define MICBIAS_MIN_VAL 1600000
 #define MICBIAS_STEP_SIZE 50000
 

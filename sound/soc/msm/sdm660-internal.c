@@ -20,6 +20,12 @@
 #include "../codecs/sdm660_cdc/msm-digital-cdc.h"
 #include "../codecs/sdm660_cdc/msm-analog-cdc.h"
 #include "../codecs/msm_sdw/msm_sdw.h"
+#ifdef CONFIG_MACH_LONGCHEER
+//added begin by wenhuilong @20190313 for M690 audio bringup
+#include "msm-audio-pinctrl.h"
+#include <linux/delay.h>
+//added end by wenhuilong @20190313 for M690 audio bringup
+#endif
 #include <linux/pm_qos.h>
 
 #define __CHIPSET__ "SDM660 "
@@ -187,6 +193,11 @@ static void msm_int_mi2s_snd_shutdown(struct snd_pcm_substream *substream);
 
 static struct wcd_mbhc_config *mbhc_cfg_ptr;
 static struct snd_info_entry *codec_root;
+
+#ifdef CONFIG_MACH_LONGCHEER
+int is_awinic_ext_pa = 0;	//added end by wenhuilong @20190420 for will pa compatible
+bool spk_ext_pa_is_on = 0;	//added by wenhuilong @20190515 for hph padac ctrl
+#endif
 
 static int int_mi2s_get_bit_format_val(int bit_format)
 {
@@ -504,6 +515,31 @@ static int is_ext_spk_gpio_support(struct platform_device *pdev,
 			return -EINVAL;
 		}
 	}
+
+#ifdef CONFIG_MACH_LONGCHEER
+	//added begin by wenhuilong @20190507 for will pa compatible
+	pdata->spk_ext_pa_gpio_det = of_get_named_gpio_flags(pdev->dev.of_node, "qcom,spk_ext_pa_det", 0, NULL);
+	if (pdata->spk_ext_pa_gpio_det < 0) {
+		pr_err("%s, spk_ext_pa_gpio_det not exist!\n", __func__);
+	} else {
+
+		if (gpio_is_valid(pdata->spk_ext_pa_gpio_det))
+		{
+			pr_debug("%s, spk_ext_pa_gpio_det request\n", __func__);
+			if (!gpio_request(pdata->spk_ext_pa_gpio_det, "ext/PA-det-GPIO")) {
+				pr_err("Failed to request /ext/PA-det-GPIO\n");
+				return -EINVAL;
+			}
+			pr_debug("At %d In (%s),set spk_ext_pa_gpio_det to input\n",__LINE__, __FUNCTION__);//check run to here ?
+			gpio_direction_input(pdata->spk_ext_pa_gpio_det);
+
+			pr_debug("At %d In (%s), spk_ext_pa_gpio_det = %d , spk_ext_pa_gpio = %d\n",__LINE__, __FUNCTION__,pdata->spk_ext_pa_gpio_det, pdata->spk_ext_pa_gpio);
+			is_awinic_ext_pa = gpio_get_value(pdata->spk_ext_pa_gpio_det);
+			//msleep(5);
+		}
+	}
+	//added end by wenhuilong @20190507 for will pa compatible
+#endif
 	return 0;
 }
 
@@ -511,7 +547,9 @@ static int enable_spk_ext_pa(struct snd_soc_codec *codec, int enable)
 {
 	struct snd_soc_card *card = codec->component.card;
 	struct msm_asoc_mach_data *pdata = snd_soc_card_get_drvdata(card);
+	#ifndef CONFIG_SPEAKER_EXT_PA_AW87318	//added by wenhuilong @20190507 for ext pa bringup
 	int ret;
+	#endif
 
 	if (!gpio_is_valid(pdata->spk_ext_pa_gpio)) {
 		pr_err("%s: Invalid gpio: %d\n", __func__,
@@ -519,9 +557,85 @@ static int enable_spk_ext_pa(struct snd_soc_codec *codec, int enable)
 		return false;
 	}
 
+#ifndef CONFIG_MACH_LONGCHEER
 	pr_debug("%s: %s external speaker PA\n", __func__,
+#else
+	printk("%s: %s external speaker PA\n", __func__,
+#endif
 		enable ? "Enable" : "Disable");
 
+//added begin by wenhuilong @20190507 for ext pa bringup
+#if defined(CONFIG_SPEAKER_EXT_PA_AW87318)
+	if (enable)
+	{
+		printk("At %d In (%s),set pa is_awinic_ext_pa = %d\n",__LINE__, __FUNCTION__,is_awinic_ext_pa);
+		gpio_direction_output(pdata->spk_ext_pa_gpio, 0);
+		mdelay(3);
+
+		if(is_awinic_ext_pa)
+		{
+			printk("start awinic pa mode 3");
+			gpio_set_value(pdata->spk_ext_pa_gpio, 1);
+			udelay(2);//usleep(2);
+			gpio_set_value(pdata->spk_ext_pa_gpio, 0);
+			udelay(2);//usleep(2);
+			gpio_set_value(pdata->spk_ext_pa_gpio, 1);
+			udelay(2);//usleep(2);
+			gpio_set_value(pdata->spk_ext_pa_gpio, 0);
+			udelay(2);//usleep(2);
+		}
+		else
+		{
+			printk("start will pa mode 8");
+			gpio_set_value(pdata->spk_ext_pa_gpio, 1);
+			udelay(2);//usleep(2);
+			gpio_set_value(pdata->spk_ext_pa_gpio, 0);
+			udelay(2);//usleep(2);
+			gpio_set_value(pdata->spk_ext_pa_gpio, 1);
+			udelay(2);//usleep(2);
+			gpio_set_value(pdata->spk_ext_pa_gpio, 0);
+			udelay(2);//usleep(2);
+			gpio_set_value(pdata->spk_ext_pa_gpio, 1);
+			udelay(2);//usleep(2);
+			gpio_set_value(pdata->spk_ext_pa_gpio, 0);
+			udelay(2);//usleep(2);
+			gpio_set_value(pdata->spk_ext_pa_gpio, 1);
+			udelay(2);//usleep(2);
+			gpio_set_value(pdata->spk_ext_pa_gpio, 0);
+			udelay(2);//usleep(2);
+			gpio_set_value(pdata->spk_ext_pa_gpio, 1);
+			udelay(2);//usleep(2);
+			gpio_set_value(pdata->spk_ext_pa_gpio, 0);
+			udelay(2);//usleep(2);
+			gpio_set_value(pdata->spk_ext_pa_gpio, 1);
+			udelay(2);//usleep(2);
+			gpio_set_value(pdata->spk_ext_pa_gpio, 0);
+			udelay(2);//usleep(2);
+			gpio_set_value(pdata->spk_ext_pa_gpio, 1);
+			udelay(2);//usleep(2);
+			gpio_set_value(pdata->spk_ext_pa_gpio, 0);
+			udelay(2);//usleep(2);
+		}
+
+		gpio_set_value(pdata->spk_ext_pa_gpio, 1);
+		//pr_debug("At %d In (%s),will delay\n",__LINE__, __FUNCTION__);
+		msleep(3);
+
+		spk_ext_pa_is_on = 1;	//added by wenhuilong @20190515 for hph padac ctrl
+
+		pr_debug("At %d In (%s),after set,spk_ext_pa_gpio=%d\n",__LINE__, __FUNCTION__,gpio_get_value(pdata->spk_ext_pa_gpio));
+
+	}
+	else {
+		//pr_debug("At %d In (%s),close pa\n",__LINE__, __FUNCTION__);
+		gpio_set_value(pdata->spk_ext_pa_gpio, 0);
+
+		spk_ext_pa_is_on = 0;	//added by wenhuilong @20190515 for hph padac ctrl
+
+		printk("At %d In (%s),after close,spk_ext_pa_gpio=%d\n",__LINE__, __FUNCTION__,gpio_get_value(pdata->spk_ext_pa_gpio));
+	}
+#else
+//added end by wenhuilong @20190507 for ext pa bringup
 	if (enable) {
 		ret = msm_cdc_pinctrl_select_active_state(
 						pdata->ext_spk_gpio_p);
@@ -541,6 +655,7 @@ static int enable_spk_ext_pa(struct snd_soc_codec *codec, int enable)
 			return ret;
 		}
 	}
+#endif
 	return 0;
 }
 
@@ -1309,7 +1424,11 @@ static void *def_msm_int_wcd_mbhc_cal(void)
 		return NULL;
 
 #define S(X, Y) ((WCD_MBHC_CAL_PLUG_TYPE_PTR(msm_int_wcd_cal)->X) = (Y))
+#ifdef CONFIG_MACH_LONGCHEER	//added by wenhuilong @20190520 for fix hs btn
+	S(v_hs_max, 1700);
+#else
 	S(v_hs_max, 1500);
+#endif
 #undef S
 #define S(X, Y) ((WCD_MBHC_CAL_BTN_DET_PTR(msm_int_wcd_cal)->X) = (Y))
 	S(num_btn, WCD_MBHC_DEF_BUTTONS);
@@ -1332,17 +1451,25 @@ static void *def_msm_int_wcd_mbhc_cal(void)
 	 * 210-290 == Button 2
 	 * 360-680 == Button 3
 	 */
-	btn_low[0] = 75;
-	btn_high[0] = 75;
+        btn_low[0] = 75;
+        btn_high[0] = 75;
+#ifdef CONFIG_MACH_LONGCHEER
+	btn_low[1] = 200;
+	btn_high[1] = 200;
+	btn_low[2] = 450;
+	btn_high[2] = 450;
+	btn_low[3] = 500;
+	btn_high[3] = 500;
+#else
 	btn_low[1] = 150;
 	btn_high[1] = 150;
 	btn_low[2] = 225;
 	btn_high[2] = 225;
 	btn_low[3] = 450;
 	btn_high[3] = 450;
+#endif
 	btn_low[4] = 500;
 	btn_high[4] = 500;
-
 	return msm_int_wcd_cal;
 }
 
@@ -1383,6 +1510,10 @@ static int msm_audrx_init(struct snd_soc_pcm_runtime *rtd)
 	snd_soc_dapm_ignore_suspend(dapm, "Digital Mic2");
 	snd_soc_dapm_ignore_suspend(dapm, "Digital Mic3");
 	snd_soc_dapm_ignore_suspend(dapm, "Digital Mic4");
+
+#ifdef CONFIG_MACH_LONGCHEER
+	snd_soc_dapm_ignore_suspend(dapm, "Ext Spk");	//added by wenhuilong @ 20190520 for stop ext pa suspend in voice call
+#endif
 
 	snd_soc_dapm_ignore_suspend(dapm, "EAR");
 	snd_soc_dapm_ignore_suspend(dapm, "HEADPHONE");
