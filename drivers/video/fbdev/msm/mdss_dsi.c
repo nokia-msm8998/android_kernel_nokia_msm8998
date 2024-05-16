@@ -1,4 +1,4 @@
-/* Copyright (c) 2012-2020, The Linux Foundation. All rights reserved.
+\/* Copyright (c) 2012-2020, The Linux Foundation. All rights reserved.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License version 2 and
@@ -27,6 +27,9 @@
 #include <linux/msm-bus.h>
 #include <linux/pm_qos.h>
 #include <linux/dma-buf.h>
+#ifdef CONFIG_MACH_LONGCHEER
+#include <linux/lct_tp_fm_info.h>
+#endif
 
 #include "mdss.h"
 #include "mdss_panel.h"
@@ -36,6 +39,10 @@
 #include "mdss_dba_utils.h"
 #include "mdss_livedisplay.h"
 
+#if defined(CONFIG_PXLW_IRIS3)
+#include "mdss_dsi_iris3.h"
+#endif
+
 #define CMDLINE_DSI_CTL_NUM_STRING_LEN 2
 
 /* Master structure to hold all the information about the DSI/panel */
@@ -43,6 +50,10 @@ static struct mdss_dsi_data *mdss_dsi_res;
 
 #define DSI_DISABLE_PC_LATENCY 100
 #define DSI_ENABLE_PC_LATENCY PM_QOS_DEFAULT_VALUE
+
+#ifdef CONFIG_MACH_LONGCHEER
+bool clk_already_init = false;
+#endif
 
 static struct pm_qos_request mdss_dsi_pm_qos_request;
 
@@ -196,6 +207,63 @@ static struct mdss_dsi_ctrl_pdata *mdss_dsi_get_ctrl(u32 ctrl_id)
 
 	return mdss_dsi_res->ctrl_pdata[ctrl_id];
 }
+
+#ifdef CONFIG_MACH_LONGCHEER
+/*modify by shenwenbin for M690 display 20190312 begin*/
+static int px8148_clk_int(struct platform_device *pdev ,struct mdss_dsi_ctrl_pdata *ctrl)
+{
+        struct device *dev = NULL;
+        int rc = 0;
+
+        if (!pdev) {
+            pr_err("%s: Invalid pdev\n", __func__);
+            return -EINVAL;
+        }
+
+        dev = &pdev->dev;
+        if(clk_already_init == false){
+                printk("swb.%s next to get bb_clk2\n",__func__);
+                ctrl->BB_clk2 = devm_clk_get(dev, "bb_clk_2");
+                if (IS_ERR(ctrl->BB_clk2)) {
+                        rc = PTR_ERR(ctrl->BB_clk2);
+                        pr_err("%s: can't find BB_clk2. rc=%d\n",__func__, rc);
+                        ctrl->BB_clk2 = NULL;
+                }else{
+                        printk("swb.%s successful\n",__func__);
+                        clk_already_init = true;
+                }
+        }
+        return rc;
+}
+
+static int px8148_clk_select(struct mdss_dsi_ctrl_pdata *ctrl)
+{
+	int rc = 0;
+
+	if (ctrl->BB_clk2 == NULL)
+                goto err_clk;
+
+        rc = clk_prepare_enable(ctrl->BB_clk2);
+	if (rc)
+		goto err_clk;
+        else
+                printk("swb.%s enable\n",__func__);
+	return rc;
+
+err_clk:
+	rc = -1;
+	return rc;
+}
+
+static void px8148_clk_deselect(struct mdss_dsi_ctrl_pdata *ctrl)
+{
+        if (ctrl->BB_clk2 != NULL)
+	    clk_disable_unprepare(ctrl->BB_clk2);
+
+        printk("swb.%s disable\n",__func__);
+}
+/*modify by shenwenbin for M690 display 20190312 end*/
+#endif
 
 static void mdss_dsi_config_clk_src(struct platform_device *pdev)
 {
@@ -387,12 +455,22 @@ static int mdss_dsi_panel_power_off(struct mdss_panel_data *pdata)
 	if (mdss_dsi_pinctrl_set_state(ctrl_pdata, false))
 		pr_debug("reset disable: pinctrl not enabled\n");
 
+#ifdef CONFIG_MACH_LONGCHEER
+        /*modify by shenwenbin for open double tap wakeup 20190516 begin*/
+        if(tp_gesture_wakeup() == 1) {
+                return 0;
+        } else {
+#endif
 	ret = msm_dss_enable_vreg(
 		ctrl_pdata->panel_power_data.vreg_config,
 		ctrl_pdata->panel_power_data.num_vreg, 0);
 	if (ret)
 		pr_err("%s: failed to disable vregs for %s\n",
 			__func__, __mdss_dsi_pm_name(DSI_PANEL_PM));
+#ifdef CONFIG_MACH_LONGCHEER
+	}
+        /*modify by shenwenbin for open double tap wakeup 20190516 end*/
+#endif
 
 end:
 	return ret;
@@ -411,6 +489,11 @@ static int mdss_dsi_panel_power_on(struct mdss_panel_data *pdata)
 	ctrl_pdata = container_of(pdata, struct mdss_dsi_ctrl_pdata,
 				panel_data);
 
+#ifdef CONFIG_MACH_LONGCHEER
+        if(tp_gesture_wakeup() == 1) {
+              pr_debug("%s: panel power already ON\n", __func__);
+        } else {
+#endif
 	ret = msm_dss_enable_vreg(
 		ctrl_pdata->panel_power_data.vreg_config,
 		ctrl_pdata->panel_power_data.num_vreg, 1);
@@ -419,6 +502,9 @@ static int mdss_dsi_panel_power_on(struct mdss_panel_data *pdata)
 			__func__, __mdss_dsi_pm_name(DSI_PANEL_PM));
 		return ret;
 	}
+#ifdef CONFIG_MACH_LONGCHEER
+	}
+#endif
 
 	/*
 	 * If continuous splash screen feature is enabled, then we need to
@@ -1354,6 +1440,10 @@ static int mdss_dsi_off(struct mdss_panel_data *pdata, int power_state)
 	mdss_dsi_clk_ctrl(ctrl_pdata, ctrl_pdata->dsi_clk_handle,
 			  MDSS_DSI_CORE_CLK, MDSS_DSI_CLK_OFF);
 
+#ifdef CONFIG_MACH_LONGCHEER
+        px8148_clk_deselect(ctrl_pdata);        //modify by shenwenbin for M690 display 20190312
+#endif
+
 panel_power_ctrl:
 	ret = mdss_dsi_panel_power_ctrl(pdata, power_state);
 	if (ret) {
@@ -1516,6 +1606,16 @@ int mdss_dsi_on(struct mdss_panel_data *pdata)
 		pr_debug("%s: panel already on\n", __func__);
 		goto end;
 	}
+
+#ifdef CONFIG_MACH_LONGCHEER
+        /*modify by shenwenbin for M690 display 20190312 begin*/
+        ret = px8148_clk_select(ctrl_pdata);
+        if (ret) {
+		pr_err("%s: failed to set px8148 clk. rc=%d\n", __func__, ret);
+		goto end;
+	}
+        /*modify by shenwenbin for M690 display 20190312 end*/
+#endif
 
 	ret = mdss_dsi_panel_power_ctrl(pdata, MDSS_PANEL_POWER_ON);
 	if (ret) {
@@ -2963,6 +3063,9 @@ static int mdss_dsi_event_handler(struct mdss_panel_data *pdata,
 		rc = mdss_dsi_on(pdata);
 		break;
 	case MDSS_EVENT_UNBLANK:
+#if defined(CONFIG_PXLW_IRIS3)
+		iris_display_prepare();
+#endif
 		if (ctrl_pdata->on_cmds.link_state == DSI_LP_MODE)
 			rc = mdss_dsi_unblank(pdata);
 		break;
@@ -3320,6 +3423,10 @@ static struct device_node *mdss_dsi_config_panel(struct platform_device *pdev,
 		return NULL;
 	}
 
+#if defined(CONFIG_PXLW_IRIS3)
+	iris_set_cfg_name(dsi_pan_node->name);
+#endif
+
 	rc = mdss_dsi_panel_init(dsi_pan_node, ctrl_pdata, ndx);
 	if (rc) {
 		pr_err("%s: dsi panel init failed\n", __func__);
@@ -3620,6 +3727,20 @@ static int mdss_dsi_ctrl_probe(struct platform_device *pdev)
 		pr_err("%s: unable to initialize dsi clk manager\n", __func__);
 		return -EPERM;
 	}
+
+#ifdef CONFIG_MACH_LONGCHEER
+        /*modify by shenwenbin for M690 display 20190312 begin*/
+        rc = px8148_clk_int(pdev, ctrl_pdata);
+        if (rc) {
+		pr_err("%s: px8418 clk init failed\n", __func__);
+	}
+
+        rc = px8148_clk_select(ctrl_pdata);
+        if (rc) {
+		pr_err("%s: failed to set px8148 clk. rc=%d\n", __func__, rc);
+	}
+        /*modify by shenwenbin for M690 display 20190312 end*/
+#endif
 
 	dsi_pan_node = mdss_dsi_config_panel(pdev, index);
 	if (!dsi_pan_node) {
@@ -4569,6 +4690,18 @@ static int mdss_dsi_parse_gpio_params(struct platform_device *ctrl_pdev,
 		pr_err("%s:%d, reset gpio not specified\n",
 						__func__, __LINE__);
 
+#ifdef CONFIG_MACH_LONGCHEER
+        /*modify by shenwenbin for M690 display 20190312 begin*/
+        ctrl_pdata->px8418_reset_gpio = of_get_named_gpio(
+                ctrl_pdev->dev.of_node,
+                "qcom,px8418-reset-gpio", 0);
+
+        if (!gpio_is_valid(ctrl_pdata->px8418_reset_gpio))
+                pr_debug("%s:%d, px8418_reset gpio not specified\n",
+                                __func__, __LINE__);
+        /*modify by shenwenbin for M690 display 20190312 end*/
+#endif
+
 	ctrl_pdata->lcd_mode_sel_gpio = of_get_named_gpio(
 			ctrl_pdev->dev.of_node, "qcom,panel-mode-gpio", 0);
 	if (!gpio_is_valid(ctrl_pdata->lcd_mode_sel_gpio)) {
@@ -4697,6 +4830,13 @@ int dsi_panel_device_register(struct platform_device *ctrl_pdev,
 	else if (ctrl_pdata->status_mode == ESD_BTA)
 		ctrl_pdata->check_status = mdss_dsi_bta_status_check;
 
+#ifdef CONFIG_MACH_LONGCHEER
+        /*add by shenwenbin for LCD ESD check need use TP read status 20190428 begin*/
+        else if (ctrl_pdata->status_mode == ESD_TP)
+                        ctrl_pdata->check_status = mdss_dsi_read_touch_status;
+        /*add by shenwenbin for LCD ESD check need use TP read status 20190428 end*/
+#endif
+
 	if (ctrl_pdata->status_mode == ESD_MAX) {
 		pr_err("%s: Using default BTA for ESD check\n", __func__);
 		ctrl_pdata->check_status = mdss_dsi_bta_status_check;
@@ -4749,6 +4889,13 @@ int dsi_panel_device_register(struct platform_device *ctrl_pdev,
 	pinfo->cont_splash_enabled =
 		ctrl_pdata->mdss_util->panel_intf_status(pinfo->pdest,
 		MDSS_PANEL_INTF_DSI) ? true : false;
+
+#if defined(CONFIG_PXLW_IRIS3)
+	if(strstr(saved_command_line, "androidboot.mode=charger") != NULL)
+		iris_set_cont_splash(false);
+	else
+		iris_set_cont_splash(pinfo->cont_splash_enabled);
+#endif
 
 	pr_info("%s: Continuous splash %s\n", __func__,
 		pinfo->cont_splash_enabled ? "enabled" : "disabled");

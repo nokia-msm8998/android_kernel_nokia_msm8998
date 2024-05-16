@@ -122,4 +122,9 @@ config FB_MSM_MDSS_XLOG_DEBUG
 	driver during fatal errors and enable some display-driver logging
 	into an internal buffer (this avoids logging overhead).
 
+config PXLW_IRIS3
+	depends on FB_MSM_MDSS
+	bool "Enable pxlw iris3"
+	default n
+
 endif

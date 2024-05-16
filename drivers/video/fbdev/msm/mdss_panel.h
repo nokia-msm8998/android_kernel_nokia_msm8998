@@ -888,6 +888,9 @@ struct mdss_panel_info {
 	bool is_pluggable;
 	char display_id[MDSS_DISPLAY_ID_MAX_LEN];
 	bool is_cec_supported;
+#ifdef CONFIG_MACH_LONGCHEER
+        u32 panel_hwid;
+#endif
 
 	/* refer sim_panel_modes enum for different modes */
 	u8 sim_panel_mode;
