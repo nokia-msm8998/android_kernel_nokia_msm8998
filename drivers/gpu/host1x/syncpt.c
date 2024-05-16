@@ -448,7 +448,11 @@ int host1x_syncpt_nb_mlocks(struct host1x *host)
 
 struct host1x_syncpt *host1x_syncpt_get(struct host1x *host, u32 id)
 {
+#if defined(CONFIG_FIH_NB1) || defined(CONFIG_FIH_A1N)
+	if (host->info->nb_pts <= id)
+#else
 	if (host->info->nb_pts < id)
+#endif
 		return NULL;
 	return host->syncpt + id;
 }
