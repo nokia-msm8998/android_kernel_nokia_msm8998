@@ -68,6 +68,10 @@
 #define DEFAULT_THERMAL_GOVERNOR       "power_allocator"
 #endif
 
+#ifdef CONFIG_MACH_LONGCHEER
+#define CONFIG_THERMAL_SWITCH
+#endif
+
 struct thermal_zone_device;
 struct thermal_cooling_device;
 struct thermal_instance;
@@ -248,6 +252,16 @@ struct thermal_zone_device {
 	struct sensor_threshold tz_threshold[2];
 	struct sensor_info sensor;
 };
+
+#ifdef CONFIG_THERMAL_SWITCH
+struct thermal_message_device {
+	struct device device;
+	int sconfig;
+	int temp_state;
+};
+int thermal_message_device_register(void);
+void thermal_message_device_unregister(void);
+#endif //CONFIG_THERMAL_SWITCH
 
 /**
  * struct thermal_governor - structure that holds thermal governor information

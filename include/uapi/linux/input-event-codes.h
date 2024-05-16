@@ -611,6 +611,15 @@
 #define KEY_KBDINPUTASSIST_ACCEPT		0x264
 #define KEY_KBDINPUTASSIST_CANCEL		0x265
 
+#ifdef CONFIG_MACH_LONGCHEER
+/*add code for fingerprint by qujiong begin*/
+#define KEY_FINGERPRINT_UP      0x282
+#define KEY_FINGERPRINT_DOWN        0x283
+#define KEY_FINGERPRINT_LEFT        0x281
+#define KEY_FINGERPRINT_RIGHT       0x280
+/*add code for fingerprint by qujiong end*/
+#endif
+
 #define BTN_TRIGGER_HAPPY		0x2c0
 #define BTN_TRIGGER_HAPPY1		0x2c0
 #define BTN_TRIGGER_HAPPY2		0x2c1
@@ -652,6 +661,17 @@
 #define BTN_TRIGGER_HAPPY38		0x2e5
 #define BTN_TRIGGER_HAPPY39		0x2e6
 #define BTN_TRIGGER_HAPPY40		0x2e7
+
+#ifdef CONFIG_MACH_LONGCHEER
+#define BTN_CAP_PROX		0x2e8
+#define BTN_CAP_BODY		0x2e9
+
+#define KEY_ANT_HB_CONNECT         0x292
+#define KEY_ANT_HB_UNCONNECT       0x293
+
+#define KEY_ANT_MB_CONNECT         0x294
+#define KEY_ANT_MB_UNCONNECT       0x295
+#endif
 
 /* We avoid low common keys in module aliases so they don't get huge. */
 #define KEY_MIN_INTERESTING	KEY_MUTE
