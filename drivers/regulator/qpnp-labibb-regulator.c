@@ -3109,6 +3109,18 @@ static int register_qpnp_lab_regulator(struct qpnp_labibb *labibb,
 			return rc;
 		}
 	}
+
+#if defined(CONFIG_FIH_NB1) || defined(CONFIG_FIH_A1N)
+	if (of_property_read_bool(of_node,
+			"qcom,qpnp-lab-enable-pfm-mode")) {
+		pr_info("Lab PFM enable");
+		rc = qpnp_lab_pfm_enable(labibb);
+		if (rc < 0){
+			pr_err("Failed to register lab pfm rc=%d\n",rc);
+		}
+	}
+#endif
+
 	rc = qpnp_labibb_read(labibb, labibb->lab_base + REG_LAB_MODULE_RDY,
 				&val, 1);
 	if (rc < 0) {
@@ -3166,6 +3178,7 @@ static int register_qpnp_lab_regulator(struct qpnp_labibb *labibb,
 	return 0;
 }
 
+#ifndef CONFIG_FIH_A1N
 static int qpnp_ibb_pfm_mode_enable(struct qpnp_labibb *labibb,
 			struct device_node *of_node)
 {
@@ -3218,6 +3231,7 @@ static int qpnp_ibb_pfm_mode_enable(struct qpnp_labibb *labibb,
 
 	return rc;
 }
+#endif
 
 static int qpnp_labibb_pbs_mode_enable(struct qpnp_labibb *labibb,
 			struct device_node *of_node)
@@ -3909,12 +3923,14 @@ static int register_qpnp_ibb_regulator(struct qpnp_labibb *labibb,
 		}
 	}
 
+#ifndef CONFIG_FIH_A1N
 	if (of_property_read_bool(of_node,
 			"qcom,qpnp-ibb-enable-pfm-mode")) {
 		rc = qpnp_ibb_pfm_mode_enable(labibb, of_node);
 		if (rc < 0)
 			return rc;
 	}
+#endif
 
 	if (labibb->pbs_control) {
 		rc = qpnp_labibb_pbs_mode_enable(labibb, of_node);
