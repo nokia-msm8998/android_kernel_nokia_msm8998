@@ -1016,15 +1016,24 @@ static int32_t msm_cci_i2c_read_bytes(struct v4l2_subdev *sd,
 		pr_err("%s:%d cci_dev NULL\n", __func__, __LINE__);
 		return -EINVAL;
 	}
+#if defined(CONFIG_FIH_NB1) || defined(CONFIG_FIH_A1N)
+    	mutex_lock(&cci_dev->mutex_release); /* MM-MC-FixCciCountError-00+ */
+#endif
 	if (cci_dev->cci_state != CCI_STATE_ENABLED) {
 		pr_err("%s invalid cci state %d\n",
 			__func__, cci_dev->cci_state);
+#if defined(CONFIG_FIH_NB1) || defined(CONFIG_FIH_A1N)
+        	mutex_unlock(&cci_dev->mutex_release); /* MM-MC-FixCciCountError-00+ */
+#endif
 		return -EINVAL;
 	}
 
 	if (c_ctrl->cci_info->cci_i2c_master >= MASTER_MAX
 			|| c_ctrl->cci_info->cci_i2c_master < 0) {
 		pr_err("%s:%d Invalid I2C master addr\n", __func__, __LINE__);
+#if defined(CONFIG_FIH_NB1) || defined(CONFIG_FIH_A1N)
+        	mutex_unlock(&cci_dev->mutex_release); /* MM-MC-FixCciCountError-00+ */
+#endif
 		return -EINVAL;
 	}
 
@@ -1056,6 +1065,9 @@ static int32_t msm_cci_i2c_read_bytes(struct v4l2_subdev *sd,
 		}
 	} while (read_bytes);
 ERROR:
+#if defined(CONFIG_FIH_NB1) || defined(CONFIG_FIH_A1N)
+    	mutex_unlock(&cci_dev->mutex_release); /* MM-MC-FixCciCountError-00+ */
+#endif
 	return rc;
 }
 
@@ -1326,17 +1338,31 @@ static int32_t msm_cci_init(struct v4l2_subdev *sd,
 		return rc;
 	}
 
+#if defined(CONFIG_FIH_NB1) || defined(CONFIG_FIH_A1N)
+    	pr_err("%s:%d [Lock] For Current ref_count %d \n", __func__, __LINE__, cci_dev->ref_count);/* MM-MC-FixCciCountError-00+ */
+    	mutex_lock(&cci_dev->mutex_release); /* MM-MC-FixCciCountError-00+ */
+#endif
+
 	rc = cam_config_ahb_clk(NULL, 0, CAM_AHB_CLIENT_CCI,
 			CAM_AHB_SVS_VOTE);
 	if (rc < 0) {
+#if defined(CONFIG_FIH_NB1) || defined(CONFIG_FIH_A1N)
+        	mutex_unlock(&cci_dev->mutex_release); /* MM-MC-FixCciCountError-00+ */
+        	pr_err("%s:%d [UnLock] failed to vote for AHB \n", __func__, __LINE__);/* MM-MC-FixCciCountError-00* */
+#else
 		pr_err("%s: failed to vote for AHB\n", __func__);
+#endif
 		return rc;
 	}
 
 	if (cci_dev->ref_count++) {
 		CDBG("%s ref_count %d\n", __func__, cci_dev->ref_count);
 		master = c_ctrl->cci_info->cci_i2c_master;
+#if defined(CONFIG_FIH_NB1) || defined(CONFIG_FIH_A1N)
+		pr_err("%s:%d ref_count %d, master %d, sid 0x%x\n", __func__, __LINE__, cci_dev->ref_count, master, c_ctrl->cci_info->sid);
+#else
 		CDBG("%s:%d master %d\n", __func__, __LINE__, master);
+#endif
 		if (master < MASTER_MAX && master >= 0) {
 			mutex_lock(&cci_dev->cci_master_info[master].mutex);
 			mutex_lock(&cci_dev->cci_master_info[master].
@@ -1373,6 +1399,10 @@ static int32_t msm_cci_init(struct v4l2_subdev *sd,
 				mutex_q[PRIORITY_QUEUE]);
 			mutex_unlock(&cci_dev->cci_master_info[master].mutex);
 		}
+#if defined(CONFIG_FIH_NB1) || defined(CONFIG_FIH_A1N)
+        	mutex_unlock(&cci_dev->mutex_release); /* MM-MC-FixCciCountError-00+ */
+        	pr_err("%s:%d [UnLock] Success for ref_count > 0 \n", __func__, __LINE__);/* MM-MC-FixCciCountError-00+ */
+#endif
 		return 0;
 	}
 	ret = msm_cci_pinctrl_init(cci_dev);
@@ -1523,6 +1553,11 @@ static int32_t msm_cci_init(struct v4l2_subdev *sd,
 	}
 	cci_dev->cci_state = CCI_STATE_ENABLED;
 
+#if defined(CONFIG_FIH_NB1) || defined(CONFIG_FIH_A1N)
+    	mutex_unlock(&cci_dev->mutex_release); /* MM-MC-FixCciCountError-00+ */
+    	pr_err("%s:%d [UnLock] Success for ref_count = 0 \n", __func__, __LINE__);/* MM-MC-FixCciCountError-00+ */
+#endif
+
 	return 0;
 
 reset_complete_failed:
@@ -1547,6 +1582,10 @@ request_gpio_failed:
 	if (cam_config_ahb_clk(NULL, 0, CAM_AHB_CLIENT_CCI,
 		CAM_AHB_SUSPEND_VOTE) < 0)
 		pr_err("%s: failed to remove vote for AHB\n", __func__);
+#if defined(CONFIG_FIH_NB1) || defined(CONFIG_FIH_A1N)
+    	mutex_unlock(&cci_dev->mutex_release); /* MM-MC-FixCciCountError-00+ */
+    	pr_err("%s:%d [UnLock] Failed ~ \n", __func__, __LINE__);/* MM-MC-FixCciCountError-00+ */
+#endif
 	return rc;
 }
 
@@ -1555,7 +1594,29 @@ static int32_t msm_cci_release(struct v4l2_subdev *sd)
 	uint8_t i = 0, rc = 0;
 	struct cci_device *cci_dev;
 
+#if defined(CONFIG_FIH_NB1) || defined(CONFIG_FIH_A1N)
+	/* MM-MC-FixCciCountError-00+{ */
+	if (!sd) {
+		pr_err("%s:%d sd NULL\n", __func__, __LINE__);
+		return -EINVAL;
+	}
+	/* MM-MC-FixCciCountError-00+} */
+#endif
+
 	cci_dev = v4l2_get_subdevdata(sd);
+
+#if defined(CONFIG_FIH_NB1) || defined(CONFIG_FIH_A1N)
+	/* MM-MC-FixCciCountError-00+{ */
+	CDBG("%s:%d cci_dev = %pa", __func__, __LINE__, cci_dev);
+	if (!cci_dev) {
+		pr_err("%s:%d cci_dev NULL\n", __func__, __LINE__);
+		return -EINVAL;
+	}
+   	pr_err("%s:%d [Lock] For Current ref_count %d \n", __func__, __LINE__, cci_dev->ref_count);
+	mutex_lock(&cci_dev->mutex_release);
+	/* MM-MC-FixCciCountError-00+} */
+#endif
+
 	if (!cci_dev->ref_count || cci_dev->cci_state != CCI_STATE_ENABLED) {
 		pr_err("%s invalid ref count %d / cci state %d\n",
 			__func__, cci_dev->ref_count, cci_dev->cci_state);
@@ -1563,17 +1624,38 @@ static int32_t msm_cci_release(struct v4l2_subdev *sd)
 		goto ahb_vote_suspend;
 	}
 	if (--cci_dev->ref_count) {
+#if defined(CONFIG_FIH_NB1) || defined(CONFIG_FIH_A1N)
+		pr_err("%s ref_count Exit %d\n", __func__, cci_dev->ref_count);
+#else
 		CDBG("%s ref_count Exit %d\n", __func__, cci_dev->ref_count);
+#endif
 		rc = 0;
 		goto ahb_vote_suspend;
+#if defined(CONFIG_FIH_NB1) || defined(CONFIG_FIH_A1N)
+	} else
+		pr_err("%s ref_count Exit %d\n", __func__, cci_dev->ref_count);
+#else
 	}
+#endif
 	for (i = 0; i < MASTER_MAX; i++)
 		if (cci_dev->write_wq[i])
 			flush_workqueue(cci_dev->write_wq[i]);
 
+#if defined(CONFIG_FIH_NB1) || defined(CONFIG_FIH_A1N)
+	rc = msm_camera_enable_irq(cci_dev->irq, false);
+	if (rc < 0)
+		pr_err("%s:%d cci disable_irq failed\n", __func__, __LINE__);
+	rc = msm_camera_clk_enable(&cci_dev->pdev->dev, cci_dev->cci_clk_info,
+#else
 	msm_camera_enable_irq(cci_dev->irq, false);
 	msm_camera_clk_enable(&cci_dev->pdev->dev, cci_dev->cci_clk_info,
+#endif
 		cci_dev->cci_clk, cci_dev->num_clk, false);
+
+#if defined(CONFIG_FIH_NB1) || defined(CONFIG_FIH_A1N)
+	if (rc < 0)
+		pr_err("%s:%d cci disable_clk failed\n", __func__, __LINE__);
+#endif
 
 	rc = msm_camera_enable_vreg(&cci_dev->pdev->dev, cci_dev->cci_vreg,
 		cci_dev->regulator_count, NULL, 0, &cci_dev->cci_reg_ptr[0], 0);
@@ -1605,6 +1687,10 @@ ahb_vote_suspend:
 	if (cam_config_ahb_clk(NULL, 0, CAM_AHB_CLIENT_CCI,
 		CAM_AHB_SUSPEND_VOTE) < 0)
 		pr_err("%s: failed to remove vote for AHB\n", __func__);
+#if defined(CONFIG_FIH_NB1) || defined(CONFIG_FIH_A1N)
+    	mutex_unlock(&cci_dev->mutex_release); /* MM-MC-FixCciCountError-00+ */
+    	pr_err("%s:%d [UnLock] Done ~ \n", __func__, __LINE__);/* MM-MC-FixCciCountError-00+ */
+#endif
 	return rc;
 }
 
@@ -1625,15 +1711,25 @@ static int32_t msm_cci_write(struct v4l2_subdev *sd,
 		return rc;
 	}
 
+#if defined(CONFIG_FIH_NB1) || defined(CONFIG_FIH_A1N)
+    	mutex_lock(&cci_dev->mutex_release); /* MM-MC-FixCciCountError-00+ */
+#endif
+
 	if (cci_dev->cci_state != CCI_STATE_ENABLED) {
 		pr_err("%s invalid cci state %d\n",
 			__func__, cci_dev->cci_state);
+#if defined(CONFIG_FIH_NB1) || defined(CONFIG_FIH_A1N)
+		mutex_unlock(&cci_dev->mutex_release); /* MM-MC-FixCciCountError-00+ */
+#endif
 		return -EINVAL;
 	}
 
 	if (c_ctrl->cci_info->cci_i2c_master >= MASTER_MAX
 			|| c_ctrl->cci_info->cci_i2c_master < 0) {
 		pr_err("%s:%d Invalid I2C master addr\n", __func__, __LINE__);
+#if defined(CONFIG_FIH_NB1) || defined(CONFIG_FIH_A1N)
+        	mutex_unlock(&cci_dev->mutex_release); /* MM-MC-FixCciCountError-00+ */
+#endif
 		return -EINVAL;
 	}
 	master = c_ctrl->cci_info->cci_i2c_master;
@@ -1657,6 +1753,9 @@ static int32_t msm_cci_write(struct v4l2_subdev *sd,
 				rc = msm_cci_i2c_write(sd, c_ctrl, i,
 					MSM_SYNC_DISABLE);
 				mutex_unlock(&cci_master_info->mutex_q[i]);
+#if defined(CONFIG_FIH_NB1) || defined(CONFIG_FIH_A1N)
+      			        mutex_unlock(&cci_dev->mutex_release); /* MM-MC-FixCciCountError-00+ */
+#endif
 				return rc;
 			}
 		}
@@ -1672,6 +1771,9 @@ static int32_t msm_cci_write(struct v4l2_subdev *sd,
 	default:
 		rc = -ENOIOCTLCMD;
 	}
+#if defined(CONFIG_FIH_NB1) || defined(CONFIG_FIH_A1N)
+    	mutex_unlock(&cci_dev->mutex_release); /* MM-MC-FixCciCountError-00+ */
+#endif
 	return rc;
 }
 
@@ -1686,6 +1788,11 @@ static int32_t msm_cci_config(struct v4l2_subdev *sd,
 		rc = msm_cci_init(sd, cci_ctrl);
 		break;
 	case MSM_CCI_RELEASE:
+#if defined(CONFIG_FIH_NB1) || defined(CONFIG_FIH_A1N)
+		if (cci_ctrl && cci_ctrl->cci_info)
+			pr_err("%s:%d master %d, msm_cci_release sid 0x%x\n", __func__, __LINE__,
+				cci_ctrl->cci_info->cci_i2c_master, cci_ctrl->cci_info->sid);
+#endif
 		rc = msm_cci_release(sd);
 		break;
 	case MSM_CCI_I2C_READ:
@@ -1879,6 +1986,9 @@ static void msm_cci_init_cci_params(struct cci_device *new_cci_dev)
 	for (i = 0; i < NUM_MASTERS; i++) {
 		new_cci_dev->cci_master_info[i].status = 0;
 		mutex_init(&new_cci_dev->cci_master_info[i].mutex);
+#if defined(CONFIG_FIH_NB1) || defined(CONFIG_FIH_A1N)
+		mutex_init(&new_cci_dev->mutex_release);/* MM-MC-FixCciCountError-00+ */
+#endif
 		init_completion(&new_cci_dev->
 			cci_master_info[i].reset_complete);
 

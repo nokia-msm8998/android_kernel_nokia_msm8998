@@ -181,6 +181,9 @@ struct cci_device {
 	struct workqueue_struct *write_wq[MASTER_MAX];
 	struct msm_camera_cci_wait_sync_cfg cci_wait_sync_cfg;
 	uint8_t valid_sync;
+#if defined(CONFIG_FIH_NB1) || defined(CONFIG_FIH_A1N)
+    	struct mutex mutex_release;/* MM-MC-FixCciCountError-00+ */
+#endif
 };
 
 enum msm_cci_i2c_cmd_type {

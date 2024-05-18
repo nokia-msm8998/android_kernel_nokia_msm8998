@@ -17,6 +17,11 @@
 #include "msm_sd.h"
 #include "msm_ois.h"
 #include "msm_cci.h"
+/* MM-JF-add-BBS-log-00+{ */
+#if defined(CONFIG_FIH_NB1) || defined(CONFIG_FIH_A1N)
+#include "../fih_camera_bbs.h"  //fihtdc,derekcwwu add
+#endif
+/* MM-JF-add-BBS-log-00+} */
 
 DEFINE_MSM_MUTEX(msm_ois_mutex);
 /*#define MSM_OIS_DEBUG*/
@@ -32,6 +37,27 @@ static int32_t msm_ois_power_up(struct msm_ois_ctrl_t *o_ctrl);
 static int32_t msm_ois_power_down(struct msm_ois_ctrl_t *o_ctrl);
 
 static struct i2c_driver msm_ois_i2c_driver;
+
+/* MM-JF-add-BBS-log-00+{ */
+#if defined(CONFIG_FIH_NB1) || defined(CONFIG_FIH_A1N)
+extern int fih_camera_bbs_set(int id,int master,unsigned short sid,int module);//fihtdc,derekcwwu add
+extern void fih_camera_bbs_by_cci(int master,int sid,int error_code);//fihtdc,derekcwwu add
+#endif
+/* MM-JF-add-BBS-log-00+} */
+
+/* MM-MC-PortingOisFunction-00+{ */
+#ifdef CONFIG_FIH_NB1
+static struct msm_ois_ctrl_t *ois_ctrl_t_debug;
+static struct kobject *ois_kernel_kobj = NULL;
+static uint32_t fih_ois_read_register_value=0;
+static int fih_ois_read_register_reg=0;
+static int fih_ois_status=-1;
+/* MM-AL-AddGyroOffsetCal-00*{ */
+static struct msm_camera_i2c_seq_reg_array gyro_cal_reg_setting;
+#define GYRO_CAL_SIZE		4
+/* MM-AL-AddGyroOffsetCal-00*} */
+#endif
+/* MM-MC-PortingOisFunction-00+} */
 
 static int32_t data_type_to_num_bytes(
 	enum msm_camera_i2c_data_type data_type)
@@ -183,7 +209,11 @@ static int32_t msm_ois_write_settings(struct msm_ois_ctrl_t *o_ctrl,
 	uint8_t *reg_data_seq;
 
 	struct msm_camera_i2c_seq_reg_array *reg_setting;
+	#ifdef CONFIG_FIH_NB1
+	pr_info("Enter\n");
+	#else
 	CDBG("Enter\n");
+	#endif
 
 	for (i = 0; i < size; i++) {
 		switch (settings[i].i2c_operation) {
@@ -196,8 +226,36 @@ static int32_t msm_ois_write_settings(struct msm_ois_ctrl_t *o_ctrl,
 					settings[i].reg_addr,
 					settings[i].reg_data,
 					settings[i].data_type);
+				/* MM-MC-PortingOisFunction-00+{ */
+				#ifdef CONFIG_FIH_NB1
+				if (settings[i].reg_addr == 0x1d58)
+				{
+					//msleep(100);
+					fih_read_reg(0xF008);
+					fih_read_reg(0xF009);
+					fih_read_reg(0xF00A);
+					fih_read_reg(0xF00B);
+				}
+				if (settings[i].reg_addr >= 0x6000)
+					pr_info("MSM_OIS_WRITE, reg_addr=[0x%02x], reg_data=[0x%02x], data_type=BYTE/WORD, i=%d\n", settings[i].reg_addr, settings[i].reg_data, i);
+
+				if (settings[i].reg_addr == 0x6020)
+				{
+					msleep(100);
+					fih_read_reg(0x6024);
+				}
+				if (settings[i].reg_addr == 0x6023)
+				{
+					//msleep(100);
+					fih_read_reg(0x6024);
+				}
+				#endif
+				/* MM-MC-PortingOisFunction-00+} */
 				break;
 			case MSM_CAMERA_I2C_DWORD_DATA:
+			#ifdef CONFIG_FIH_NB1
+			CDBG("MSM_OIS_WRITE, reg_addr=[%04x], reg_data=[%08x]\n", settings[i].reg_addr, settings[i].reg_data);/* MM-MC-PortingOisFunction-00+ */
+			#endif
 			reg_setting =
 			kzalloc(sizeof(struct msm_camera_i2c_seq_reg_array),
 				GFP_KERNEL);
@@ -226,6 +284,18 @@ static int32_t msm_ois_write_settings(struct msm_ois_ctrl_t *o_ctrl,
 				reg_setting = NULL;
 				if (rc < 0)
 					return rc;
+				/* MM-MC-PortingOisFunction-00+{ */
+				#ifdef CONFIG_FIH_NB1
+				if (settings[i].reg_addr == 0x1d58)
+				{
+					//msleep(100);
+					fih_read_reg(0xF008);
+					fih_read_reg(0xF009);
+					fih_read_reg(0xF00A);
+					fih_read_reg(0xF00B);
+				}
+				#endif
+				/* MM-MC-PortingOisFunction-00+} */
 				break;
 
 			default:
@@ -242,6 +312,9 @@ static int32_t msm_ois_write_settings(struct msm_ois_ctrl_t *o_ctrl,
 			break;
 
 		case MSM_OIS_POLL: {
+			#ifdef CONFIG_FIH_NB1
+			uint32_t reg_read_data=0;/* MM-MC-PortingOisFunction-00+ */
+			#endif
 			switch (settings[i].data_type) {
 			case MSM_CAMERA_I2C_BYTE_DATA:
 			case MSM_CAMERA_I2C_WORD_DATA:
@@ -252,6 +325,35 @@ static int32_t msm_ois_write_settings(struct msm_ois_ctrl_t *o_ctrl,
 					settings[i].reg_data,
 					settings[i].data_type,
 					settings[i].delay);
+/* MM-MC-PortingOisFunction-00+{ */
+#ifdef CONFIG_FIH_NB1
+				if (settings[i].reg_addr > 0x6000)
+					pr_info("MSM_OIS_POLL, reg_addr=[0x%02x], reg_data=[0x%02x], data_type=BYTE/WORD, delay=%d\n", settings[i].reg_addr, settings[i].reg_data, settings[i].delay);
+				break;
+			case MSM_CAMERA_I2C_DWORD_DATA:
+				reg_setting->reg_addr = settings[i].reg_addr;
+				reg_setting->reg_data_size = 4;
+				rc = o_ctrl->i2c_client.i2c_func_tbl->
+					i2c_read_seq(&o_ctrl->i2c_client,
+					reg_setting->reg_addr,
+					reg_setting->reg_data,
+					reg_setting->reg_data_size);
+				if (rc < 0)
+					return rc;
+
+				reg_read_data = ((reg_setting->reg_data[0]<<24) & 0xFF000000) | ((reg_setting->reg_data[1]<<16) & 0x00FF0000)
+				          | ((reg_setting->reg_data[2]<<8) & 0x0000FF00) | (reg_setting->reg_data[3] & 0x000000FF);
+				pr_info("MSM_OIS_POLL, reg_read_data = [%x]\n", reg_read_data);
+				if((reg_read_data & settings[i].reg_data) == settings[i].reg_data)
+				{
+					rc = 0; //I2C_COMPARE_MATCH;
+					CDBG("MSM_OIS_POLL DWORD_DATA pass\n");
+				} else {
+					rc =1; //I2C_COMPARE_MISMATCH;
+					pr_err("MSM_OIS_POLL DWORD_DATA failed\n");
+				}
+#endif
+/* MM-MC-PortingOisFunction-00+} */
 				break;
 
 			default:
@@ -304,7 +406,11 @@ static int32_t msm_ois_write_settings(struct msm_ois_ctrl_t *o_ctrl,
 			break;
 		}
 	}
+	#ifdef CONFIG_FIH_NB1
+	pr_info("Exit\n");
+	#else
 	CDBG("Exit\n");
+	#endif
 	return rc;
 }
 
@@ -397,12 +503,16 @@ static int msm_ois_init(struct msm_ois_ctrl_t *o_ctrl)
 		return -EINVAL;
 	}
 
+
+//JYLee modified to fix OIS CCI I2C error 20170208
+	#ifndef CONFIG_FIH_NB1
 	if (o_ctrl->ois_device_type == MSM_CAMERA_PLATFORM_DEVICE) {
 		rc = o_ctrl->i2c_client.i2c_func_tbl->i2c_util(
 			&o_ctrl->i2c_client, MSM_CCI_INIT);
 		if (rc < 0)
 			pr_err("cci_init failed\n");
 	}
+	#endif
 	o_ctrl->ois_state = OIS_OPS_ACTIVE;
 	CDBG("Exit\n");
 	return rc;
@@ -424,6 +534,11 @@ static int32_t msm_ois_control(struct msm_ois_ctrl_t *o_ctrl,
 		cci_client->id_map = 0;
 		cci_client->cci_i2c_master = o_ctrl->cci_master;
 		cci_client->i2c_freq_mode = set_info->ois_params.i2c_freq_mode;
+		/* MM-JF-add-BBS-log-00+{ */
+		#if defined(CONFIG_FIH_NB1) || defined(CONFIG_FIH_A1N)
+		fih_camera_bbs_set((int)o_ctrl->pdev->id,cci_client->cci_i2c_master,(unsigned short)cci_client->sid,FIH_BBS_CAMERA_MODULE_OIS);//fihtdc,derekcwwu add
+		#endif
+		/* MM-JF-add-BBS-log-00+} */
 	} else {
 		o_ctrl->i2c_client.client->addr =
 			set_info->ois_params.i2c_addr;
@@ -490,6 +605,14 @@ static int32_t msm_ois_config(struct msm_ois_ctrl_t *o_ctrl,
 	struct msm_ois_cfg_data *cdata =
 		(struct msm_ois_cfg_data *)argp;
 	int32_t rc = 0;
+	/* MM-JF-OISPorting-00*{ */
+	#ifdef CONFIG_FIH_NB1
+	int i = 0;
+	int j = 0;
+	int retry = 0;/* MM-MC-PortingOisFunction-00+ */
+	uint16_t gyro_tmp = 0;/* MM-MC-PortingOisFunction-00+ */
+	#endif
+	/* MM-JF-OISPorting-00*} */
 	mutex_lock(o_ctrl->ois_mutex);
 	CDBG("Enter\n");
 	CDBG("%s type %d\n", __func__, cdata->cfgtype);
@@ -502,12 +625,32 @@ static int32_t msm_ois_config(struct msm_ois_ctrl_t *o_ctrl,
 	case CFG_OIS_POWERDOWN:
 		rc = msm_ois_power_down(o_ctrl);
 		if (rc < 0)
+#if defined(CONFIG_FIH_NB1) || defined(CONFIG_FIH_A1N)
+		/* MM-JF-add-BBS-log-00+{ */
+		{
+#endif
 			pr_err("msm_ois_power_down failed %d\n", rc);
+			#if defined(CONFIG_FIH_NB1) || defined(CONFIG_FIH_A1N)
+			fih_camera_bbs_by_cci(o_ctrl->i2c_client.cci_client->cci_i2c_master,
+                               o_ctrl->i2c_client.cci_client->sid,FIH_BBS_CAMERA_ERRORCODE_POWER_DW);
+			#endif
+		}
+		/* MM-JF-add-BBS-log-00+} */
 		break;
 	case CFG_OIS_POWERUP:
 		rc = msm_ois_power_up(o_ctrl);
 		if (rc < 0)
+#if defined(CONFIG_FIH_NB1) || defined(CONFIG_FIH_A1N)
+		/* MM-JF-add-BBS-log-00+{ */
+		{
+#endif
 			pr_err("Failed ois power up%d\n", rc);
+#if defined(CONFIG_FIH_NB1) || defined(CONFIG_FIH_A1N)
+			fih_camera_bbs_by_cci(o_ctrl->i2c_client.cci_client->cci_i2c_master,
+                               o_ctrl->i2c_client.cci_client->sid,FIH_BBS_CAMERA_ERRORCODE_POWER_UP);
+		}
+		/* MM-JF-add-BBS-log-00+} */
+#endif
 		break;
 	case CFG_OIS_CONTROL:
 		rc = msm_ois_control(o_ctrl, &cdata->cfg.set_info);
@@ -517,6 +660,12 @@ static int32_t msm_ois_config(struct msm_ois_ctrl_t *o_ctrl,
 	case CFG_OIS_I2C_WRITE_SEQ_TABLE: {
 		struct msm_camera_i2c_seq_reg_setting conf_array;
 		struct msm_camera_i2c_seq_reg_array *reg_setting = NULL;
+/* MM-AL-AddGyroOffsetCal-00+{ */
+#ifdef CONFIG_FIH_NB1
+		struct msm_camera_i2c_seq_reg_array *reg_gyro_cal = &gyro_cal_reg_setting;
+		int data_offset;
+#endif
+/* MM-AL-AddGyroOffsetCal-00+} */
 
 #ifdef CONFIG_COMPAT
 		if (is_compat_task()) {
@@ -557,9 +706,83 @@ static int32_t msm_ois_config(struct msm_ois_ctrl_t *o_ctrl,
 		}
 
 		conf_array.reg_setting = reg_setting;
+
+		/* MM-JF-OISPorting-00*{ */
+		#ifdef CONFIG_FIH_NB1
+		/* MM-AL-AddGyroOffsetCal-00+{ */
+		/* only update gyro cal offset when written addr. is valid */
+		if ((reg_gyro_cal->reg_addr >= conf_array.reg_setting[0].reg_addr) &&
+			( (reg_gyro_cal->reg_addr + GYRO_CAL_SIZE) <=
+				(conf_array.reg_setting[0].reg_addr +
+					conf_array.reg_setting[0].reg_data_size) )) {
+			data_offset =
+				reg_gyro_cal->reg_addr - conf_array.reg_setting[0].reg_addr;
+			pr_info("OIS gyro cal offset: [%xh] %02x %02x %02x %02x before update\n",
+						reg_gyro_cal->reg_addr,
+						conf_array.reg_setting[0].reg_data[data_offset],
+						conf_array.reg_setting[0].reg_data[data_offset+1],
+						conf_array.reg_setting[0].reg_data[data_offset+2],
+						conf_array.reg_setting[0].reg_data[data_offset+3]);
+			/* update data without backup */
+			memcpy(&conf_array.reg_setting[0].reg_data[data_offset],
+				&reg_gyro_cal->reg_data[0], GYRO_CAL_SIZE);
+			pr_info("OIS gyro cal offset: [%xh] %02x %02x %02x %02x after update\n",
+						reg_gyro_cal->reg_addr,
+						conf_array.reg_setting[0].reg_data[data_offset],
+						conf_array.reg_setting[0].reg_data[data_offset+1],
+						conf_array.reg_setting[0].reg_data[data_offset+2],
+						conf_array.reg_setting[0].reg_data[data_offset+3]);
+		} else {
+			//debug log
+			#if 1
+			pr_info("OIS gyro cal offset: [%xh] %02x %02x %02x %02x without update\n",
+						conf_array.reg_setting[0].reg_addr + 8,
+						conf_array.reg_setting[0].reg_data[8],
+						conf_array.reg_setting[0].reg_data[8+1],
+						conf_array.reg_setting[0].reg_data[8+2],
+						conf_array.reg_setting[0].reg_data[8+3]);
+			#endif
+		}
+		/* MM-AL-AddGyroOffsetCal-00+} */
+
+		for(j=0; j<conf_array.size; j++) {
+			for(i=0; i<(conf_array.reg_setting+j)->reg_data_size; i++) {
+				/* MM-MC-PortingOisFunction-00+{ */
+				if ((conf_array.reg_setting+j)->reg_addr+i == 0x6020)
+				{
+OIS_STATUS_RETRY:
+					msleep(1);//msleep(100);
+					fih_ois_status=fih_read_reg(0x6024);
+					pr_info("Check OIS status: %d, retry=%d", fih_ois_status, retry);
+					retry++;
+					if (fih_ois_status != 1 && retry < 100) goto OIS_STATUS_RETRY;
+				}
+				else if ((conf_array.reg_setting+j)->reg_addr+i == 0x1DD6 || (conf_array.reg_setting+j)->reg_addr+i == 0x1DD8)
+				{
+					gyro_tmp = ((((conf_array.reg_setting+j)->reg_data[i] << 8) & 0xFF00) + ((conf_array.reg_setting+j)->reg_data[i+1])) * 105 / 100;
+					(conf_array.reg_setting+j)->reg_data[i] = (gyro_tmp >> 8) & 0x00FF;
+					(conf_array.reg_setting+j)->reg_data[i+1] = (gyro_tmp & 0x00FF);
+				}
+                rc = o_ctrl->i2c_client.i2c_func_tbl->i2c_write(
+                        &o_ctrl->i2c_client,
+                        (conf_array.reg_setting+j)->reg_addr+i,
+                        (conf_array.reg_setting+j)->reg_data[i],
+                        MSM_CAMERA_I2C_BYTE_DATA);
+				pr_info("[FIH] OIS Reg : %d\tOIS VAL : %d\n", (conf_array.reg_setting+j)->reg_addr+i, (conf_array.reg_setting+j)->reg_data[i]);
+				if ((conf_array.reg_setting+j)->reg_addr+i == 0x6020)
+				{
+					//msleep(100);
+					fih_read_reg(0x6024);
+				}
+				/* MM-MC-PortingOisFunction-00+} */
+			}
+		}
+		#else
 		rc = o_ctrl->i2c_client.i2c_func_tbl->
 			i2c_write_seq_table(&o_ctrl->i2c_client,
 			&conf_array);
+		#endif
+		/* MM-JF-OISPorting-00*} */
 		kfree(reg_setting);
 		break;
 	}
@@ -659,6 +882,8 @@ static int msm_ois_close(struct v4l2_subdev *sd,
 		return -EINVAL;
 	}
 	mutex_lock(o_ctrl->ois_mutex);
+//JYLee modified to fix OIS CCI I2C error 20170208
+	#ifndef CONFIG_FIH_NB1
 	if (o_ctrl->ois_device_type == MSM_CAMERA_PLATFORM_DEVICE &&
 		o_ctrl->ois_state != OIS_DISABLE_STATE) {
 		rc = o_ctrl->i2c_client.i2c_func_tbl->i2c_util(
@@ -666,6 +891,7 @@ static int msm_ois_close(struct v4l2_subdev *sd,
 		if (rc < 0)
 			pr_err("cci_init failed\n");
 	}
+	#endif
 	o_ctrl->ois_state = OIS_DISABLE_STATE;
 	mutex_unlock(o_ctrl->ois_mutex);
 	CDBG("Exit\n");
@@ -918,6 +1144,220 @@ static long msm_ois_subdev_fops_ioctl(struct file *file, unsigned int cmd,
 }
 #endif
 
+/* MM-MC-PortingOisFunction-00+{ */
+#ifdef CONFIG_FIH_NB1
+uint32_t fih_write_reg(int addr, int data)
+{
+	uint32_t rc=0;
+	struct msm_camera_i2c_seq_reg_array reg_setting;
+
+	pr_info("reg_write_data, addr=[%x], data=[%d]\n", addr, data);
+	reg_setting.reg_data_size = 1;
+	reg_setting.reg_addr = addr;
+  //i2c write
+  /*reg_setting.reg_addr = addr;
+  reg_setting.reg_data[0] = (uint8_t)
+  	((data & 0xFF000000) >> 24);
+  reg_setting.reg_data[1] = (uint8_t)
+  	((data & 0x00FF0000) >> 16);
+  reg_setting.reg_data[2] = (uint8_t)
+  	((data & 0x0000FF00) >> 8);
+  reg_setting.reg_data[3] = (uint8_t)
+  	(data & 0x000000FF);
+  reg_setting.reg_data_size = 4;
+  rc = ois_ctrl_t_debug->i2c_client.i2c_func_tbl->
+  	i2c_write_seq(&ois_ctrl_t_debug->i2c_client,
+  	reg_setting.reg_addr,
+  	reg_setting.reg_data,
+  	reg_setting.reg_data_size);*/
+	/*rc = o_ctrl->i2c_client.i2c_func_tbl->i2c_write(
+                                        &o_ctrl->i2c_client,
+                                        (conf_array.reg_setting+j)->reg_addr+i,
+                                        (conf_array.reg_setting+j)->reg_data[i],
+                                        MSM_CAMERA_I2C_BYTE_DATA);*/
+	reg_setting.reg_addr = addr;
+	reg_setting.reg_data[0] = (uint8_t)(data);
+	reg_setting.reg_data_size = 1;
+	rc = ois_ctrl_t_debug->i2c_client.i2c_func_tbl->i2c_write_seq(&ois_ctrl_t_debug->i2c_client,
+																reg_setting.reg_addr,
+																reg_setting.reg_data,
+																reg_setting.reg_data_size);
+
+	if (rc < 0)
+	{
+		pr_err("OIS write data(0x%02X) fail", reg_setting.reg_addr);
+	}
+
+	return rc;
+}
+
+uint32_t fih_read_reg(int addr)
+{
+	uint32_t rc;
+	uint32_t reg_read_data = 0;
+	struct msm_camera_i2c_seq_reg_array reg_setting;
+	//reg_setting.reg_data_size = 4;
+	reg_setting.reg_data_size = 1;
+	reg_setting.reg_addr = addr;
+	//i2c read
+	rc = ois_ctrl_t_debug->i2c_client.i2c_func_tbl->i2c_read_seq(&ois_ctrl_t_debug->i2c_client,
+																reg_setting.reg_addr,
+																reg_setting.reg_data,
+																reg_setting.reg_data_size);
+	if (rc < 0)
+	{
+		pr_err("OIS No reg data");
+	}else{
+		reg_read_data = reg_setting.reg_data[0];/*((reg_setting.reg_data[0]<<24) & 0xFF000000) | ((reg_setting.reg_data[1]<<16) & 0x00FF0000)
+	  											| ((reg_setting.reg_data[2]<<8) & 0x0000FF00) | (reg_setting.reg_data[3] & 0x000000FF);*/
+		pr_info("OIS reg_addr= %x, reg_read_data = [%x]\n", reg_setting.reg_addr, reg_read_data);
+	}
+	return reg_read_data;
+}
+
+static ssize_t enable_store(struct device *dev, struct device_attribute *attr, const char *buf, size_t count)
+{
+	int rc =0;
+	int i;
+
+	if (sscanf(buf, "%d", &i) == 1 && i < 2) {
+		rc = fih_write_reg(0xF012, i);
+		return count;
+	} else {
+		pr_err("enable error\n");
+		return -EINVAL;
+	}
+}
+
+static ssize_t enable_show(struct device *dev, struct  device_attribute *attr , char *buf)
+{
+	sprintf(buf, "OIS status: %s\n", (fih_read_reg(0xF012)==0x1) ? "Enable" : "Disable");
+	return strlen(buf);
+}
+static DEVICE_ATTR(enable, 0644, enable_show, enable_store);
+
+static ssize_t gyro_raw_show(struct device *dev, struct  device_attribute *attr , char *buf)
+{
+	sprintf(buf, "Gyro raw data - X: 0x%x, Y: 0x%x \n", fih_read_reg(0x00EC), fih_read_reg(0x00F0));
+	return strlen(buf);
+}
+static DEVICE_ATTR(gyro_raw, 0644, gyro_raw_show, NULL);
+
+static ssize_t hall_raw_show(struct device *dev, struct  device_attribute *attr , char *buf)
+{
+	sprintf(buf, "Hall raw data - X: 0x%x, Y: 0x%x \n", fih_read_reg(0x01C0), fih_read_reg(0x01C4));
+	return strlen(buf);
+}
+static DEVICE_ATTR(hall_raw, 0644, hall_raw_show, NULL);
+
+static ssize_t fih_ois_read_register_store(struct device *dev, struct  device_attribute *attr, const char *buf, size_t size)
+{
+	int reg = 0;
+	uint32_t value = 0;
+
+	if (sscanf(buf, "%x", &reg) <= 0) {
+		pr_err("Could not tranform the register value\n");
+		return -EINVAL;
+	}
+	value=fih_read_reg(reg);
+
+	CDBG("Register 0x%X: 0x%X\n", reg, value);
+	fih_ois_read_register_value=value;
+	fih_ois_read_register_reg=reg;
+	return strlen("fih_ois_read_register_store\n");
+}
+static ssize_t fih_ois_read_register_show(struct device *dev, struct  device_attribute *attr , char *buf)
+{
+	/* MM-AL-AddGyroOffsetCal-00*{ */
+	sprintf(buf, "read register:0x%02x,value=0x%02x\n",
+			fih_ois_read_register_reg, fih_ois_read_register_value);
+	/* MM-AL-AddGyroOffsetCal-00*} */
+	return strlen(buf);
+}
+static ssize_t fih_ois_write_register_store(struct device *dev, struct  device_attribute *attr, const char *buf, size_t size)
+{
+	int reg = 0,value=0;
+
+	if (sscanf(buf, "%x,%x" , &reg , &value) <= 0) {
+		pr_err("Could not tranform the register value\n");
+		return -EINVAL;
+	}
+
+	fih_write_reg(reg,value);
+	CDBG("Write Register 0x%X: 0x%X\n", reg, value);
+	return strlen("fih_ois_write_register_store\n");
+}
+static DEVICE_ATTR(register_read, 0644, fih_ois_read_register_show, fih_ois_read_register_store);
+static DEVICE_ATTR(register_write, 0644, NULL, fih_ois_write_register_store);
+
+/* MM-AL-AddGyroOffsetCal-00+{ */
+static ssize_t fih_gyro_cal_store(struct device *dev,
+	struct  device_attribute *attr, const char *buf, size_t size)
+{
+	struct msm_camera_i2c_seq_reg_array *reg_setting = &gyro_cal_reg_setting;
+	unsigned char *pdata = &gyro_cal_reg_setting.reg_data[0];
+
+	if (sscanf(buf, "0x%04hx,%02hhx%02hhx,%02hhx%02hhx", &reg_setting->reg_addr,
+				pdata, (pdata + 1), (pdata + 2),
+				(pdata + 3) ) <= 0) {
+		pr_err("Scanned failure string,%s\n", buf);
+		pr_err("Old reg addr=%xh, data[0]=%x [1]=%x [2]=%x [3]=%x. Next, all cleaned\n",
+				reg_setting->reg_addr,
+				pdata[0], pdata[1], pdata[2], pdata[3]);
+		reg_setting->reg_addr = 0x0;
+		pdata[0] = pdata[1] = pdata[2] = pdata[3] = 0;
+		return -EINVAL;
+	}
+
+	pr_err("buf string,%s\n", buf);
+	pr_err("Updated reg_addr=%xh, data [0]=%x [1]=%x [2]=%x [3]=%x\n",
+			reg_setting->reg_addr,
+			pdata[0], pdata[1], pdata[2], pdata[3]);
+	return size;
+}
+static ssize_t fih_gyro_cal_show(struct device *dev, struct  device_attribute *attr , char *buf)
+{
+	struct msm_camera_i2c_seq_reg_array *reg_setting = &gyro_cal_reg_setting;
+	unsigned char *pdata = &gyro_cal_reg_setting.reg_data[0];
+	int size = 16;
+	if (reg_setting->reg_addr != 0) {
+		sprintf(buf, "0x%04x,%02x%02x,%02x%02x\n",
+				reg_setting->reg_addr,
+				pdata[0], pdata[1], pdata[2], pdata[3]);
+		size = strlen(buf);
+	} else {
+		//sprintf(buf, "\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\n");
+		memset(buf, '\0', 16);
+	}
+	return size;
+}
+static DEVICE_ATTR(gyro_cal, 0644, fih_gyro_cal_show, fih_gyro_cal_store);
+/* MM-AL-AddGyroOffsetCal-00+} */
+
+static ssize_t ois_status_show(struct device *dev, struct  device_attribute *attr , char *buf)
+{
+	sprintf(buf, "%d\n", fih_ois_status);
+	return strlen(buf);
+}
+static DEVICE_ATTR(ois_status, 0644, ois_status_show, NULL);
+
+static struct attribute *ois_attributes[] = {
+	&dev_attr_enable.attr,
+	&dev_attr_gyro_raw.attr,
+	&dev_attr_hall_raw.attr,
+	&dev_attr_register_read.attr,
+	&dev_attr_register_write.attr,
+	&dev_attr_gyro_cal.attr, /* MM-AL-AddGyroOffsetCal-00+ */
+	&dev_attr_ois_status.attr,
+	NULL
+};
+
+static const struct attribute_group ois_attr_group = {
+	.attrs = ois_attributes,
+};
+#endif
+/* MM-MC-PortingOisFunction-00+} */
+
 static int32_t msm_ois_platform_probe(struct platform_device *pdev)
 {
 	int32_t rc = 0;
@@ -981,8 +1421,10 @@ static int32_t msm_ois_platform_probe(struct platform_device *pdev)
 		rc = msm_camera_pinctrl_init(
 			&(msm_ois_t->pinctrl_info), &(pdev->dev));
 		if (rc < 0) {
+			#ifndef CONFIG_FIH_NB1
 			pr_err("ERR:%s: Error in reading OIS pinctrl\n",
 				__func__);
+			#endif
 			msm_ois_t->cam_pinctrl_status = 0;
 		}
 	}
@@ -1026,6 +1468,21 @@ static int32_t msm_ois_platform_probe(struct platform_device *pdev)
 #endif
 	msm_ois_t->msm_sd.sd.devnode->fops =
 		&msm_ois_v4l2_subdev_fops;
+
+	/* MM-MC-PortingOisFunction-00+{ */
+	#ifdef CONFIG_FIH_NB1
+	//create sysfs
+	ois_ctrl_t_debug = msm_ois_t;
+	if(ois_kernel_kobj == NULL)
+	{
+		ois_kernel_kobj = kobject_create_and_add("ois_control", kernel_kobj);
+		rc = sysfs_create_group(ois_kernel_kobj, &ois_attr_group);
+		if (rc)
+			kobject_put(ois_kernel_kobj);
+	}
+	pr_info("msm_ois_platform_probe done");
+	#endif
+	/* MM-MC-PortingOisFunction-00+} */
 
 	CDBG("Exit\n");
 	return rc;
