@@ -551,6 +551,10 @@ err_power:
 	return ret;
 }
 
+#if defined(CONFIG_FIH_NB1) || defined(CONFIG_FIH_A1N)
+static bool fih_nv_assigned = false;
+#endif
+
 int pil_mss_reset_load_mba(struct pil_desc *pil)
 {
 	struct q6v5_data *drv = container_of(pil, struct q6v5_data, desc);
@@ -567,6 +571,26 @@ int pil_mss_reset_load_mba(struct pil_desc *pil)
 	struct device *dma_dev = md->mba_mem_dev_fixed ?: &md->mba_mem_dev;
 
 	trace_pil_func(__func__);
+
+#if defined(CONFIG_FIH_NB1) || defined(CONFIG_FIH_A1N)
+  	pr_notice("%s: %s\n", __func__, pil->name);
+	if (!(strncmp(pil->name, "modem", sizeof(char)*5))) {
+	  	if (!fih_nv_assigned) {
+			pr_notice("%s: Assign %s memory 0xA0000000 0x00900000 (initial)\n", __func__, pil->name);
+			ret = pil_assign_mem_to_subsys_and_linux(pil, 0xA0000000, 0x00900000);
+			if (ret) {
+			  	pr_notice("%s: Assign %s memory Error !!!!!!\n", __func__, pil->name);
+		 		fih_nv_assigned = false;
+        		dev_err(pil->dev, "Failed to assign %s memory, ret - %d\n", pil->name, ret);
+			}
+
+			fih_nv_assigned = true;
+		} else {
+			pr_notice("%s: Assign %s memory 0xA0000000 0x00900000 (re-init)\n", __func__, pil->name);
+	  }
+	}
+#endif
+
 	fw_name_p = drv->non_elf_image ? fw_name_legacy : fw_name;
 	ret = request_firmware(&fw, fw_name_p, pil->dev);
 	if (ret) {

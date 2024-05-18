@@ -44,6 +44,10 @@
 
 #define subsys_to_drv(d) container_of(d, struct modem_data, subsys_desc)
 
+#if defined(CONFIG_FIH_NB1) || defined(CONFIG_FIH_A1N)
+char fih_failure_reason[MAX_SSR_REASON_LEN];
+#endif
+
 static void log_modem_sfr(void)
 {
 	u32 size;
@@ -62,6 +66,10 @@ static void log_modem_sfr(void)
 
 	strlcpy(reason, smem_reason, min(size, MAX_SSR_REASON_LEN));
 	pr_err("modem subsystem failure reason: %s.\n", reason);
+
+#if defined(CONFIG_FIH_NB1) || defined(CONFIG_FIH_A1N)
+	strlcpy(fih_failure_reason, smem_reason, min(size, MAX_SSR_REASON_LEN));
+#endif
 
 	smem_reason[0] = '\0';
 	wmb();
@@ -204,6 +212,9 @@ static int pil_subsys_init(struct modem_data *drv,
 {
 	int ret;
 
+#if defined(CONFIG_FIH_NB1) || defined(CONFIG_FIH_A1N)
+	fih_failure_reason[0]='\0';
+#endif
 	drv->subsys_desc.name = "modem";
 	drv->subsys_desc.dev = &pdev->dev;
 	drv->subsys_desc.owner = THIS_MODULE;
