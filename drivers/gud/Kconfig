@@ -4,7 +4,7 @@
 config TRUSTONIC_TEE
     tristate "Trustonic TEE Driver"
     depends on ARM || ARM64
-    default y
+    default n
     ---help---
       Enable Trustonic TEE support
 
