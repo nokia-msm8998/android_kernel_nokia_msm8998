@@ -62,6 +62,14 @@
 
 #include "mdss_livedisplay.h"
 
+#ifdef CONFIG_FIH_PANEL_FEATURE
+#include "fih/fih_mdss_global.h"
+#endif
+
+#ifdef CONFIG_AOD_FEATURE
+#include "fih/fih_msm_mdss_aod.h"
+#endif
+
 #ifdef CONFIG_FB_MSM_TRIPLE_BUFFER
 #define MDSS_FB_NUM 3
 #else
@@ -230,6 +238,11 @@ int mdss_prim_panel_fb_unblank(int timeout)
 	return -EINVAL;
 }
 /*add for fingerprint unlock by qujiong 20190625 end*/
+#endif
+
+#if defined(CONFIG_FIH_NB1) || defined(CONFIG_FIH_A1N)
+extern int fih_set_blank_mode(int mode);
+extern int fih_get_aod(void);
 #endif
 
 static inline void __user *to_user_ptr(uint64_t address)
@@ -637,6 +650,35 @@ static void __mdss_fb_idle_notify_work(struct work_struct *work)
 		sysfs_notify(&mfd->fbi->dev->kobj, NULL, "idle_notify");
 	sysfs_notify(&mfd->fbi->dev->kobj, NULL, "idle_state");
 }
+
+#if defined(CONFIG_AOD_FEATURE)
+bool exit_aod_set_bl=0;
+static void __mdss_fb_brightness_work(struct work_struct *work)
+{
+       struct delayed_work *dw = to_delayed_work(work);
+       struct msm_fb_data_type *mfd = container_of(dw, struct msm_fb_data_type,
+               aod_brightness_work);
+
+       /* Notify idle-ness here */
+       pr_err("__mdss_fb_brightness_work ++!\n");
+
+       mutex_lock(&mfd->bl_lock);
+
+       mfd->allow_bl_update = true;
+       pr_err("%s: bl_level=%d,bl_level_scaled=%d,bl_aod_recovery=%d\n", __func__,mfd->bl_level,\
+                               mfd->bl_level_scaled,mfd->bl_aod_recovery);
+
+       exit_aod_set_bl=0;
+       if(mfd->bl_aod_recovery!=0 && mdss_fb_is_power_on_interactive(mfd)&&fih_get_blank_mode()==FB_BLANK_UNBLANK){
+           mdss_fb_set_backlight(mfd, mfd->bl_aod_recovery);
+		   mfd->bl_level_scaled=mfd->bl_aod_recovery;
+       }
+       mfd->allow_bl_update = false;
+       mutex_unlock(&mfd->bl_lock);
+       pr_err("__mdss_fb_brightness_work --!\n");
+
+}
+#endif // defined(CONFIG_AOD_FEATURE)
 
 static ssize_t mdss_fb_get_fps_info(struct device *dev,
 		struct device_attribute *attr, char *buf)
@@ -1536,6 +1578,14 @@ static int mdss_fb_probe(struct platform_device *pdev)
 
 	INIT_DELAYED_WORK(&mfd->idle_notify_work, __mdss_fb_idle_notify_work);
 
+#if defined(CONFIG_AOD_FEATURE)
+	if(mfd->index==0)
+	INIT_DELAYED_WORK(&mfd->aod_brightness_work, __mdss_fb_brightness_work);
+#endif // defined(CONFIG_AOD_FEATURE)
+#ifdef CONFIG_FIH_PANEL_FEATURE
+	fih_mdss_fb_global_init(pdev,mfd,mfd->index);
+#endif // CONFIG_FIH_PANEL_FEATURE
+
 	return rc;
 }
 
@@ -1791,6 +1841,7 @@ static int mdss_fb_pm_suspend(struct device *dev)
 
 	rc = mdss_fb_suspend_sub(mfd);
 
+#if !defined(CONFIG_FIH_NB1) || !defined(CONFIG_FIH_A1N)
 	/*
 	 * Call MDSS footswitch control to ensure GDSC is
 	 * off after pm suspend call. There are cases when
@@ -1805,7 +1856,9 @@ static int mdss_fb_pm_suspend(struct device *dev)
 	}
 
 	return rc;
-
+#else
+	return mdss_fb_suspend_sub(mfd);
+#endif
 }
 
 static int mdss_fb_pm_resume(struct device *dev)
@@ -1825,8 +1878,10 @@ static int mdss_fb_pm_resume(struct device *dev)
 	pm_runtime_set_suspended(dev);
 	pm_runtime_enable(dev);
 
+#if !defined(CONFIG_FIH_NB1) || !defined(CONFIG_FIH_A1N)
 	if (mfd->mdp.footswitch_ctrl)
 		mfd->mdp.footswitch_ctrl(true);
+#endif
 
 	return mdss_fb_resume_sub(mfd);
 }
@@ -1885,6 +1940,90 @@ static void mdss_fb_scale_bl(struct msm_fb_data_type *mfd, u32 *bl_lvl)
 	(*bl_lvl) = temp;
 }
 
+#if defined(CONFIG_AOD_FEATURE)
+void mdss_fb_set_backlight(struct msm_fb_data_type *mfd, u32 bkl_lvl)
+{
+	struct mdss_panel_data *pdata;
+	u32 temp = bkl_lvl;
+	bool ad_bl_notify_needed = false;
+	bool bl_notify_needed = false;
+
+	if ((((mdss_fb_is_power_off(mfd) && mfd->dcm_state != DCM_ENTER)
+		|| !mfd->allow_bl_update) && !IS_CALIB_MODE_BL(mfd)) ||
+		mfd->panel_info->cont_splash_enabled) {
+		mfd->unset_bl_level = bkl_lvl;
+		return;
+	} else if (mdss_fb_is_power_on(mfd) && mfd->panel_info->panel_dead) {
+		mfd->unset_bl_level = mfd->bl_level;
+	} else {
+		mfd->unset_bl_level = U32_MAX;
+	}
+
+	pdata = dev_get_platdata(&mfd->pdev->dev);
+
+	if ((pdata) && (pdata->set_backlight)) {
+		if (mfd->mdp.ad_calc_bl)
+			(*mfd->mdp.ad_calc_bl)(mfd, temp, &temp,
+							&ad_bl_notify_needed);
+		if (!IS_CALIB_MODE_BL(mfd))
+			mdss_fb_scale_bl(mfd, &temp);
+		/*
+		 * Even though backlight has been scaled, want to show that
+		 * backlight has been set to bkl_lvl to those that read from
+		 * sysfs node. Thus, need to set bl_level even if it appears
+		 * the backlight has already been set to the level it is at,
+		 * as well as setting bl_level to bkl_lvl even though the
+		 * backlight has been set to the scaled value.
+		 */
+		#if defined(CONFIG_FIH_NB1) ||defined(CONFIG_FIH_A1N)
+		if(bkl_lvl==0)
+		{
+			exit_aod_set_bl=0;
+		}
+		if(exit_aod_set_bl&&fih_get_blank_mode()!=FB_BLANK_POWERDOWN){
+			mfd->bl_aod_recovery= temp;
+			mfd->bl_level = bkl_lvl;
+			pr_info("backlight level(%d) pending\n", bkl_lvl);
+		}else{
+			if (mfd->bl_level_scaled == temp) {
+				mfd->bl_level = bkl_lvl;
+			} else {
+				if (mfd->bl_level != bkl_lvl)
+					bl_notify_needed = true;
+				pr_debug("backlight sent to panel :%d\n", temp);
+				pdata->set_backlight(pdata, temp);
+				mfd->bl_level = bkl_lvl;
+				mfd->bl_level_scaled = temp;
+				mfd->bl_aod_recovery=0;
+			}
+		}
+		#else
+		if (mfd->bl_level_scaled == temp) {
+			mfd->bl_level = bkl_lvl;
+		} else {
+			if (mfd->bl_level != bkl_lvl)
+				bl_notify_needed = true;
+			pr_debug("backlight sent to panel :%d\n", temp);
+			pdata->set_backlight(pdata, temp);
+			mfd->bl_level = bkl_lvl;
+			mfd->bl_level_scaled = temp;
+		}
+		#endif
+		if (ad_bl_notify_needed)
+			mdss_fb_bl_update_notify(mfd,
+				NOTIFY_TYPE_BL_AD_ATTEN_UPDATE);
+		if (bl_notify_needed)
+			mdss_fb_bl_update_notify(mfd,
+				NOTIFY_TYPE_BL_UPDATE);
+	}
+	if(exit_aod_set_bl&&mdss_fb_is_power_on_interactive(mfd)&&fih_get_glance()){
+		pr_debug("Leave AOD prepare turn on backlight\n");
+		schedule_delayed_work(&mfd->aod_brightness_work,
+				msecs_to_jiffies(200));
+	}
+
+}
+#else
 /* must call this function from within mfd->bl_lock */
 void mdss_fb_set_backlight(struct msm_fb_data_type *mfd, u32 bkl_lvl)
 {
@@ -1938,6 +2077,7 @@ void mdss_fb_set_backlight(struct msm_fb_data_type *mfd, u32 bkl_lvl)
 				NOTIFY_TYPE_BL_UPDATE);
 	}
 }
+#endif
 
 void mdss_fb_update_backlight(struct msm_fb_data_type *mfd)
 {
@@ -2292,6 +2432,12 @@ static int mdss_fb_blank(int blank_mode, struct fb_info *info)
 
 	mutex_lock(&mfd->mdss_sysfs_lock);
 
+#if defined(CONFIG_FIH_NB1) || defined(CONFIG_FIH_A1N)
+#ifdef CONFIG_AOD_FEATURE
+	fih_set_blank_mode(blank_mode);
+#endif // CONFIG_AOD_FEATURE
+#endif // defined(CONFIG_FIH_NB1) || defined(CONFIG_FIH_A1N)
+
 	if (mfd->op_enable == 0) {
 		if (blank_mode == FB_BLANK_UNBLANK)
 			mfd->suspend.panel_power_state = MDSS_PANEL_POWER_ON;
@@ -2305,9 +2451,17 @@ static int mdss_fb_blank(int blank_mode, struct fb_info *info)
 		ret = 0;
 		goto end;
 	}
+#if !defined(CONFIG_FIH_NB1) || !defined(CONFIG_FIH_A1N)
 	pr_debug("mode: %d\n", blank_mode);
+#else
+	pr_info("mode: %d\n", blank_mode);
+#endif
 
 	pdata = dev_get_platdata(&mfd->pdev->dev);
+#if defined(CONFIG_FIH_NB1) || defined(CONFIG_FIH_A1N)
+		if(!fih_get_aod())
+#endif
+			pr_err("mfd is NULL or operation not permitted\n");
 
 	if (pdata->panel_info.is_lpm_mode &&
 			blank_mode == FB_BLANK_UNBLANK) {
@@ -3614,6 +3768,9 @@ int mdss_fb_atomic_commit(struct fb_info *info,
 	if ((mdss_fb_is_power_off(mfd)) &&
 		!((mfd->dcm_state == DCM_ENTER) &&
 		(mfd->panel.type == MIPI_CMD_PANEL))) {
+#if defined(CONFIG_FIH_NB1) || defined(CONFIG_FIH_A1N)
+		if(!fih_get_aod())
+#endif
 		pr_err("commit is not supported when interface is in off state\n");
 		goto end;
 	}
@@ -3876,6 +4033,13 @@ void mdss_panelinfo_to_fb_var(struct mdss_panel_info *pinfo,
 		var->width = pinfo->physical_width;
 	if (pinfo->physical_height)
 		var->height = pinfo->physical_height;
+
+#if defined(CONFIG_FIH_NB1) || defined(CONFIG_FIH_A1N)
+	if (pinfo->physical_width_full)
+		var->width_full = pinfo->physical_width_full;
+	if (pinfo->physical_height_full)
+		var->height_full = pinfo->physical_height_full;
+#endif
 
 	pr_debug("ScreenInfo: res=%dx%d [%d, %d] [%d, %d]\n",
 		var->xres, var->yres, var->left_margin,
@@ -4997,7 +5161,11 @@ static int mdss_fb_atomic_commit_ioctl(struct fb_info *info,
 
 	ATRACE_BEGIN("ATOMIC_COMMIT");
 	ret = mdss_fb_atomic_commit(info, &commit, file);
+#if defined(CONFIG_FIH_NB1) || defined(CONFIG_FIH_A1N)
+	if (ret && !fih_get_aod())
+#else
 	if (ret)
+#endif
 		pr_err("atomic commit failed ret:%d\n", ret);
 	ATRACE_END("ATOMIC_COMMIT");
 

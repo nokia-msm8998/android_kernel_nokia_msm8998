@@ -84,6 +84,25 @@ static inline const char *mdss_panel2str(u32 panel)
 	return names[panel];
 }
 
+#if defined(CONFIG_FIH_NB1) || defined(CONFIG_FIH_A1N)
+/*Panel ID number*/
+enum{
+	UNDEFINE_UNKNOW_PANEL,
+	LGD_LH530QH1_WQXGA_CMD_PANEL,
+	JDI_LPM053A466A_WQXGA_CMD_PANEL,
+	JDI_LPM053A466A_WQXGA_VIDEO_PANEL,
+	LGD_D53G6EA8151_POLED_WQXGA_CMD_PANEL,
+	PANEL_NUM,
+};
+
+/*Touch event*/
+enum {
+	TP_EVENT_UNDEFINE,
+	TP_EVENT_REINIT,
+	TP_EVENT_NUM,
+};
+#endif
+
 /* panel class */
 enum {
 	DISPLAY_LCD = 0,	/* lcd = ebi2/mddi */
@@ -787,6 +806,10 @@ struct mdss_panel_info {
 	u32 yres;
 	u32 physical_width;
 	u32 physical_height;
+#if defined(CONFIG_FIH_NB1) || defined(CONFIG_FIH_A1N)
+	u32 physical_width_full;
+	u32 physical_height_full;
+#endif
 	u32 bpp;
 	u32 type;
 	u32 wait_cycle;
@@ -948,6 +971,22 @@ struct mdss_panel_info {
 
 	/* esc clk recommended for the panel */
 	u32 esc_clk_rate_hz;
+#if defined(CONFIG_FIH_NB1) || defined(CONFIG_FIH_A1N)
+	u32 panel_id;
+	bool aod_power_keep;
+	bool aod_power_keep_1p8;
+	bool aod_power_keep_3p3;
+	bool aod_power_keep_lab;
+	bool aod_power_keep_ibb;
+	bool aod_ready_on;
+	bool aod_ulps_pwr_feature;
+	bool aod_phy_pwr;
+	bool aod_screen_timeout;
+	int aod_bl_backup;
+	bool panel_power_init;
+	bool color_managerial;
+	int color_managerial_init;
+#endif
 };
 
 struct mdss_panel_timing {
@@ -1019,6 +1058,9 @@ struct mdss_panel_data {
 	 * are still on; panel will recover after unblank
 	 */
 	bool panel_disable_mode;
+#if defined(CONFIG_FIH_NB1) || defined(CONFIG_FIH_A1N)
+	bool high_brightness_mode;
+#endif
 
 	int panel_te_gpio;
 	bool is_te_irq_enabled;

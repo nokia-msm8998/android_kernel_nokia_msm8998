@@ -423,6 +423,7 @@ static int mdss_dp_clk_init(struct mdss_dp_drv_pdata *dp_drv,
 			dp_drv->pixel_parent = NULL;
 		}
 
+#if !defined(CONFIG_FIH_NB1) || !defined(CONFIG_FIH_A1N)
 		dp_drv->pixel_clk_two_div = devm_clk_get(dev,
 			"pixel_clk_two_div");
 		if (IS_ERR(dp_drv->pixel_clk_two_div)) {
@@ -438,6 +439,7 @@ static int mdss_dp_clk_init(struct mdss_dp_drv_pdata *dp_drv,
 				__func__);
 			dp_drv->pixel_clk_four_div = NULL;
 		}
+#endif
 	} else {
 		if (dp_drv->pixel_parent)
 			devm_clk_put(dev, dp_drv->pixel_parent);

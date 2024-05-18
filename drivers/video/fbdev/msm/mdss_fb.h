@@ -232,7 +232,9 @@ struct msm_mdp_interface {
 	int (*configure_panel)(struct msm_fb_data_type *mfd, int mode,
 				int dest_ctrl);
 	int (*input_event_handler)(struct msm_fb_data_type *mfd);
+#if !defined(CONFIG_FIH_NB1) || !defined(CONFIG_FIH_A1N)
 	void (*footswitch_ctrl)(bool on);
+#endif
 	int (*pp_release_fnc)(struct msm_fb_data_type *mfd);
 	void (*signal_retire_fence)(struct msm_fb_data_type *mfd,
 					int retire_cnt);
@@ -286,6 +288,9 @@ struct msm_fb_data_type {
 	u32 idle_state;
 	struct msm_fb_fps_info fps_info;
 	struct delayed_work idle_notify_work;
+#if defined(CONFIG_AOD_FEATURE)
+	struct delayed_work aod_brightness_work;
+#endif // defined(CONFIG_AOD_FEATURE)
 
 	bool atomic_commit_pending;
 
@@ -379,6 +384,11 @@ struct msm_fb_data_type {
 	bool pending_switch;
 	struct mutex switch_lock;
 	struct input_handler *input_handler;
+#if defined(CONFIG_AOD_FEATURE)
+#if defined(CONFIG_FIH_NB1)||defined(CONFIG_FIH_A1N)
+	u32 bl_aod_recovery;
+#endif // defined(CONFIG_FIH_NB1)||defined(CONFIG_FIH_A1N)
+#endif // defined(CONFIG_AOD_FEATURE)
 };
 
 static inline void mdss_fb_update_notify_update(struct msm_fb_data_type *mfd)

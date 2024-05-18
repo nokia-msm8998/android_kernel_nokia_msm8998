@@ -6401,12 +6401,14 @@ int mdss_mdp_input_event_handler(struct msm_fb_data_type *mfd)
 	return rc;
 }
 
+#if !defined(CONFIG_FIH_NB1) || !defined(CONFIG_FIH_A1N)
 void mdss_mdp_footswitch_ctrl_handler(bool on)
 {
 	struct mdss_data_type *mdata = mdss_mdp_get_mdata();
 
 	mdss_mdp_footswitch_ctrl(mdata, on);
 }
+#endif
 
 static void mdss_mdp_signal_retire_fence(struct msm_fb_data_type *mfd,
 					 int retire_cnt)
@@ -6467,6 +6469,7 @@ int mdss_mdp_overlay_init(struct msm_fb_data_type *mfd)
 	mdp5_interface->input_event_handler = mdss_mdp_input_event_handler;
 	mdp5_interface->signal_retire_fence = mdss_mdp_signal_retire_fence;
 
+#if !defined(CONFIG_FIH_NB1) || !defined(CONFIG_FIH_A1N)
 	/*
 	 * Register footswitch control only for primary fb pm
 	 * suspend/resume calls.
@@ -6474,6 +6477,7 @@ int mdss_mdp_overlay_init(struct msm_fb_data_type *mfd)
 	if (mfd->panel_info->is_prim_panel)
 		mdp5_interface->footswitch_ctrl =
 			mdss_mdp_footswitch_ctrl_handler;
+#endif
 
 	if (mfd->panel_info->type == WRITEBACK_PANEL) {
 		mdp5_interface->atomic_validate =
