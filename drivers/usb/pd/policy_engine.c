@@ -330,9 +330,23 @@ static void *usbpd_ipc_log;
 
 static bool check_vsafe0v = true;
 module_param(check_vsafe0v, bool, S_IRUSR | S_IWUSR);
+#if defined(CONFIG_FIH_NB1) || defined(CONFIG_FIH_A1N)
+extern char *saved_command_line;
+static bool inFtm = false;
+/* end FIH - NB1-625 */
+#endif
 
 static int min_sink_current = 900;
 module_param(min_sink_current, int, S_IRUSR | S_IWUSR);
+
+#if defined(CONFIG_FIH_NB1) || defined(CONFIG_FIH_A1N)
+static bool ss_dev = true;
+static bool ss_host = true;
+
+module_param(ss_dev, bool, S_IRUSR | S_IWUSR);
+module_param(ss_host, bool, S_IRUSR | S_IWUSR);
+/* end FIH - A1N-5 */
+#endif
 
 static const u32 default_src_caps[] = { 0x36019096 };	/* VSafe5V @ 1.5A */
 static const u32 default_snk_caps[] = { 0x2601912C };	/* VSafe5V @ 3A */
@@ -488,7 +502,13 @@ static inline void start_usb_host(struct usbpd *pd, bool ss)
 
 	extcon_set_cable_state_(pd->extcon, EXTCON_USB_CC,
 			cc == ORIENTATION_CC2);
+#if defined(CONFIG_FIH_NB1) || defined(CONFIG_FIH_A1N)
+	//extcon_set_cable_state_(pd->extcon, EXTCON_USB_SPEED, ss);
+	extcon_set_cable_state_(pd->extcon, EXTCON_USB_SPEED, ss <= ss_host ? ss : ss_host);
+	/* end FIH - A1N-5 */
+#else
 	extcon_set_cable_state_(pd->extcon, EXTCON_USB_SPEED, ss);
+#endif
 	extcon_set_cable_state_(pd->extcon, EXTCON_USB_HOST, 1);
 }
 
@@ -503,7 +523,13 @@ static inline void start_usb_peripheral(struct usbpd *pd)
 
 	extcon_set_cable_state_(pd->extcon, EXTCON_USB_CC,
 			cc == ORIENTATION_CC2);
+#if defined(CONFIG_FIH_NB1) || defined(CONFIG_FIH_A1N)
+	//extcon_set_cable_state_(pd->extcon, EXTCON_USB_SPEED, 1);
+	extcon_set_cable_state_(pd->extcon, EXTCON_USB_SPEED, ss_dev);
+	/* end FIH - A1N-5 */
+#else
 	extcon_set_cable_state_(pd->extcon, EXTCON_USB_SPEED, 1);
+#endif
 	extcon_set_cable_state_(pd->extcon, EXTCON_USB_TYPEC_MED_HIGH_CURRENT,
 		pd->typec_mode > POWER_SUPPLY_TYPEC_SOURCE_DEFAULT ? 1 : 0);
 	extcon_set_cable_state_(pd->extcon, EXTCON_USB, 1);
@@ -1018,7 +1044,11 @@ static void usbpd_set_state(struct usbpd *pd, enum usbpd_state next_state)
 	if (pd->hard_reset_recvd) /* let usbpd_sm handle it */
 		return;
 
+#if defined(CONFIG_FIH_NB1) || defined(CONFIG_FIH_A1N)
+	usbpd_info(&pd->dev, "%s -> %s\n",
+#else
 	usbpd_dbg(&pd->dev, "%s -> %s\n",
+#endif
 			usbpd_state_strings[pd->current_state],
 			usbpd_state_strings[next_state]);
 
@@ -1226,7 +1256,12 @@ static void usbpd_set_state(struct usbpd *pd, enum usbpd_state next_state)
 			break;
 		}
 
+#if defined(CONFIG_FIH_NB1) || defined(CONFIG_FIH_A1N)
+		//if (!val.intval || disable_usb_pd)
+		if (!val.intval || disable_usb_pd || pd->typec_mode == POWER_SUPPLY_TYPEC_SINK_DEBUG_ACCESSORY)
+#else
 		if (!val.intval || disable_usb_pd)
+#endif
 			break;
 
 		/*
@@ -2836,6 +2871,12 @@ static int psy_changed(struct notifier_block *nb, unsigned long evt, void *ptr)
 	union power_supply_propval val;
 	enum power_supply_typec_mode typec_mode;
 	int ret;
+#if defined(CONFIG_FIH_NB1) || defined(CONFIG_FIH_A1N)
+	bool vbus_present_changed = false;
+	/* end FIH - NB1-625 */
+
+	usbpd_dbg(&pd->dev, "%s:start\n", __func__);
+#endif
 
 	if (ptr != pd->usb_psy || evt != PSY_EVENT_PROP_CHANGED)
 		return 0;
@@ -2869,8 +2910,15 @@ static int psy_changed(struct notifier_block *nb, unsigned long evt, void *ptr)
 		return ret;
 	}
 
+#if defined(CONFIG_FIH_NB1) || defined(CONFIG_FIH_A1N)
+	vbus_present_changed = pd->vbus_present == val.intval ? false : true;
+	/* end FIH - NB1-625 */
+#endif
 	pd->vbus_present = val.intval;
-
+#if defined(CONFIG_FIH_NB1) || defined(CONFIG_FIH_A1N)
+	usbpd_dbg(&pd->dev, "pd->vbus_present: 0x%x, vbus_present_changed:%d\n",
+		pd->vbus_present, vbus_present_changed);
+#endif
 	ret = power_supply_get_property(pd->usb_psy,
 			POWER_SUPPLY_PROP_REAL_TYPE, &val);
 	if (ret) {
@@ -2879,6 +2927,9 @@ static int psy_changed(struct notifier_block *nb, unsigned long evt, void *ptr)
 	}
 
 	pd->psy_type = val.intval;
+#if defined(CONFIG_FIH_NB1) || defined(CONFIG_FIH_A1N)
+	usbpd_dbg(&pd->dev, "pd->psy_type: 0x%x\n", pd->psy_type);
+#endif
 
 	/*
 	 * For sink hard reset, state machine needs to know when VBUS changes
@@ -2895,12 +2946,35 @@ static int psy_changed(struct notifier_block *nb, unsigned long evt, void *ptr)
 		return 0;
 	}
 
+#if defined(CONFIG_FIH_NB1) || defined(CONFIG_FIH_A1N)
+	if (pd->typec_mode == typec_mode){
+		usbpd_dbg(&pd->dev, "typec_mode is same:0x%x\n", typec_mode);
+
+		if (!inFtm){
+			return 0;
+		}
+
+		if (pd->typec_mode != POWER_SUPPLY_TYPEC_SINK_DEBUG_ACCESSORY){
+			return 0;
+		}
+		else if(!vbus_present_changed){
+			usbpd_dbg(&pd->dev, "RD/RD attached and vbus present no change\n");
+			return 0;
+		}
+	}
+	/* end FIH - NB1-625 */
+#else
 	if (pd->typec_mode == typec_mode)
 		return 0;
+#endif
 
 	pd->typec_mode = typec_mode;
 
+#if defined(CONFIG_FIH_NB1) || defined(CONFIG_FIH_A1N)
+	usbpd_info(&pd->dev, "typec mode:%d present:%d type:%d orientation:%d\n",
+#else
 	usbpd_dbg(&pd->dev, "typec mode:%d present:%d type:%d orientation:%d\n",
+#endif
 			typec_mode, pd->vbus_present, pd->psy_type,
 			usbpd_get_plug_orientation(pd));
 
@@ -2959,6 +3033,23 @@ static int psy_changed(struct notifier_block *nb, unsigned long evt, void *ptr)
 
 	case POWER_SUPPLY_TYPEC_SINK_DEBUG_ACCESSORY:
 		usbpd_info(&pd->dev, "Type-C Debug Accessory connected\n");
+#if defined(CONFIG_FIH_NB1) || defined(CONFIG_FIH_A1N)
+		if (!inFtm){
+			pd->current_pr = PR_SINK;
+			pd->in_pr_swap = false;
+			pd->psy_type = POWER_SUPPLY_TYPE_USB;
+			pd->vbus_present = 1;
+			/* end FIH - NB1-48 */
+		}else{
+			if (pd->vbus_present) {
+				pd->current_pr = PR_SINK;
+				pd->psy_type = POWER_SUPPLY_TYPE_USB;
+			} else {
+				pd->typec_mode = POWER_SUPPLY_TYPEC_NONE;
+			}
+		}
+		/* end FIH - NB1-625 */
+#endif
 		break;
 	case POWER_SUPPLY_TYPEC_SINK_AUDIO_ADAPTER:
 		usbpd_info(&pd->dev, "Type-C Analog Audio Adapter connected\n");
@@ -4024,6 +4115,12 @@ EXPORT_SYMBOL(usbpd_destroy);
 static int __init usbpd_init(void)
 {
 	usbpd_ipc_log = ipc_log_context_create(NUM_LOG_PAGES, "usb_pd", 0);
+#if defined(CONFIG_FIH_NB1) || defined(CONFIG_FIH_A1N)
+	if(strstr(saved_command_line, "androidboot.mode=2") != NULL){
+		inFtm = true;
+	}
+	/* end FIH - NB1-625 */
+#endif
 	return class_register(&usbpd_class);
 }
 module_init(usbpd_init);

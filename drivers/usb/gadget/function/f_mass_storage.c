@@ -2907,10 +2907,17 @@ int fsg_common_create_lun(struct fsg_common *common, struct fsg_lun_config *cfg,
 
 	lun->name_pfx = name_pfx;
 
+#if defined(CONFIG_FIH_NB1)
+	lun->cdrom = 1;
+	lun->ro = 1;
+	lun->initially_ro = lun->ro;
+	lun->removable = 1;
+#else
 	lun->cdrom = !!cfg->cdrom;
 	lun->ro = cfg->cdrom || cfg->ro;
 	lun->initially_ro = lun->ro;
 	lun->removable = !!cfg->removable;
+#endif
 
 	if (!common->sysfs) {
 		/* we DON'T own the name!*/
