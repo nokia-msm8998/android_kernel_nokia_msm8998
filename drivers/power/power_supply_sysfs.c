@@ -251,6 +251,10 @@ static struct device_attribute power_supply_attrs[] = {
 	POWER_SUPPLY_ATTR(temp_hot),
 	POWER_SUPPLY_ATTR(system_temp_level),
 	POWER_SUPPLY_ATTR(resistance),
+#if defined(CONFIG_FIH_NB1) || defined(CONFIG_FIH_A1N)
+	POWER_SUPPLY_ATTR(resistance_esr),
+	POWER_SUPPLY_ATTR(resistance_rslow),
+#endif
 	POWER_SUPPLY_ATTR(resistance_capacitive),
 	POWER_SUPPLY_ATTR(resistance_id),
 	POWER_SUPPLY_ATTR(resistance_now),
@@ -288,6 +292,19 @@ static struct device_attribute power_supply_attrs[] = {
 	POWER_SUPPLY_ATTR(parallel_disable),
 	POWER_SUPPLY_ATTR(pe_start),
 	POWER_SUPPLY_ATTR(set_ship_mode),
+#if defined(CONFIG_FIH_NB1) || defined(CONFIG_FIH_A1N)
+	POWER_SUPPLY_ATTR(jeita_diff_fn_en),
+	POWER_SUPPLY_ATTR(jeita_fcc_cool),
+	POWER_SUPPLY_ATTR(jeita_fcc_warm),
+	POWER_SUPPLY_ATTR(jeita_fv_cool),
+	POWER_SUPPLY_ATTR(jeita_fv_warm),
+	POWER_SUPPLY_ATTR(jeita_full_capacity_status),
+	POWER_SUPPLY_ATTR(jeita_full_capacity_warm_en),
+	POWER_SUPPLY_ATTR(jeita_full_capacity_cool_en),
+	POWER_SUPPLY_ATTR(fih_wlc_fcc_en),
+	POWER_SUPPLY_ATTR(fih_period_checker),
+	POWER_SUPPLY_ATTR(monitor_event),
+#endif
 	POWER_SUPPLY_ATTR(soc_reporting_ready),
 	POWER_SUPPLY_ATTR(debug_battery),
 	POWER_SUPPLY_ATTR(fcc_delta),

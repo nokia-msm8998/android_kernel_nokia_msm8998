@@ -146,6 +146,38 @@
 #define FLOAT_VOLT_v2_WORD		16
 #define FLOAT_VOLT_v2_OFFSET		2
 
+#if defined(CONFIG_FIH_NB1) || defined(CONFIG_FIH_A1N)
+#define DEFAULT_CUTOFF_VOLT_MV		3200
+#define DEFAULT_EMPTY_VOLT_MV		2850
+#define DEFAULT_RECHARGE_VOLT_MV	4250
+#define DEFAULT_CHG_TERM_CURR_MA	100
+#define DEFAULT_CHG_TERM_BASE_CURR_MA	75
+#define DEFAULT_SYS_TERM_CURR_MA	-125
+#define DEFAULT_DELTA_SOC_THR		1
+#define DEFAULT_RECHARGE_SOC_THR	95
+#define DEFAULT_BATT_TEMP_COLD		0
+#define DEFAULT_BATT_TEMP_COOL		15
+#define DEFAULT_BATT_TEMP_WARM		45
+#define DEFAULT_BATT_TEMP_HOT		55
+#define DEFAULT_CL_START_SOC		15
+#define DEFAULT_CL_MIN_TEMP_DECIDEGC	150
+#define DEFAULT_CL_MAX_TEMP_DECIDEGC	450
+#define DEFAULT_CL_MAX_INC_DECIPERC	5
+#define DEFAULT_CL_MAX_DEC_DECIPERC	100
+#define DEFAULT_CL_MIN_LIM_DECIPERC	0
+#define DEFAULT_CL_MAX_LIM_DECIPERC	0
+#define BTEMP_DELTA_LOW			2
+#define BTEMP_DELTA_HIGH		10
+#define DEFAULT_ESR_FLT_TEMP_DECIDEGC	100
+#define DEFAULT_ESR_TIGHT_FLT_UPCT	3907
+#define DEFAULT_ESR_BROAD_FLT_UPCT	99610
+#define DEFAULT_ESR_TIGHT_LT_FLT_UPCT	48829
+#define DEFAULT_ESR_BROAD_LT_FLT_UPCT	148438
+#define DEFAULT_ESR_CLAMP_MOHMS		20
+#define DEFAULT_ESR_PULSE_THRESH_MA	110
+#define DEFAULT_ESR_MEAS_CURR_MA	120
+#endif
+
 static int fg_decode_voltage_15b(struct fg_sram_param *sp,
 	enum fg_sram_param_id id, int val);
 static int fg_decode_value_16b(struct fg_sram_param *sp,
@@ -656,6 +688,36 @@ static int fg_get_battery_temp(struct fg_chip *chip, int *val)
 	return 0;
 }
 
+#if defined(CONFIG_FIH_NB1) || defined(CONFIG_FIH_A1N)
+static int fg_get_battery_resistance_esr(struct fg_chip *chip, int *val)
+{
+	int rc, esr_uohms;
+
+	rc = fg_get_sram_prop(chip, FG_SRAM_ESR, &esr_uohms);
+	if (rc < 0) {
+		pr_err("failed to get ESR, rc=%d\n", rc);
+		return rc;
+	}
+
+	*val = esr_uohms;
+	return 0;
+}
+
+static int fg_get_battery_resistance_rslow(struct fg_chip *chip, int *val)
+{
+	int rc, rslow_uohms;
+
+	rc = fg_get_sram_prop(chip, FG_SRAM_RSLOW, &rslow_uohms);
+	if (rc < 0) {
+		pr_err("failed to get rslow, rc=%d\n", rc);
+		return rc;
+	}
+
+	*val = rslow_uohms;
+	return 0;
+}
+#endif
+
 static int fg_get_battery_resistance(struct fg_chip *chip, int *val)
 {
 	int rc, esr_uohms, rslow_uohms;
@@ -993,6 +1055,15 @@ static int fg_get_batt_profile(struct fg_chip *chip)
 
 	profile_node = of_batterydata_get_best_profile(batt_node,
 				chip->batt_id_ohms / 1000, NULL);
+	#if defined(CONFIG_FIH_NB1) || defined(CONFIG_FIH_A1N)
+	if(!profile_node) {
+		pr_err("Error: cannot read battery profile, use default profile\n");
+		chip->batt_id_ohms = 39000;
+		profile_node = of_batterydata_get_best_profile(batt_node,
+				chip->batt_id_ohms / 1000, NULL);
+	}
+	#endif
+	/* end NB1O-1665 */
 	if (IS_ERR(profile_node))
 		return PTR_ERR(profile_node);
 
@@ -1000,6 +1071,16 @@ static int fg_get_batt_profile(struct fg_chip *chip)
 		pr_err("couldn't find profile handle\n");
 		return -ENODATA;
 	}
+
+	#if defined(CONFIG_FIH_NB1) || defined(CONFIG_FIH_A1N)
+	rc = of_property_read_u32(profile_node, "qcom,batt-id-kohm",
+			&chip->batt_id_ohms);
+	if (rc < 0) {
+		pr_err("batt_id unavailable, rc:%d\n", rc);
+		return rc;
+	}
+	chip->batt_id_ohms *=  1000;
+	#endif
 
 	rc = of_property_read_string(profile_node, "qcom,battery-type",
 			&chip->bp.batt_type_str);
@@ -1050,11 +1131,79 @@ static int fg_get_batt_profile(struct fg_chip *chip)
 		return -EINVAL;
 	}
 
+#if defined(CONFIG_FIH_NB1) || defined(CONFIG_FIH_A1N)
+	chip->dt.jeita_thresholds[JEITA_COLD] = DEFAULT_BATT_TEMP_COLD;
+	chip->dt.jeita_thresholds[JEITA_COOL] = DEFAULT_BATT_TEMP_COOL;
+	chip->dt.jeita_thresholds[JEITA_WARM] = DEFAULT_BATT_TEMP_WARM;
+	chip->dt.jeita_thresholds[JEITA_HOT] = DEFAULT_BATT_TEMP_HOT;
+	if (of_property_count_elems_of_size(profile_node, "qcom,fg-jeita-thresholds",
+		sizeof(u32)) == NUM_JEITA_LEVELS) {
+		rc = of_property_read_u32_array(profile_node,
+				"qcom,fg-jeita-thresholds",
+				chip->dt.jeita_thresholds, NUM_JEITA_LEVELS);
+		if (rc < 0) {
+			pr_err("Error reading Jeita thresholds, default values will be used rc:%d\n",
+				rc);
+			return rc;
+		}
+	} else {
+		pr_err("Error reading Jeita thresholds, the size is not %d\n", NUM_JEITA_LEVELS);
+		return 0;
+	}
+
+	chip->bp.diff_jeita_fn_en = of_property_read_bool(profile_node,
+						"fih,diff-jeita-fn");
+
+	if(chip->bp.diff_jeita_fn_en) {
+		of_property_read_u32(profile_node, "qcom,jeita-fcc-comp-cool",
+				&chip->bp.jeita_fcc_comp_cool);
+		if (rc < 0) {
+			pr_err("qcom,jeita-fcc-comp-cool unavailable, rc:%d\n", rc);
+			chip->bp.jeita_fcc_comp_cool = -EINVAL;
+		}
+
+		rc = of_property_read_u32(profile_node, "qcom,jeita-fcc-comp-warm",
+				&chip->bp.jeita_fcc_comp_warm);
+		if (rc < 0) {
+			pr_err("qcom,jeita-fcc-comp-warm unavailable, rc:%d\n", rc);
+			chip->bp.jeita_fcc_comp_warm = -EINVAL;
+		}
+
+		rc = of_property_read_u32(profile_node, "qcom,jeita-fv-comp-cool",
+				&chip->bp.jeita_fv_comp_cool);
+		if (rc < 0) {
+			pr_err("qcom,jeita-fv-comp-cool unavailable, rc:%d\n", rc);
+			chip->bp.jeita_fv_comp_cool = -EINVAL;
+		}
+
+		rc = of_property_read_u32(profile_node, "qcom,jeita-fv-comp-warm",
+				&chip->bp.jeita_fv_comp_warm);
+		if (rc < 0) {
+			pr_err("qcom,jeita-fv-comp-warm unavailable, rc:%d\n", rc);
+			chip->bp.jeita_fv_comp_warm = -EINVAL;
+		}
+	}
+
+	chip->bp.fih_jeita_full_capacity_warm_en = of_property_read_bool(profile_node,
+						"fih,jeita-full-capacity-warm-en");
+
+	chip->bp.fih_jeita_full_capacity_cool_en = of_property_read_bool(profile_node,
+						"fih,jeita-full-capacity-cool-en");
+#endif
+
 	chip->profile_available = true;
 	memcpy(chip->batt_profile, data, len);
 
 	return 0;
 }
+
+#if defined(CONFIG_FIH_NB1) || defined(CONFIG_FIH_A1N)
+static inline void get_temp_setpoint(int threshold, u8 *val)
+{
+	/* Resolution is 0.5C. Base is -30C. */
+	*val = DIV_ROUND_CLOSEST((threshold + 30) * 10, 5);
+}
+#endif
 
 static inline void get_batt_temp_delta(int delta, u8 *val)
 {
@@ -1166,13 +1315,84 @@ static void fg_notify_charger(struct fg_chip *chip)
 		return;
 	}
 
+#if defined(CONFIG_FIH_NB1) || defined(CONFIG_FIH_A1N)
+	prop.intval = (chip->bp.diff_jeita_fn_en == true) ? 1 : 0;
+#else
 	prop.intval = chip->bp.fastchg_curr_ma * 1000;
+#endif
 	rc = power_supply_set_property(chip->batt_psy,
+#if defined(CONFIG_FIH_NB1) || defined(CONFIG_FIH_A1N)
+			POWER_SUPPLY_PROP_JEITA_DIFF_FN_EN, &prop);
+#else
 			POWER_SUPPLY_PROP_CONSTANT_CHARGE_CURRENT_MAX, &prop);
+#endif
 	if (rc < 0) {
+#if defined(CONFIG_FIH_NB1) || defined(CONFIG_FIH_A1N)
+		pr_err("Error in setting diff_jeita_fn_en property on batt_psy, rc=%d\n", rc);
+	}
+
+	if(chip->bp.diff_jeita_fn_en) {
+		prop.intval = chip->bp.jeita_fcc_comp_cool;
+		rc = power_supply_set_property(chip->batt_psy,
+				POWER_SUPPLY_PROP_JEITA_FCC_COOL, &prop);
+		if (rc < 0) {
+			pr_err("Error in setting jeita_fcc_comp_cool property on batt_psy, rc=%d\n", rc);
+		}
+
+		prop.intval = chip->bp.jeita_fcc_comp_warm;
+		rc = power_supply_set_property(chip->batt_psy,
+				POWER_SUPPLY_PROP_JEITA_FCC_WARM, &prop);
+		if (rc < 0) {
+			pr_err("Error in setting jeita_fcc_comp_warm property on batt_psy, rc=%d\n", rc);
+		}
+
+		prop.intval = chip->bp.jeita_fv_comp_cool;
+		rc = power_supply_set_property(chip->batt_psy,
+				POWER_SUPPLY_PROP_JEITA_FV_COOL, &prop);
+		if (rc < 0) {
+			pr_err("Error in setting jeita_fv_comp_cool property on batt_psy, rc=%d\n", rc);
+		}
+
+		prop.intval = chip->bp.jeita_fv_comp_warm;
+		rc = power_supply_set_property(chip->batt_psy,
+				POWER_SUPPLY_PROP_JEITA_FV_WARM, &prop);
+		if (rc < 0) {
+			pr_err("Error in setting jeita_fv_comp_warm property on batt_psy, rc=%d\n", rc);
+		}
+	}
+
+	if(chip->bp.fih_jeita_full_capacity_warm_en == true)
+		prop.intval = 1;
+	else
+		prop.intval = 0;
+	rc = power_supply_set_property(chip->batt_psy,
+			POWER_SUPPLY_PROP_JEITA_FULL_CAPACITY_WARM_EN, &prop);
+	if (rc < 0) {
+		pr_err("Error in setting fih_jeita_full_cap_warm_en property on batt_psy, rc=%d\n", rc);
+	}
+
+	if(chip->bp.fih_jeita_full_capacity_cool_en == true)
+		prop.intval = 1;
+	else
+		prop.intval = 0;
+	rc = power_supply_set_property(chip->batt_psy,
+			POWER_SUPPLY_PROP_JEITA_FULL_CAPACITY_COOL_EN, &prop);
+	if (rc < 0) {
+		pr_err("Error in setting fih_jeita_full_cap_cool_en property on batt_psy, rc=%d\n", rc);
+	}
+
+	if(chip->bp.fastchg_curr_ma >= 0) {
+		prop.intval = chip->bp.fastchg_curr_ma * 1000;
+		rc = power_supply_set_property(chip->batt_psy,
+				POWER_SUPPLY_PROP_CONSTANT_CHARGE_CURRENT_MAX, &prop);
+		if (rc < 0) {
+#endif
 		pr_err("Error in setting constant_charge_current_max property on batt_psy, rc=%d\n",
 			rc);
 		return;
+#if defined(CONFIG_FIH_NB1) || defined(CONFIG_FIH_A1N)
+		}
+#endif
 	}
 
 	fg_dbg(chip, FG_STATUS, "Notified charger on float voltage and FCC\n");
@@ -3018,6 +3238,36 @@ static void profile_load_work(struct work_struct *work)
 		goto out;
 	}
 
+#if defined(CONFIG_FIH_NB1) || defined(CONFIG_FIH_A1N)
+	get_temp_setpoint(chip->dt.jeita_thresholds[JEITA_COLD], &val);
+	rc = fg_write(chip, BATT_INFO_JEITA_TOO_COLD(chip), &val, 1);
+	if (rc < 0) {
+		pr_err("Error in writing jeita_cold, rc=%d\n", rc);
+		goto out;
+	}
+
+	get_temp_setpoint(chip->dt.jeita_thresholds[JEITA_COOL], &val);
+	rc = fg_write(chip, BATT_INFO_JEITA_COLD(chip), &val, 1);
+	if (rc < 0) {
+		pr_err("Error in writing jeita_cool, rc=%d\n", rc);
+		goto out;
+	}
+
+	get_temp_setpoint(chip->dt.jeita_thresholds[JEITA_WARM], &val);
+	rc = fg_write(chip, BATT_INFO_JEITA_HOT(chip), &val, 1);
+	if (rc < 0) {
+		pr_err("Error in writing jeita_warm, rc=%d\n", rc);
+		goto out;
+	}
+
+	get_temp_setpoint(chip->dt.jeita_thresholds[JEITA_HOT], &val);
+	rc = fg_write(chip, BATT_INFO_JEITA_TOO_HOT(chip), &val, 1);
+	if (rc < 0) {
+		pr_err("Error in writing jeita_hot, rc=%d\n", rc);
+		goto out;
+	}
+#endif
+
 	if (!chip->profile_available)
 		goto out;
 
@@ -3738,6 +3988,11 @@ end_work:
 
 /* PSY CALLBACKS STAY HERE */
 
+#if defined(CONFIG_FIH_NB1) || defined(CONFIG_FIH_A1N)
+#define IGNORE_NUMBER	8
+#define IGNORE_DIFF	300
+#endif
+
 static int fg_psy_get_property(struct power_supply *psy,
 				       enum power_supply_property psp,
 				       union power_supply_propval *pval)
@@ -3763,6 +4018,39 @@ static int fg_psy_get_property(struct power_supply *psy,
 		break;
 	case POWER_SUPPLY_PROP_TEMP:
 		rc = fg_get_battery_temp(chip, &pval->intval);
+#if defined(CONFIG_FIH_NB1) || defined(CONFIG_FIH_A1N)
+		if(chip->sys_ignore_temp_sts == -1)
+		{
+			chip->sys_pre_temp = pval->intval;
+			chip->sys_ignore_temp_sts = 0;
+			if(rc == -EINVAL)
+				chip->sys_ignore_temp_sts = -1;
+		}
+		else
+		{
+			if((pval->intval <600) && (pval->intval > -200))
+			{
+				chip->sys_pre_temp = pval->intval;
+				chip->sys_ignore_temp_sts =0;
+			}
+			else
+			{
+				if(chip->sys_ignore_temp_sts < IGNORE_NUMBER)
+				{
+					if(abs(chip->sys_pre_temp - pval->intval) > IGNORE_DIFF)
+					{
+						pval->intval = chip->sys_pre_temp;
+						chip->sys_ignore_temp_sts = chip->sys_ignore_temp_sts + 1;
+					}
+					else
+					{
+						chip->sys_pre_temp = pval->intval;
+						chip->sys_ignore_temp_sts =0;
+					}
+				}
+			}
+		}
+#endif
 		break;
 	case POWER_SUPPLY_PROP_COLD_TEMP:
 		rc = fg_get_jeita_threshold(chip, JEITA_COLD, &pval->intval);
@@ -3795,6 +4083,15 @@ static int fg_psy_get_property(struct power_supply *psy,
 	case POWER_SUPPLY_PROP_RESISTANCE:
 		rc = fg_get_battery_resistance(chip, &pval->intval);
 		break;
+#if defined(CONFIG_FIH_NB1) || defined(CONFIG_FIH_A1N)
+	case POWER_SUPPLY_PROP_RESISTANCE_ESR:
+		rc = fg_get_battery_resistance_esr(chip, &pval->intval);
+		break;
+	case POWER_SUPPLY_PROP_RESISTANCE_RSLOW:
+		rc = fg_get_battery_resistance_rslow(chip, &pval->intval);
+		break;
+	/* end NB1-7860 */
+#endif
 	case POWER_SUPPLY_PROP_VOLTAGE_OCV:
 		rc = fg_get_sram_prop(chip, FG_SRAM_OCV, &pval->intval);
 		break;
@@ -4144,6 +4441,10 @@ static enum power_supply_property fg_psy_props[] = {
 	POWER_SUPPLY_PROP_CURRENT_NOW,
 	POWER_SUPPLY_PROP_RESISTANCE_ID,
 	POWER_SUPPLY_PROP_RESISTANCE,
+#if defined(CONFIG_FIH_NB1) || defined(CONFIG_FIH_A1N)
+	POWER_SUPPLY_PROP_RESISTANCE_ESR,
+	POWER_SUPPLY_PROP_RESISTANCE_RSLOW,
+#endif
 	POWER_SUPPLY_PROP_BATTERY_TYPE,
 	POWER_SUPPLY_PROP_CHARGE_FULL_DESIGN,
 	POWER_SUPPLY_PROP_VOLTAGE_MAX_DESIGN,
@@ -4331,6 +4632,7 @@ static int fg_hw_init(struct fg_chip *chip)
 
 	rc = fg_set_jeita_threshold(chip, JEITA_COLD,
 		chip->dt.jeita_thresholds[JEITA_COLD] * 10);
+#if !defined(CONFIG_FIH_NB1) || !defined(CONFIG_FIH_A1N)
 	if (rc < 0) {
 		pr_err("Error in writing jeita_cold, rc=%d\n", rc);
 		return rc;
@@ -4356,7 +4658,7 @@ static int fg_hw_init(struct fg_chip *chip)
 		pr_err("Error in writing jeita_hot, rc=%d\n", rc);
 		return rc;
 	}
-
+#endif
 	if (chip->pmic_rev_id->pmic_subtype == PMI8998_SUBTYPE) {
 		chip->esr_timer_charging_default[TIMER_RETRY] =
 			DEFAULT_ESR_CHG_TIMER_RETRY;
@@ -4615,6 +4917,12 @@ static irqreturn_t fg_delta_batt_temp_irq_handler(int irq, void *data)
 	if (abs(chip->last_batt_temp - batt_temp) > 30)
 		pr_warn("Battery temperature last:%d current: %d\n",
 			chip->last_batt_temp, batt_temp);
+#if defined(CONFIG_FIH_NB1) || defined(CONFIG_FIH_A1N)
+	rc = power_supply_set_property(chip->batt_psy,
+			POWER_SUPPLY_PROP_FIH_PERIOD_CHECKER, &prop);
+
+	power_supply_changed(chip->batt_psy);
+#endif
 	return IRQ_HANDLED;
 }
 
@@ -4653,6 +4961,9 @@ static irqreturn_t fg_delta_msoc_irq_handler(int irq, void *data)
 {
 	struct fg_chip *chip = data;
 	int rc;
+#if defined(CONFIG_FIH_NB1) || defined(CONFIG_FIH_A1N)
+	union power_supply_propval prop = {0, };
+#endif
 
 	fg_dbg(chip, FG_IRQ, "irq %d triggered\n", irq);
 	fg_cycle_counter_update(chip);
@@ -4679,6 +4990,11 @@ static irqreturn_t fg_delta_msoc_irq_handler(int irq, void *data)
 	rc = fg_adjust_timebase(chip);
 	if (rc < 0)
 		pr_err("Error in adjusting timebase, rc=%d\n", rc);
+
+#if defined(CONFIG_FIH_NB1) || defined(CONFIG_FIH_A1N)
+	rc = power_supply_set_property(chip->batt_psy,
+			POWER_SUPPLY_PROP_FIH_PERIOD_CHECKER, &prop);
+#endif
 
 	if (batt_psy_initialized(chip))
 		power_supply_changed(chip->batt_psy);
@@ -4956,9 +5272,13 @@ static int fg_parse_ki_coefficients(struct fg_chip *chip)
 #define DEFAULT_DELTA_SOC_THR		1
 #define DEFAULT_RECHARGE_SOC_THR	95
 #define DEFAULT_BATT_TEMP_COLD		0
+#if !defined(CONFIG_FIH_NB1) || !defined(CONFIG_FIH_A1N)
 #define DEFAULT_BATT_TEMP_COOL		5
+#endif
 #define DEFAULT_BATT_TEMP_WARM		45
+#if !defined(CONFIG_FIH_NB1) || !defined(CONFIG_FIH_A1N)
 #define DEFAULT_BATT_TEMP_HOT		50
+#endif
 #define DEFAULT_CL_START_SOC		15
 #define DEFAULT_CL_MIN_TEMP_DECIDEGC	150
 #define DEFAULT_CL_MAX_TEMP_DECIDEGC	450
@@ -4971,8 +5291,10 @@ static int fg_parse_ki_coefficients(struct fg_chip *chip)
 #define DEFAULT_ESR_FLT_TEMP_DECIDEGC	100
 #define DEFAULT_ESR_TIGHT_FLT_UPCT	3907
 #define DEFAULT_ESR_BROAD_FLT_UPCT	99610
+#if !defined(CONFIG_FIH_NB1) || !defined(CONFIG_FIH_A1N)
 #define DEFAULT_ESR_TIGHT_LT_FLT_UPCT	30000
 #define DEFAULT_ESR_BROAD_LT_FLT_UPCT	30000
+#endif
 #define DEFAULT_ESR_FLT_RT_DECIDEGC	60
 #define DEFAULT_ESR_TIGHT_RT_FLT_UPCT	5860
 #define DEFAULT_ESR_BROAD_RT_FLT_UPCT	156250
@@ -5154,6 +5476,7 @@ static int fg_parse_dt(struct fg_chip *chip)
 	else
 		chip->dt.rsense_sel = (u8)temp & SOURCE_SELECT_MASK;
 
+#if !defined(CONFIG_FIH_NB1) || !defined(CONFIG_FIH_A1N)
 	chip->dt.jeita_thresholds[JEITA_COLD] = DEFAULT_BATT_TEMP_COLD;
 	chip->dt.jeita_thresholds[JEITA_COOL] = DEFAULT_BATT_TEMP_COOL;
 	chip->dt.jeita_thresholds[JEITA_WARM] = DEFAULT_BATT_TEMP_WARM;
@@ -5167,6 +5490,7 @@ static int fg_parse_dt(struct fg_chip *chip)
 			pr_warn("Error reading Jeita thresholds, default values will be used rc:%d\n",
 				rc);
 	}
+#endif
 
 	if (of_property_count_elems_of_size(node,
 		"qcom,battery-thermal-coefficients",
@@ -5398,6 +5722,10 @@ static int fg_gen3_probe(struct platform_device *pdev)
 	chip->prev_charge_status = -EINVAL;
 	chip->ki_coeff_full_soc = -EINVAL;
 	chip->online_status = -EINVAL;
+#if defined(CONFIG_FIH_NB1) || defined(CONFIG_FIH_A1N)
+	chip->sys_pre_temp = 250;
+	chip->sys_ignore_temp_sts = -1;
+#endif
 	chip->regmap = dev_get_regmap(chip->dev->parent, NULL);
 	if (!chip->regmap) {
 		dev_err(chip->dev, "Parent regmap is unavailable\n");
@@ -5555,6 +5883,9 @@ static int fg_gen3_probe(struct platform_device *pdev)
 			pr_err("Error in configuring ESR filter rc:%d\n", rc);
 	}
 
+#if defined(CONFIG_FIH_NB1) || defined(CONFIG_FIH_A1N)
+	dev_set_name(chip->dev, "qpnp_fg-gen3");
+#endif
 	device_init_wakeup(chip->dev, true);
 	schedule_delayed_work(&chip->profile_load_work, 0);
 
