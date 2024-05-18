@@ -47,6 +47,12 @@
 #include <soc/qcom/boot_stats.h>
 #include "spi_qsd.h"
 
+//SW8-DH-PowerConsumption+[
+#ifdef CONFIG_FIH_NB1
+#include <../video/fbdev/msm/mdss_panel.h>
+#endif
+//SW8-DH-PowerConsumption+[
+
 #define SPI_MAX_BYTES_PER_WORD			(4)
 
 static int msm_spi_pm_resume_runtime(struct device *device);
@@ -57,6 +63,12 @@ static void put_local_resources(struct msm_spi *dd);
 static void msm_spi_slv_setup(struct msm_spi *dd);
 static inline int msm_spi_wait_valid(struct msm_spi *dd);
 static int reset_core(struct msm_spi *dd);
+
+//SW8-DH-PowerConsumption+[
+#ifdef CONFIG_FIH_NB1
+extern unsigned int fih_get_panel_id(void);
+#endif
+//SW8-DH-PowerConsumption+]
 
 static inline int msm_spi_configure_gsbi(struct msm_spi *dd,
 					struct platform_device *pdev)
@@ -119,8 +131,23 @@ static int msm_spi_pinctrl_init(struct msm_spi *dd)
 		return PTR_ERR(dd->pins_active);
 	}
 
-	dd->pins_sleep = pinctrl_lookup_state(dd->pinctrl,
-				SPI_PINCTRL_STATE_SLEEP);
+//SW8-DH-PowerConsumption+[
+#ifdef CONFIG_FIH_NB1
+	if (fih_get_panel_id() == JDI_LPM053A466A_WQXGA_CMD_PANEL)
+	{
+		dev_info(dd->dev, "%s, Load JDI SPI pinctrl\n", __func__);
+		dd->pins_sleep = pinctrl_lookup_state(dd->pinctrl, SPI_PINCTRL_STATE_SLEEP_JDI);
+	}
+	else
+	{
+		dev_info(dd->dev, "%s, Load LGD SPI pinctrl\n", __func__);
+#endif
+		dd->pins_sleep = pinctrl_lookup_state(dd->pinctrl, SPI_PINCTRL_STATE_SLEEP);
+#ifdef CONFIG_FIH_NB1
+	}
+#endif
+//SW8-DH-PowerConsumption+]
+
 	if (IS_ERR_OR_NULL(dd->pins_sleep)) {
 		dev_err(dd->dev, "Failed to lookup pinctrl sleep state\n");
 		return PTR_ERR(dd->pins_sleep);
