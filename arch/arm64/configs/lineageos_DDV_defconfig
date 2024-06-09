@@ -387,8 +387,9 @@ CONFIG_MSM_BCL_CTL=y
 CONFIG_MSM_BCL_PERIPHERAL_CTL=y
 CONFIG_BATTERY_BCL=y
 CONFIG_QPNP_SMB2=y
-CONFIG_SMB138X_CHARGER=y
-CONFIG_QPNP_QNOVO=y
+# M690 not support parallel charging delete by wangybo at 20190315 start
+#CONFIG_SMB138X_CHARGER is not set
+# M690 not support parallel charging delete by wangybo at 20190315 end
 CONFIG_MSM_PM=y
 CONFIG_MSM_APM=y
 CONFIG_SENSORS_QPNP_ADC_VOLTAGE=y
