@@ -233,7 +233,6 @@ static int ant_probe(struct platform_device *pdev)
 	input_set_capability(ant_info->ipdev, EV_KEY, KEY_ANT_HB_UNCONNECT);
 	input_set_capability(ant_info->ipdev, EV_KEY, KEY_ANT_MB_CONNECT);
 	input_set_capability(ant_info->ipdev, EV_KEY, KEY_ANT_MB_UNCONNECT);
-	set_bit(INPUT_PROP_NO_DUMMY_RELEASE, ant_info->ipdev->propbit);
 	rc = input_register_device(ant_info->ipdev);
 	if (rc) {
 		pr_err("ant_probe: input_register_device fail rc=%d\n", rc);
