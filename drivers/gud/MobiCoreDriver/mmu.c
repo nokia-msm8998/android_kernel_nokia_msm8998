@@ -67,7 +67,25 @@
 /* Trustonic Specific flag to detect ION mem */
 #define MMU_ION_BUF		BIT(24)
 
-#if KERNEL_VERSION(4, 6, 0) > LINUX_VERSION_CODE
+/*
+ * Specific case for kernel 4.4.168 that does not have the same
+ * get_user_pages() implementation
+ */
+#if KERNEL_VERSION(4, 4, 167) < LINUX_VERSION_CODE && \
+	KERNEL_VERSION(4, 5, 0) > LINUX_VERSION_CODE
+static inline long gup_local(struct mm_struct *mm, uintptr_t start,
+			     unsigned long nr_pages, int write,
+			     struct page **pages)
+{
+	unsigned int gup_flags = 0;
+
+	if (write)
+		gup_flags |= FOLL_WRITE;
+
+	return get_user_pages(NULL, mm, start, nr_pages, gup_flags, pages,
+					NULL);
+}
+#elif KERNEL_VERSION(4, 6, 0) > LINUX_VERSION_CODE
 static inline long gup_local(struct mm_struct *mm, uintptr_t start,
 			     unsigned long nr_pages, int write,
 			     struct page **pages)
@@ -79,39 +97,40 @@ static inline long gup_local(struct mm_struct *mm, uintptr_t start,
 			     unsigned long nr_pages, int write,
 			     struct page **pages)
 {
-	unsigned int flags = 0;
+	unsigned int gup_flags = 0;
 
 	if (write)
-		flags |= FOLL_WRITE;
+		gup_flags |= FOLL_WRITE;
+	/* gup_flags |= FOLL_CMA; */
 
-	return get_user_pages_remote(NULL, mm, start, nr_pages, write, 0, pages,
-				     NULL);
+	return get_user_pages_remote(NULL, mm, start, nr_pages, gup_flags,
+				    0, pages, NULL);
 }
 #elif KERNEL_VERSION(4, 10, 0) > LINUX_VERSION_CODE
 static inline long gup_local(struct mm_struct *mm, uintptr_t start,
 			     unsigned long nr_pages, int write,
 			     struct page **pages)
 {
-	unsigned int flags = 0;
+	unsigned int gup_flags = 0;
 
 	if (write)
-		flags |= FOLL_WRITE;
+		gup_flags |= FOLL_WRITE;
 
-	return get_user_pages_remote(NULL, mm, start, nr_pages, flags, pages,
-				     NULL);
+	return get_user_pages_remote(NULL, mm, start, nr_pages, gup_flags,
+				    pages, NULL);
 }
 #else
 static inline long gup_local(struct mm_struct *mm, uintptr_t start,
 			     unsigned long nr_pages, int write,
 			     struct page **pages)
 {
-	unsigned int flags = 0;
+	unsigned int gup_flags = 0;
 
 	if (write)
-		flags |= FOLL_WRITE;
+		gup_flags |= FOLL_WRITE;
 
-	return get_user_pages_remote(NULL, mm, start, nr_pages, flags, pages,
-				     NULL, NULL);
+	return get_user_pages_remote(NULL, mm, start, nr_pages, gup_flags,
+				    pages, NULL, NULL);
 }
 #endif
 
