@@ -961,9 +961,6 @@ static enum power_supply_property smb2_batt_props[] = {
 	//begin for the total capacity of batt in  2017.11.29
 	POWER_SUPPLY_PROP_CHARGE_FULL_DESIGN,
 	//end for the total capacity of batt in  2017.11.29
-	//begin for system app to control battery charging in 2019.12.25
-	POWER_SUPPLY_PROP_CHARGING_ENABLED,
-	//end for system app to control battery charging in 2019.12.25
 	POWER_SUPPLY_PROP_CHARGE_FULL,
 	POWER_SUPPLY_PROP_CYCLE_COUNT,
 };
@@ -1089,13 +1086,6 @@ static int smb2_batt_get_prop(struct power_supply *psy,
 	case POWER_SUPPLY_PROP_FCC_STEPPER_ENABLE:
 		val->intval = chg->fcc_stepper_mode;
 		break;
-	//begin for system app to control battery charging in 2019.12.25
-	case POWER_SUPPLY_PROP_CHARGING_ENABLED:
-		smblib_get_prop_batt_status(chg, val);
-		if (val->intval != POWER_SUPPLY_STATUS_CHARGING)
-			val->intval = 0;
-		break;
-	//end for system app to control battery charging in 2019.12.25
 	default:
 		pr_err("batt power supply prop %d not supported\n", psp);
 		return -EINVAL;
@@ -1193,11 +1183,6 @@ static int smb2_batt_set_prop(struct power_supply *psy,
 	case POWER_SUPPLY_PROP_INPUT_CURRENT_LIMITED:
 		rc = smblib_set_prop_input_current_limited(chg, val);
 		break;
-	//begin for system app to control battery charging in 2019.12.25
-	case POWER_SUPPLY_PROP_CHARGING_ENABLED:
-		rc = lct_set_prop_input_suspend(chg, val);
-		break;
-	//end for system app to control battery charging in 2019.12.25
 	default:
 		rc = -EINVAL;
 	}
@@ -1219,9 +1204,6 @@ static int smb2_batt_prop_is_writeable(struct power_supply *psy,
 	case POWER_SUPPLY_PROP_INPUT_CURRENT_LIMITED:
 	case POWER_SUPPLY_PROP_STEP_CHARGING_ENABLED:
 	case POWER_SUPPLY_PROP_SW_JEITA_ENABLED:
-	//begin for system app to control battery charging in 2019.12.25
-	case POWER_SUPPLY_PROP_CHARGING_ENABLED:
-	//end for system app to control battery charging in 2019.12.25
 		return 1;
 	default:
 		break;
