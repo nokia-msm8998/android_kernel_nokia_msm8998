@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2016-2019,2020 The Linux Foundation. All rights reserved.
+ * Copyright (c) 2016-2018 The Linux Foundation. All rights reserved.
  *
  * Permission to use, copy, modify, and/or distribute this software for
  * any purpose with or without fee is hereby granted, provided that the
@@ -158,8 +158,9 @@ static QDF_STATUS lim_handle_ndp_indication_event(tpAniSirGlobal mac_ctx,
 			goto ndp_indication_failed;
 		}
 	}
-	lim_send_ndp_event_to_sme(mac_ctx, eWNI_SME_NDP_INDICATION,
-		ndp_ind, sizeof(*ndp_ind), 0);
+	if (NDP_ROLE_RESPONDER == ndp_ind->role)
+		lim_send_ndp_event_to_sme(mac_ctx, eWNI_SME_NDP_INDICATION,
+			ndp_ind, sizeof(*ndp_ind), 0);
 	/*
 	 * With NDP indication if peer does not exists already add_sta is
 	 * executed resulting in new peer else no action is taken. Note that
@@ -169,8 +170,13 @@ static QDF_STATUS lim_handle_ndp_indication_event(tpAniSirGlobal mac_ctx,
 	 * used by service layer to identify failure.
 	 */
 ndp_indication_failed:
-	/* free config and app info if failure */
-	if (status != QDF_STATUS_SUCCESS) {
+	/*
+	 * Free config if failure or for NDP_ROLE_INITIATOR role
+	 * As for success responder case this info is sent till HDD
+	 * and will be freed in sme.
+	 */
+	if (status != QDF_STATUS_SUCCESS ||
+			NDP_ROLE_INITIATOR == ndp_ind->role) {
 		qdf_mem_free(ndp_ind->ndp_config.ndp_cfg);
 		qdf_mem_free(ndp_ind->ndp_info.ndp_app_info);
 		ndp_ind->ndp_config.ndp_cfg = NULL;
@@ -569,7 +575,6 @@ static QDF_STATUS lim_process_sme_ndp_initiator_req(tpAniSirGlobal mac_ctx,
 	msg.bodyval = 0;
 
 	pe_debug("sending WDA_NDP_INITIATOR_REQ to WMA");
-	MTRACE(mac_trace_msg_tx(mac_ctx, NO_SESSION, msg.type));
 
 	if (eSIR_SUCCESS != wma_post_ctrl_msg(mac_ctx, &msg))
 		pe_err("wma_post_ctrl_msg failed");
@@ -614,7 +619,6 @@ static QDF_STATUS lim_process_sme_ndp_responder_req(tpAniSirGlobal mac_ctx,
 	msg.bodyval = 0;
 
 	pe_debug("sending SIR_HAL_NDP_RESPONDER_REQ to WMA");
-	MTRACE(mac_trace_msg_tx(mac_ctx, NO_SESSION, msg.type));
 
 	if (eSIR_SUCCESS != wma_post_ctrl_msg(mac_ctx, &msg)) {
 		pe_err("wma_post_ctrl_msg failed");
@@ -669,7 +673,6 @@ QDF_STATUS lim_process_sme_ndp_data_end_req(tpAniSirGlobal mac_ctx,
 	msg.bodyval = 0;
 
 	pe_debug("sending SIR_HAL_NDP_END_REQ to WMA");
-	MTRACE(mac_trace_msg_tx(mac_ctx, NO_SESSION, msg.type));
 
 	if (eSIR_SUCCESS != wma_post_ctrl_msg(mac_ctx, &msg)) {
 		pe_err("wma_post_ctrl_msg failed");
@@ -734,9 +737,6 @@ void lim_process_ndi_mlm_add_bss_rsp(tpAniSirGlobal mac_ctx, tpSirMsgQ lim_msgq,
 	if (QDF_STATUS_SUCCESS == add_bss_params->status) {
 		pe_debug("WDA_ADD_BSS_RSP returned QDF_STATUS_SUCCESS");
 		session_entry->limMlmState = eLIM_MLM_BSS_STARTED_STATE;
-		MTRACE(mac_trace(mac_ctx, TRACE_CODE_MLM_STATE,
-			session_entry->peSessionId,
-			session_entry->limMlmState));
 		session_entry->bssIdx = (uint8_t) add_bss_params->bssIdx;
 		session_entry->limSystemRole = eLIM_NDI_ROLE;
 		session_entry->statypeForBss = STA_ENTRY_SELF;

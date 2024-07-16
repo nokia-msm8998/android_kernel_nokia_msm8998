@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2013-2019, 2021 The Linux Foundation. All rights reserved.
+ * Copyright (c) 2013-2019 The Linux Foundation. All rights reserved.
  *
  * Permission to use, copy, modify, and/or distribute this software for
  * any purpose with or without fee is hereby granted, provided that the
@@ -918,6 +918,45 @@ static inline uint8_t wma_parse_mpdudensity(uint8_t mpdudensity)
 		return 0;
 }
 
+#if defined(CONFIG_HL_SUPPORT) && defined(FEATURE_WLAN_TDLS)
+
+/**
+ * wma_unified_peer_state_update() - update peer state
+ * @pdev: pdev handle
+ * @sta_mac: pointer to sta mac addr
+ * @bss_addr: bss address
+ * @sta_type: sta entry type
+ *
+ *
+ * Return: None
+ */
+static void
+wma_unified_peer_state_update(
+	struct ol_txrx_pdev_t *pdev,
+	uint8_t *sta_mac,
+	uint8_t *bss_addr,
+	uint8_t sta_type)
+{
+	if (STA_ENTRY_TDLS_PEER == sta_type)
+		ol_txrx_peer_state_update(pdev, sta_mac,
+					  OL_TXRX_PEER_STATE_AUTH);
+	else
+		ol_txrx_peer_state_update(pdev, bss_addr,
+					  OL_TXRX_PEER_STATE_AUTH);
+}
+#else
+
+static inline void
+wma_unified_peer_state_update(
+	struct ol_txrx_pdev_t *pdev,
+	uint8_t *sta_mac,
+	uint8_t *bss_addr,
+	uint8_t sta_type)
+{
+	ol_txrx_peer_state_update(pdev, bss_addr, OL_TXRX_PEER_STATE_AUTH);
+}
+#endif
+
 #define CFG_CTRL_MASK              0xFF00
 #define CFG_DATA_MASK              0x00FF
 
@@ -1207,6 +1246,9 @@ QDF_STATUS wma_send_peer_assoc(tp_wma_handle wma,
 	}
 	if (params->wpa_rsn >> 1)
 		cmd->peer_flags |= WMI_PEER_NEED_GTK_2_WAY;
+
+	wma_unified_peer_state_update(pdev, params->staMac,
+				      params->bssId, params->staType);
 
 #ifdef FEATURE_WLAN_WAPI
 	if (params->encryptType == eSIR_ED_WPI) {
@@ -2329,22 +2371,8 @@ static QDF_STATUS wma_unified_bcn_tmpl_send(tp_wma_handle wma,
 		tmpl_len = *(uint32_t *) &bcn_info->beacon[0];
 	else
 		tmpl_len = bcn_info->beaconLength;
-
-	if (tmpl_len > WMI_BEACON_TX_BUFFER_SIZE) {
-		WMA_LOGE("tmpl_len: %d > %d. Invalid tmpl len", tmpl_len,
-			 WMI_BEACON_TX_BUFFER_SIZE);
-		return -EINVAL;
-	}
-
-	if (p2p_ie_len) {
-		if (tmpl_len <= p2p_ie_len) {
-			WMA_LOGE("tmpl_len %d <= p2p_ie_len %d, Invalid",
-				 tmpl_len, p2p_ie_len);
-			return -EINVAL;
-		}
+	if (p2p_ie_len)
 		tmpl_len -= (uint32_t) p2p_ie_len;
-	}
-
 	frm = bcn_info->beacon + bytes_to_strip;
 	tmpl_len_aligned = roundup(tmpl_len, sizeof(A_UINT32));
 	/*
@@ -2734,7 +2762,6 @@ void wma_beacon_miss_handler(tp_wma_handle wma, uint32_t vdev_id, int32_t rssi)
  *
  * Return: converted string of tx status
  */
-#ifdef WLAN_DEBUG
 static const char *wma_get_status_str(uint32_t status)
 {
 	switch (status) {
@@ -2747,7 +2774,6 @@ static const char *wma_get_status_str(uint32_t status)
 	CASE_RETURN_STRING(WMI_MGMT_TX_COMP_TYPE_MAX);
 	}
 }
-#endif
 
 #define RATE_LIMIT 16
 #define RESERVE_BYTES   100
@@ -4332,7 +4358,6 @@ QDF_STATUS wma_de_register_mgmt_frm_client(void *cds_ctx)
  * @cds_ctx: CDS Context
  * @csr_roam_synch_cb: CSR roam synch callback routine pointer
  * @pe_roam_synch_cb: PE roam synch callback routine pointer
- * @csr_roam_pmkid_req_cb: CSR roam pmkid callback routine pointer
  *
  * Register the SME and PE callback routines with WMA for
  * handling roaming
@@ -4347,9 +4372,7 @@ QDF_STATUS wma_register_roaming_callbacks(void *cds_ctx,
 	QDF_STATUS (*pe_roam_synch_cb)(tpAniSirGlobal mac,
 		roam_offload_synch_ind *roam_synch_data,
 		tpSirBssDescription  bss_desc_ptr,
-		enum sir_roam_op_code reason),
-	QDF_STATUS (*csr_roam_pmkid_req_cb)(uint8_t vdev_id,
-		struct roam_pmkid_req_event *bss_list))
+		enum sir_roam_op_code reason))
 {
 
 	tp_wma_handle wma = cds_get_context(QDF_MODULE_ID_WMA);
@@ -4361,8 +4384,6 @@ QDF_STATUS wma_register_roaming_callbacks(void *cds_ctx,
 	wma->csr_roam_synch_cb = csr_roam_synch_cb;
 	wma->pe_roam_synch_cb = pe_roam_synch_cb;
 	WMA_LOGD("Registered roam synch callbacks with WMA successfully");
-
-	wma->csr_roam_pmkid_req_cb = csr_roam_pmkid_req_cb;
 	return QDF_STATUS_SUCCESS;
 }
 #endif

@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2011-2018, 2020 The Linux Foundation. All rights reserved.
+ * Copyright (c) 2011-2018 The Linux Foundation. All rights reserved.
  *
  * Permission to use, copy, modify, and/or distribute this software for
  * any purpose with or without fee is hereby granted, provided that the
@@ -1188,11 +1188,6 @@ cgstatic cfg_static[CFG_PARAM_MAX_NUM] = {
 	{WNI_CFG_EDCA_ETSI_ACVO,
 	 CFG_CTL_VALID | CFG_CTL_RE | CFG_CTL_WE | CFG_CTL_RESTART,
 	 0, 0, 0},
-#ifdef WLAN_FEATURE_SAE
-	{WNI_CFG_SAP_SAE_ENABLED,
-	 CFG_CTL_VALID | CFG_CTL_RE | CFG_CTL_WE | CFG_CTL_INT,
-	 0, 1, 1},
-#endif
 };
 
 
@@ -1694,7 +1689,6 @@ end:
 	mmhMsg.bodyptr = NULL;
 	mmhMsg.bodyval = 0;
 
-	MTRACE(mac_trace_msg_tx(pMac, NO_SESSION, mmhMsg.type));
 	if (wma_post_ctrl_msg(pMac, &mmhMsg) != eSIR_SUCCESS) {
 		pe_err("WMAPostMsgApi failed!");
 	}
@@ -1728,9 +1722,9 @@ static void proc_get_req(tpAniSirGlobal pMac, uint16_t length, uint32_t *pParam)
 	uint32_t *pValue;
 
 	pe_debug("Rcvd cfg get request %d bytes", length);
-	for (i = 0; i < length / 4; i++)
+	for (i = 0; i < length / 4; i++) {
 		pe_debug("[%2d] 0x%08x", i, pParam[i]);
-
+	}
 		if (!pMac->cfg.gCfgStatus) {
 			cfgId = (uint16_t) sir_read_u32_n((uint8_t *) pParam);
 			pe_debug("CFG not ready, param %d", cfgId);
@@ -1797,7 +1791,6 @@ static void proc_get_req(tpAniSirGlobal pMac, uint16_t length, uint32_t *pParam)
 				length -= sizeof(uint32_t);
 			}
 		}
-
 } /*** end procGetReq() ***/
 
 /**---------------------------------------------------------------------

@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2017-2019 The Linux Foundation. All rights reserved.
+ * Copyright (c) 2017-2018 The Linux Foundation. All rights reserved.
  *
  * Permission to use, copy, modify, and/or distribute this software for
  * any purpose with or without fee is hereby granted, provided that the
@@ -284,8 +284,6 @@ void lim_perform_ft_pre_auth(tpAniSirGlobal pMac, QDF_STATUS status,
 		pe_err("FT Auth Rsp Timer Start Failed");
 		goto preauth_fail;
 	}
-	MTRACE(mac_trace(pMac, TRACE_CODE_TIMER_ACTIVATE,
-		psessionEntry->peSessionId, eLIM_FT_PREAUTH_RSP_TIMER));
 
 	pe_debug("FT Auth Rsp Timer Started");
 #ifdef FEATURE_WLAN_DIAG_SUPPORT
@@ -670,8 +668,7 @@ QDF_STATUS lim_send_preauth_scan_offload(tpAniSirGlobal mac_ctx,
 	tSirRetStatus rc = eSIR_SUCCESS;
 	tSirMsgQ msg;
 
-	scan_offload_req = qdf_mem_malloc(sizeof(tSirScanOffloadReq) +
-					  sizeof(uint8_t));
+	scan_offload_req = qdf_mem_malloc(sizeof(tSirScanOffloadReq));
 	if (NULL == scan_offload_req) {
 		pe_err("Memory allocation failed for pScanOffloadReq");
 		return QDF_STATUS_E_NOMEM;

@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2011-2020 The Linux Foundation. All rights reserved.
+ * Copyright (c) 2011-2019 The Linux Foundation. All rights reserved.
  *
  * Permission to use, copy, modify, and/or distribute this software for
  * any purpose with or without fee is hereby granted, provided that the
@@ -64,116 +64,6 @@ static void lim_process_normal_hdd_msg(tpAniSirGlobal mac_ctx,
 
 #ifdef WLAN_FEATURE_SAE
 /**
- * lim_process_sae_msg_sta() - Process SAE message for STA
- * @mac: Global MAC pointer
- * @session: Pointer to the PE session entry
- * @sae_msg: SAE message buffer pointer
- *
- * Return: None
- */
-static void lim_process_sae_msg_sta(tpAniSirGlobal mac,
-				    tpPESession session,
-				    struct sir_sae_msg *sae_msg)
-{
-	switch (session->limMlmState) {
-	case eLIM_MLM_WT_SAE_AUTH_STATE:
-		/* SAE authentication is completed.
-		 * Restore from auth state
-		 */
-		if (tx_timer_running(&mac->lim.limTimers.sae_auth_timer))
-			lim_deactivate_and_change_timer(mac,
-							eLIM_AUTH_SAE_TIMER);
-		/* success */
-		if (sae_msg->sae_status == IEEE80211_STATUS_SUCCESS)
-			lim_restore_from_auth_state(mac,
-						    eSIR_SME_SUCCESS,
-						    eSIR_MAC_SUCCESS_STATUS,
-						    session);
-		else
-			lim_restore_from_auth_state(
-				mac, eSIR_SME_AUTH_REFUSED,
-				eSIR_MAC_UNSPEC_FAILURE_STATUS, session);
-		break;
-	default:
-		/* SAE msg is received in unexpected state */
-		pe_err("received SAE msg instate %X", session->limMlmState);
-		lim_print_mlm_state(mac, LOGE, session->limMlmState);
-		break;
-	}
-}
-
-/**
- * lim_process_sae_msg_ap() - Process SAE message
- * @mac: Global MAC pointer
- * @session: Pointer to the PE session entry
- * @sae_msg: SAE message buffer pointer
- *
- * Return: None
- */
-static void lim_process_sae_msg_ap(tpAniSirGlobal mac,
-				   tpPESession session,
-				   struct sir_sae_msg *sae_msg)
-{
-	struct tLimPreAuthNode *sta_pre_auth_ctx;
-	struct lim_assoc_data *assoc_req;
-	/* Extract pre-auth context for the STA and move limMlmState
-	 * of preauth node to eLIM_MLM_AUTHENTICATED_STATE
-	 */
-	sta_pre_auth_ctx = lim_search_pre_auth_list(mac,
-						    sae_msg->peer_mac_addr);
-
-	if (!sta_pre_auth_ctx) {
-		pe_debug("No preauth node created for "
-			 MAC_ADDRESS_STR,
-			 MAC_ADDR_ARRAY(sae_msg->peer_mac_addr));
-		return;
-	}
-
-	assoc_req = &sta_pre_auth_ctx->assoc_req;
-
-	if (sae_msg->sae_status != IEEE80211_STATUS_SUCCESS) {
-		pe_debug("SAE authentication failed for "
-			 MAC_ADDRESS_STR " status: %u",
-			 MAC_ADDR_ARRAY(sae_msg->peer_mac_addr),
-			 sae_msg->sae_status);
-		if (assoc_req->present) {
-			pe_debug("Assoc req cached; clean it up");
-			lim_process_assoc_cleanup(mac, session,
-						  assoc_req->assoc_req,
-						  assoc_req->sta_ds,
-						  assoc_req->assoc_req_copied);
-			assoc_req->present = false;
-		}
-		lim_delete_pre_auth_node(mac, sae_msg->peer_mac_addr);
-		return;
-	}
-	sta_pre_auth_ctx->mlmState = eLIM_MLM_AUTHENTICATED_STATE;
-	/* Send assoc indication to SME if any assoc request is cached*/
-	if (assoc_req->present) {
-		/* Assoc request is present in preauth context. Get the assoc
-		 * request and make it invalid in preauth context. It'll be
-		 * freed later in the legacy path.
-		 */
-		bool assoc_req_copied;
-
-		assoc_req->present = false;
-		pe_debug("Assoc req cached; handle it");
-		if (lim_send_assoc_ind_to_sme(mac, session,
-					      assoc_req->sub_type,
-					      &assoc_req->hdr,
-					      assoc_req->assoc_req,
-					      assoc_req->pmf_connection,
-					      &assoc_req_copied,
-					      assoc_req->dup_entry,
-					      false) == false)
-			lim_process_assoc_cleanup(mac, session,
-						  assoc_req->assoc_req,
-						  assoc_req->sta_ds,
-						  assoc_req_copied);
-	}
-}
-
-/**
  * lim_process_sae_msg() - Process SAE message
  * @mac: Global MAC pointer
  * @body: Buffer pointer
@@ -197,23 +87,40 @@ static void lim_process_sae_msg(tpAniSirGlobal mac, struct sir_sae_msg *body)
 		return;
 	}
 
-	if (session->pePersona != QDF_STA_MODE &&
-	    session->pePersona != QDF_SAP_MODE) {
+	if (session->pePersona != QDF_STA_MODE) {
 		pe_err("SAE:Not supported in this mode %d",
 				session->pePersona);
 		return;
 	}
 
-	pe_debug("SAE:status %d limMlmState %d pePersona %d peer: "
-		 MAC_ADDRESS_STR, sae_msg->sae_status,
-		 session->limMlmState, session->pePersona,
-		 MAC_ADDR_ARRAY(sae_msg->peer_mac_addr));
-	if (LIM_IS_STA_ROLE(session))
-		lim_process_sae_msg_sta(mac, session, sae_msg);
-	else if (LIM_IS_AP_ROLE(session))
-		lim_process_sae_msg_ap(mac, session, sae_msg);
-	else
-		pe_debug("SAE message on unsupported interface");
+	pe_debug("SAE:status %d limMlmState %d pePersona %d",
+		sae_msg->sae_status, session->limMlmState,
+		session->pePersona);
+	switch (session->limMlmState) {
+	case eLIM_MLM_WT_SAE_AUTH_STATE:
+		/* SAE authentication is completed. Restore from auth state */
+		if (tx_timer_running(&mac->lim.limTimers.sae_auth_timer))
+			lim_deactivate_and_change_timer(mac,
+				eLIM_AUTH_SAE_TIMER);
+		/* success */
+		if (sae_msg->sae_status == IEEE80211_STATUS_SUCCESS)
+			lim_restore_from_auth_state(mac,
+				eSIR_SME_SUCCESS,
+				eSIR_MAC_SUCCESS_STATUS,
+				session);
+		else
+			lim_restore_from_auth_state(mac,
+				eSIR_SME_AUTH_REFUSED,
+				eSIR_MAC_UNSPEC_FAILURE_STATUS,
+				session);
+		break;
+	default:
+		/* SAE msg is received in unexpected state */
+		pe_err("received SAE msg in state %X",
+			session->limMlmState);
+		lim_print_mlm_state(mac, LOGE, session->limMlmState);
+		break;
+	}
 }
 #else
 static inline void lim_process_sae_msg(tpAniSirGlobal mac, void *body)
@@ -860,18 +767,7 @@ uint32_t lim_defer_msg(tpAniSirGlobal pMac, tSirMsgQ *pMsg)
 
 	retCode = lim_write_deferred_msg_q(pMac, pMsg);
 
-	if (retCode == TX_SUCCESS) {
-		MTRACE(mac_trace_msg_rx
-			       (pMac, NO_SESSION,
-			       LIM_TRACE_MAKE_RXMSG(pMsg->type, LIM_MSG_DEFERRED));
-		       )
-	} else {
-		pe_err("Dropped lim message (0x%X) Message %s", pMsg->type, lim_msg_str(pMsg->type));
-		MTRACE(mac_trace_msg_rx
-			       (pMac, NO_SESSION,
-			       LIM_TRACE_MAKE_RXMSG(pMsg->type, LIM_MSG_DROPPED));
-		       )
-	}
+	pe_err("Dropped lim message (0x%X) Message %s", pMsg->type, lim_msg_str(pMsg->type));
 
 	return retCode;
 } /*** end lim_defer_msg() ***/
@@ -1000,13 +896,12 @@ lim_check_mgmt_registered_frames(tpAniSirGlobal mac_ctx, uint8_t *buff_desc,
 		QDF_TRACE(QDF_MODULE_ID_PE, QDF_TRACE_LEVEL_DEBUG,
 			FL("rcvd frame match with registered frame params"));
 		/* Indicate this to SME */
-		lim_send_sme_mgmt_frame_ind(
-			mac_ctx, hdr->fc.subType, (uint8_t *)hdr,
+		lim_send_sme_mgmt_frame_ind(mac_ctx, hdr->fc.subType,
+			(uint8_t *) hdr,
 			WMA_GET_RX_PAYLOAD_LEN(buff_desc) +
-			sizeof(tSirMacMgmtHdr),
-			mgmt_frame->sessionId, WMA_GET_RX_CH(buff_desc),
-			session_entry, WMA_GET_RX_RSSI_NORMALIZED(buff_desc),
-			RXMGMT_FLAG_NONE);
+			sizeof(tSirMacMgmtHdr), mgmt_frame->sessionId,
+			WMA_GET_RX_CH(buff_desc), session_entry,
+			WMA_GET_RX_RSSI_NORMALIZED(buff_desc));
 
 		if ((type == SIR_MAC_MGMT_FRAME)
 		    && (fc.type == SIR_MAC_MGMT_FRAME)
@@ -1459,32 +1354,6 @@ static void lim_process_messages(tpAniSirGlobal mac_ctx, tpSirMsgQ msg)
 #ifdef WLAN_DEBUG
 	mac_ctx->lim.numTot++;
 #endif
-	/*
-	 * MTRACE logs not captured for events received from SME
-	 * SME enums (eWNI_SME_START_REQ) starts with 0x16xx.
-	 * Compare received SME events with SIR_SME_MODULE_ID
-	 */
-#ifdef LIM_TRACE_RECORD
-	if ((SIR_SME_MODULE_ID ==
-	    (uint8_t)MAC_TRACE_GET_MODULE_ID(msg->type)) &&
-	    (msg->type != eWNI_SME_REGISTER_MGMT_FRAME_REQ)) {
-		MTRACE(mac_trace(mac_ctx, TRACE_CODE_RX_SME_MSG,
-				 NO_SESSION, msg->type));
-	} else {
-		/*
-		 * Omitting below message types as these are too frequent
-		 * and when crash happens we loose critical trace logs
-		 * if these are also logged
-		 */
-		if (msg->type != SIR_CFG_PARAM_UPDATE_IND &&
-		    msg->type != SIR_BB_XPORT_MGMT_MSG &&
-		    msg->type != WMA_RX_SCAN_EVENT)
-			MTRACE(mac_trace_msg_rx(mac_ctx, NO_SESSION,
-				LIM_TRACE_MAKE_RXMSG(msg->type,
-				LIM_MSG_PROCESSED));)
-	}
-#endif
-
 	switch (msg->type) {
 
 	case SIR_LIM_UPDATE_BEACON:

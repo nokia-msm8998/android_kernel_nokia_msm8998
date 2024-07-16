@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2011-2019, 2021 The Linux Foundation. All rights reserved.
+ * Copyright (c) 2011-2019 The Linux Foundation. All rights reserved.
  *
  * Permission to use, copy, modify, and/or distribute this software for
  * any purpose with or without fee is hereby granted, provided that the
@@ -509,9 +509,6 @@ tSirRetStatus lim_init_mlm(tpAniSirGlobal pMac)
 	uint32_t retVal;
 
 	pMac->lim.gLimTimersCreated = 0;
-
-	MTRACE(mac_trace(pMac, TRACE_CODE_MLM_STATE, NO_SESSION,
-			  pMac->lim.gLimMlmState));
 
 	/* Initialize number of pre-auth contexts */
 	pMac->lim.gLimNumPreAuthContexts = 0;
@@ -1438,10 +1435,8 @@ lim_update_short_preamble(tpAniSirGlobal mac_ctx, tSirMacAddr peer_mac_addr,
 	}
 
 	if (i >= LIM_PROT_STA_CACHE_SIZE) {
-#ifdef WLAN_DEBUG
 		tLimNoShortParams *lim_params =
 				&psession_entry->gLimNoShortParams;
-#endif
 		if (LIM_IS_AP_ROLE(psession_entry)) {
 			pe_err("No space in Short cache active: %d sta: %d for sta",
 				i, lim_params->numNonShortPreambleSta);
@@ -2239,10 +2234,6 @@ void lim_cancel_dot11h_channel_switch(tpAniSirGlobal pMac,
 
 	pe_debug("Received a beacon without channel switch IE");
 
-	MTRACE(mac_trace
-		       (pMac, TRACE_CODE_TIMER_DEACTIVATE,
-		       psessionEntry->peSessionId, eLIM_CHANNEL_SWITCH_TIMER));
-
 	if (tx_timer_deactivate(&pMac->lim.limTimers.gLimChannelSwitchTimer) !=
 	    eSIR_SUCCESS) {
 		pe_err("tx_timer_deactivate failed!");
@@ -2272,17 +2263,11 @@ void lim_cancel_dot11h_quiet(tpAniSirGlobal pMac, tpPESession psessionEntry)
 		return;
 
 	if (psessionEntry->gLimSpecMgmt.quietState == eLIM_QUIET_BEGIN) {
-		MTRACE(mac_trace
-			       (pMac, TRACE_CODE_TIMER_DEACTIVATE,
-			       psessionEntry->peSessionId, eLIM_QUIET_TIMER));
 		if (tx_timer_deactivate(&pMac->lim.limTimers.gLimQuietTimer) !=
 		    TX_SUCCESS) {
 			pe_err("tx_timer_deactivate failed");
 		}
 	} else if (psessionEntry->gLimSpecMgmt.quietState == eLIM_QUIET_RUNNING) {
-		MTRACE(mac_trace
-			       (pMac, TRACE_CODE_TIMER_DEACTIVATE,
-			       psessionEntry->peSessionId, eLIM_QUIET_BSS_TIMER));
 		if (tx_timer_deactivate(&pMac->lim.limTimers.gLimQuietBssTimer)
 		    != TX_SUCCESS) {
 			pe_err("tx_timer_deactivate failed");
@@ -2361,10 +2346,6 @@ void lim_process_quiet_timeout(tpAniSirGlobal pMac)
 				    0)) {
 			pe_err("Unable to change gLimQuietBssTimer! Will still attempt to activate anyway");
 		}
-		MTRACE(mac_trace
-			       (pMac, TRACE_CODE_TIMER_ACTIVATE,
-			       pMac->lim.limTimers.gLimQuietTimer.sessionId,
-			       eLIM_QUIET_BSS_TIMER));
 		if (TX_SUCCESS !=
 		    tx_timer_activate(&pMac->lim.limTimers.gLimQuietBssTimer)) {
 			pe_warn("Unable to activate gLimQuietBssTimer! The STA will be unable to honor Quiet BSS");
@@ -2508,8 +2489,6 @@ void lim_start_quiet_timer(tpAniSirGlobal pMac, uint8_t sessionId)
 	/* First, de-activate Timer, if its already active */
 	lim_cancel_dot11h_quiet(pMac, psessionEntry);
 
-	MTRACE(mac_trace
-		       (pMac, TRACE_CODE_TIMER_ACTIVATE, sessionId, eLIM_QUIET_TIMER));
 	if (TX_SUCCESS !=
 	    tx_timer_deactivate(&pMac->lim.limTimers.gLimQuietTimer)) {
 		pe_err("Unable to deactivate gLimQuietTimer! Will still attempt to re-activate anyway");
@@ -2653,9 +2632,6 @@ void lim_switch_channel_cback(tpAniSirGlobal pMac, QDF_STATUS status,
 		     QDF_MAC_ADDR_SIZE);
 	mmhMsg.bodyptr = pSirSmeSwitchChInd;
 	mmhMsg.bodyval = 0;
-
-	MTRACE(mac_trace(pMac, TRACE_CODE_TX_SME_MSG,
-			 psessionEntry->peSessionId, mmhMsg.type));
 
 	sys_process_mmh_msg(pMac, &mmhMsg);
 }
@@ -4723,7 +4699,6 @@ void lim_register_hal_ind_call_back(tpAniSirGlobal pMac)
 	msg.bodyptr = pHalCB;
 	msg.bodyval = 0;
 
-	MTRACE(mac_trace_msg_tx(pMac, NO_SESSION, msg.type));
 	if (eSIR_SUCCESS != wma_post_ctrl_msg(pMac, &msg)) {
 		qdf_mem_free(pHalCB);
 		pe_err("wma_post_ctrl_msg() failed");
@@ -4883,7 +4858,6 @@ lim_post_sm_state_update(tpAniSirGlobal pMac,
 
 	pe_debug("Sending WMA_SET_MIMOPS_REQ");
 
-	MTRACE(mac_trace_msg_tx(pMac, NO_SESSION, msgQ.type));
 	retCode = wma_post_ctrl_msg(pMac, &msgQ);
 	if (eSIR_SUCCESS != retCode) {
 		pe_err("Posting WMA_SET_MIMOPS_REQ to HAL failed! Reason: %d",
@@ -5137,7 +5111,6 @@ void lim_frame_transmission_control(tpAniSirGlobal pMac, tLimQuietTxMode type,
 	msgQ.reserved = 0;
 	msgQ.type = WMA_TRANSMISSION_CONTROL_IND;
 
-	MTRACE(mac_trace_msg_tx(pMac, NO_SESSION, msgQ.type));
 	if (wma_post_ctrl_msg(pMac, &msgQ) != eSIR_SUCCESS) {
 		qdf_mem_free(pTxCtrlMsg);
 		pe_err("Posting Message to HAL failed");
@@ -5422,8 +5395,6 @@ void lim_handle_heart_beat_timeout_for_session(tpAniSirGlobal mac_ctx,
 			psession_entry->bssIdx);
 		lim_deactivate_and_change_timer(mac_ctx,
 			eLIM_PROBE_AFTER_HB_TIMER);
-		MTRACE(mac_trace(mac_ctx, TRACE_CODE_TIMER_ACTIVATE, 0,
-			eLIM_PROBE_AFTER_HB_TIMER));
 		if (tx_timer_activate(&lim_timer->gLimProbeAfterHBTimer)
 					!= TX_SUCCESS)
 			pe_err("Fail to re-activate Probe-after-hb timer");
@@ -6547,7 +6518,7 @@ tSirRetStatus lim_strip_ie(tpAniSirGlobal mac_ctx,
 	int left = *addn_ielen;
 	uint8_t *ptr = addn_ie;
 	uint8_t elem_id;
-	uint16_t elem_len, ie_len, extracted_ie_len = 0;
+	uint16_t elem_len;
 
 	if (NULL == addn_ie) {
 		pe_err("NULL addn_ie pointer");
@@ -6559,10 +6530,6 @@ tSirRetStatus lim_strip_ie(tpAniSirGlobal mac_ctx,
 		pe_err("Unable to allocate memory");
 		return eSIR_MEM_ALLOC_FAILED;
 	}
-
-	if (extracted_ie)
-		qdf_mem_set(extracted_ie, eid_max_len + size_of_len_field + 1,
-			    0);
 
 	while (left >= 2) {
 		elem_id  = ptr[0];
@@ -6594,13 +6561,12 @@ tSirRetStatus lim_strip_ie(tpAniSirGlobal mac_ctx,
 			 * take oui IE and store in provided buffer.
 			 */
 			if (NULL != extracted_ie) {
-				ie_len = elem_len + size_of_len_field + 1;
-				if (ie_len <= eid_max_len - extracted_ie_len) {
-					qdf_mem_copy(
-					extracted_ie + extracted_ie_len,
-					&ptr[0], ie_len);
-					extracted_ie_len += ie_len;
-				}
+				qdf_mem_set(extracted_ie,
+					    eid_max_len + size_of_len_field + 1,
+					    0);
+				if (elem_len <= eid_max_len)
+					qdf_mem_copy(extracted_ie, &ptr[0],
+					elem_len + size_of_len_field + 1);
 			}
 		}
 		left -= elem_len;

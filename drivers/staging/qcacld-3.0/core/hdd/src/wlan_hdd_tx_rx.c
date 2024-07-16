@@ -345,7 +345,6 @@ static inline struct sk_buff *hdd_skb_orphan(hdd_adapter_t *pAdapter,
  *
  * Return: None
  */
-#ifdef FEATURE_WLAN_DIAG_SUPPORT
 void hdd_event_eapol_log(struct sk_buff *skb, enum qdf_proto_dir dir)
 {
 	int16_t eapol_key_info;
@@ -379,7 +378,6 @@ void hdd_event_eapol_log(struct sk_buff *skb, enum qdf_proto_dir dir)
 
 	WLAN_HOST_DIAG_EVENT_REPORT(&wlan_diag_event, EVENT_WLAN_EAPOL);
 }
-#endif
 
 
 /**
@@ -1577,17 +1575,16 @@ static inline void hdd_resolve_rx_ol_mode(hdd_context_t *hdd_ctx)
 {
 	if (!(hdd_ctx->config->lro_enable ^
 	    hdd_ctx->config->gro_enable)) {
-		if (hdd_ctx->config->lro_enable && hdd_ctx->config->gro_enable) {
-			hdd_err("Can't enable both LRO and GRO, disabling Rx offload");
-		} else {
-			hdd_debug("LRO and GRO both are disabled");
-		}
+		if (hdd_ctx->config->lro_enable && hdd_ctx->config->gro_enable)
+		        hdd_err("Can't enable both LRO and GRO, disabling Rx offload");
+                else
+          		hdd_debug("LRO and GRO both are disabled");
 		hdd_ctx->ol_enable = 0;
 	} else if (hdd_ctx->config->lro_enable) {
-		hdd_debug("Rx offload LRO is enabled");
+ 		hdd_debug("Rx offload LRO is enabled");
 		hdd_ctx->ol_enable = CFG_LRO_ENABLED;
 	} else {
-		hdd_debug("Rx offload GRO is enabled");
+ 		hdd_debug("Rx offload GRO is enabled");
 		hdd_ctx->ol_enable = CFG_GRO_ENABLED;
 	}
 }

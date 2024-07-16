@@ -1,6 +1,5 @@
 /*
  * Copyright (c) 2013-2019 The Linux Foundation. All rights reserved.
- * Copyright (c) 2021 Qualcomm Innovation Center, Inc. All rights reserved.
  *
  * Permission to use, copy, modify, and/or distribute this software for
  * any purpose with or without fee is hereby granted, provided that the
@@ -56,7 +55,6 @@
 #define WMA_RESUME_TIMEOUT                 6000
 #define MAX_MEM_CHUNKS                     32
 #define NAN_CLUSTER_ID_BYTES               4
-#define NDP_APP_INFO_LEN                   255
 
 #define WMA_CRASH_INJECT_TIMEOUT           5000
 
@@ -1540,8 +1538,6 @@ struct peer_debug_info {
  * @bandcapability: band capability configured through ini
  * @ito_repeat_count: Indicates ito repeated count
  * @critical_events_in_flight: number of suspend preventing events in flight
- * @thermal_sampling_time: Thermal throttling sampling time in ms
- * @thermal_throt_dc: Thermal throttling duty cycle that is to be enforced
  */
 typedef struct {
 	void *wmi_handle;
@@ -1730,8 +1726,6 @@ typedef struct {
 		roam_offload_synch_ind *roam_synch_data,
 		tpSirBssDescription  bss_desc_ptr,
 		enum sir_roam_op_code reason);
-	QDF_STATUS (*csr_roam_pmkid_req_cb)(uint8_t vdev_id,
-		struct roam_pmkid_req_event *bss_list);
 	qdf_wake_lock_t wmi_cmd_rsp_wake_lock;
 	qdf_runtime_lock_t wmi_cmd_rsp_runtime_lock;
 	qdf_runtime_lock_t wma_runtime_resume_lock;
@@ -1769,11 +1763,6 @@ typedef struct {
 	atomic_t in_d0wow;
 #endif
 	bool is_pktcapture_enabled;
-
-#ifdef FW_THERMAL_THROTTLE_SUPPORT
-	uint32_t thermal_sampling_time;
-	uint32_t thermal_throt_dc;
-#endif
 } t_wma_handle, *tp_wma_handle;
 
 /**

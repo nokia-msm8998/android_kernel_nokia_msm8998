@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2011-2020 The Linux Foundation. All rights reserved.
+ * Copyright (c) 2011-2019 The Linux Foundation. All rights reserved.
  *
  * Permission to use, copy, modify, and/or distribute this software for
  * any purpose with or without fee is hereby granted, provided that the
@@ -36,7 +36,6 @@
 #include "mac_trace.h"
 #include "cds_concurrency.h"
 
-#ifdef WLAN_DEBUG
 static const char *lfr_get_config_item_string(uint8_t reason)
 {
 	switch (reason) {
@@ -50,7 +49,6 @@ static const char *lfr_get_config_item_string(uint8_t reason)
 		return "unknown";
 	}
 }
-#endif
 
 static void csr_neighbor_roam_reset_channel_info(tpCsrNeighborRoamChannelInfo
 						 rChInfo);
@@ -1051,14 +1049,9 @@ static void csr_neighbor_roam_info_ctx_init(
 		} else
 #endif
 		{
-			if (!ngbr_roam_info->b_roam_scan_offload_started)
-				csr_roam_offload_scan(pMac, session_id,
-					ROAM_SCAN_OFFLOAD_START,
-					REASON_CTX_INIT);
-			else
-				csr_roam_offload_scan(pMac, session_id,
-					ROAM_SCAN_OFFLOAD_UPDATE_CFG,
-					REASON_CONNECT);
+			csr_roam_offload_scan(pMac, session_id,
+				ROAM_SCAN_OFFLOAD_START,
+				REASON_CTX_INIT);
 
 			if (roam_profile &&
 				roam_profile->supplicant_disabled_roaming) {

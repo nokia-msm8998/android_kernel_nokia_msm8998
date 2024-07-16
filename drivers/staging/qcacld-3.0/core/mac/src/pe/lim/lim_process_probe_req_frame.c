@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2012-2017, 2020 The Linux Foundation. All rights reserved.
+ * Copyright (c) 2012-2017 The Linux Foundation. All rights reserved.
  *
  * Permission to use, copy, modify, and/or distribute this software for
  * any purpose with or without fee is hereby granted, provided that the
@@ -555,8 +555,7 @@ lim_indicate_probe_req_to_hdd(tpAniSirGlobal pMac, uint8_t *pBd,
 				    (frameLen + sizeof(tSirMacMgmtHdr)),
 				    psessionEntry->smeSessionId, WMA_GET_RX_CH(pBd),
 				    psessionEntry,
-				    WMA_GET_RX_RSSI_NORMALIZED(pBd),
-				    RXMGMT_FLAG_NONE);
+				    WMA_GET_RX_RSSI_NORMALIZED(pBd));
 } /*** end lim_indicate_probe_req_to_hdd() ***/
 
 /**
@@ -657,9 +656,6 @@ lim_send_sme_probe_req_ind(tpAniSirGlobal pMac,
 		     QDF_MAC_ADDR_SIZE);
 	qdf_mem_copy(pSirSmeProbeReqInd->WPSPBCProbeReq.peer_macaddr.bytes,
 		     peerMacAddr, QDF_MAC_ADDR_SIZE);
-
-	MTRACE(mac_trace(pMac, TRACE_CODE_TX_SME_MSG,
-				psessionEntry->peSessionId, msgQ.type));
 
 	if (ProbeReqIELen > sizeof(pSirSmeProbeReqInd->WPSPBCProbeReq.
 	    probeReqIE)) {

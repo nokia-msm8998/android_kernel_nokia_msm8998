@@ -676,7 +676,7 @@ typedef struct tagCsrConfig {
 	uint8_t fils_max_chan_guard_time;
 	uint16_t pkt_err_disconn_th;
 	bool is_bssid_hint_priority;
-	uint8_t is_force_1x1;
+	bool is_force_1x1;
 	uint16_t num_11b_tx_chains;
 	uint16_t num_11ag_tx_chains;
 	uint32_t disallow_duration;
@@ -699,7 +699,6 @@ typedef struct tagCsrConfig {
 	uint32_t btm_max_attempt_cnt;
 	uint32_t btm_sticky_time;
 	uint32_t btm_query_bitmask;
-	bool disable_4way_hs_offload;
 } tCsrConfig;
 
 typedef struct tagCsrChannelPowerInfo {
@@ -1480,7 +1479,10 @@ void csr_roaming_report_diag_event(tpAniSirGlobal mac_ctx,
 		roam_offload_synch_ind *roam_synch_ind_ptr,
 		eCsrDiagWlanStatusEventReason reason);
 #else
-#define csr_roaming_report_diag_event(mac_ctx, roam_synch_ind_ptr, reason) (0)
+static inline void csr_roaming_report_diag_event(tpAniSirGlobal mac_ctx,
+		roam_offload_synch_ind *roam_synch_ind_ptr,
+		eCsrDiagWlanStatusEventReason reason)
+{}
 #endif
 
 bool csr_store_joinreq_param(tpAniSirGlobal mac_ctx,
