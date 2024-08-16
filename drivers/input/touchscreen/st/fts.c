@@ -5323,7 +5323,6 @@ ProbeErrorExit_1:
 
 ProbeErrorExit_0:
     logError(1, "%s Probe Failed!\n", tag);
-    printk("BBox::UEC;7::0\n");
     return error;
 }
 

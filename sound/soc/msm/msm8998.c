@@ -94,9 +94,6 @@
 #define MSM_HIFI_ON 0
 #endif
 #if defined(CONFIG_FIH_NB1) || defined(CONFIG_FIH_A1N)  || defined(CONFIG_FIH_F11)
-/*MM-JohnHCChiang-BBS log-00+{ */
-#define BBOX_WCD_REGISTER_ADSP_NOTIFIER_FAILED do {printk("BBox::UEC;2::2\n");} while(0);
-/*MM-JohnHCChiang-BBS log-00+} */
 #endif
 
 enum {
@@ -9719,10 +9716,6 @@ static int msm_asoc_machine_probe(struct platform_device *pdev)
 	if (ret < 0){
 		pr_err("%s: Audio notifier register failed ret = %d\n",
 			__func__, ret);
-		/*MM-JohnHCChiang-BBS log-00+{ */
-		printk("BBox;Failed to register adsp state notifier\n");
-		BBOX_WCD_REGISTER_ADSP_NOTIFIER_FAILED;
-		/*MM-JohnHCChiang-BBS log-00+} */
 	}
 #else
 	if (ret < 0)

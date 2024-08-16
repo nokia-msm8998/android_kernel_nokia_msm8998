@@ -2575,9 +2575,6 @@ static int smb2_probe(struct platform_device *pdev)
 	int rc = 0;
 	union power_supply_propval val;
 	int usb_present, batt_present, batt_health, batt_charge_type;
-	#ifdef BBS_LOG
-	u8 stat = 0;
-	#endif
 
 	chip = devm_kzalloc(&pdev->dev, sizeof(*chip), GFP_KERNEL);
 	if (!chip)
@@ -2752,16 +2749,6 @@ static int smb2_probe(struct platform_device *pdev)
 	}
 	#endif
 	/* end NB1-61 */
-
-	#ifdef BBS_LOG
-	rc = smblib_read(chg, 0x8C8, &stat);
-	if (rc < 0) {
-		pr_err("Couldn't read UVLO state rc=%d\n", rc);
-	} else {
-		if(stat & BIT(6))
-			printk("BBox::UEC;49::0\n");
-	}
-	#endif
 
 /* FIH - SimonSSChang - Disable QC Wi-Power config */
 #if defined(CONFIG_FIH_A1N)

@@ -1588,7 +1588,6 @@ static int siw_hal_do_ic_info(struct device *dev, int prt_on)
 	ret = siw_hal_xfer_msg(dev, ts->xfer);
 	if (ret < 0) {
 		t_dev_err(dev, "ic_info(1): xfer failed, %d\n", ret);
-		printk("BBox::UEC;7::5\n");//SW8-DH-Get_fw_verion_fail
 		return ret;
 	}
 
