@@ -151,7 +151,6 @@ static irqreturn_t hall_irq_handler(int irq, void *handle)
     struct hall_info *pdata = handle;
 
     if(pdata == NULL){
-		printk("BBox::UEC;8::55\n");
         return IRQ_HANDLED;
 	}
 
@@ -187,7 +186,6 @@ static void irq_work_func(struct work_struct *work)
     if((gHallEventInfo.current_status != HALL_CLOSED) && (gHallEventInfo.current_status != HALL_OPENED))
     {
         pr_err("[Hall sensor] : gpio status fail\n");
-	    printk("BBox::UEC;8::56\n");
     }
 }
 
@@ -208,7 +206,6 @@ static  int hall_sensor_probe(struct platform_device *pdev)
         if (ret < 0) {
             pr_info("%s: Failed to configure GPIO\n",
                     __func__);
-            printk("BBox::UEC;8::54\n");
             return ret;
         }
     }
@@ -217,7 +214,6 @@ static  int hall_sensor_probe(struct platform_device *pdev)
     pdata->input_hall = input_allocate_device();
     if (!pdata->input_hall) {
         pr_info("Not enough memory for input device\n");
-        printk("BBox::UEC;8::54\n");
         return -ENOMEM;
     }
 
@@ -263,7 +259,6 @@ static  int hall_sensor_probe(struct platform_device *pdev)
     if (ret) {
         pr_info("%s: Failed to register input device\n",
                 __func__);
-        printk("BBox::UEC;8::54\n");
         return ret;
     }
 
@@ -271,7 +266,6 @@ static  int hall_sensor_probe(struct platform_device *pdev)
     if (ret < 0) {
             pr_info("%s: Failed to request_threaded_irq\n",
             __func__);
-            printk("BBox::UEC;8::54\n");
             return ret;
     }
 
@@ -287,7 +281,6 @@ static  int hall_sensor_probe(struct platform_device *pdev)
     ret = device_create_file(&pdata->input_hall->dev, &dev_attr_Hall_status);
      if (ret) {
         dev_err(&pdev->dev, "%s: dev_attr_Buzzer failed\n", __func__);
-        printk("BBox::UEC;8::54\n");
         return ret;
     }
 

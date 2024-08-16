@@ -21,7 +21,6 @@ extern struct fih_touch_cb touch_cb;
 #endif
 
 #include "fih_msm_mdss_aod.h"
-#define BBOX_LCM_POWER_STATE_FAIL	do {printk("BBox;%s: Power status abnormal!\n", __func__); printk("BBox::UEC;0::6\n");} while (0);
 
 extern int mdss_dsi_pinctrl_set_state(
 	struct mdss_dsi_ctrl_pdata *ctrl_pdata,
@@ -221,7 +220,6 @@ int mdss_dsi_extra_panel_power_on(struct mdss_panel_data *pdata)
 			if (ret) {
 				pr_err("%s: failed to enable vregs for %s\n",
 					__func__, __mdss_dsi_pm_name(DSI_PANEL_PM));
-				BBOX_LCM_POWER_STATE_FAIL
 				return ret;
 			}
 			if(!pinfo->aod_phy_pwr&&pinfo->aod_ulps_pwr_feature){
@@ -240,7 +238,6 @@ int mdss_dsi_extra_panel_power_on(struct mdss_panel_data *pdata)
 		if (ret) {
 			pr_err("%s: failed to enable vregs for %s\n",
 				__func__, __mdss_dsi_pm_name(DSI_PANEL_PM));
-			BBOX_LCM_POWER_STATE_FAIL
 			return ret;
 		}
 		if(!pinfo->aod_phy_pwr&&pinfo->aod_ulps_pwr_feature){
@@ -291,7 +288,6 @@ int mdss_dsi_extra_panel_power_off(struct mdss_panel_data *pdata)
 			if (ret){
 				pr_err("%s: failed to disable vregs for %s\n",
 					__func__, __mdss_dsi_pm_name(DSI_PANEL_PM));
-				BBOX_LCM_POWER_STATE_FAIL
 			}
 			pr_err("%s: panel power off\n", __func__);
 			pinfo->panel_power_init=0;
@@ -317,7 +313,6 @@ int mdss_dsi_extra_panel_power_off(struct mdss_panel_data *pdata)
 		if (ret){
 			pr_err("%s: failed to disable vregs for %s\n",
 				__func__, __mdss_dsi_pm_name(DSI_PANEL_PM));
-			BBOX_LCM_POWER_STATE_FAIL
 		}
 		if(pinfo->aod_phy_pwr&&pinfo->aod_ulps_pwr_feature){
 			mdss_dsi_panel_extra_power_lp(pdata,0);

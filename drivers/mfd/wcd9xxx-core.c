@@ -61,10 +61,6 @@
 #define WCD9XXX_PAGE_SIZE 256
 
 #if defined(CONFIG_FIH_NB1) || defined(CONFIG_FIH_A1N) || defined(CONFIG_FIH_F11)
-/*MM-JohnHCChiang-BBS log-00+{ */
-#define BBOX_SLIMBUS_TRANSFER_FAIL do {printk("BBox::UEC;2::0\n");} while (0);
-#define BBOX_SLIMBUS_PROBE_FAIL do {printk("BBox::UEC;2::3\n");} while (0);
-/*MM-JohnHCChiang-BBS log-00+} */
 #endif
 struct wcd9xxx_i2c {
 	struct i2c_client *client;
@@ -254,10 +250,6 @@ static int wcd9xxx_slim_read_device(struct wcd9xxx *wcd9xxx, unsigned short reg,
 	if (ret){
 		dev_err(wcd9xxx->dev, "%s: Error, Codec read failed (%d)\n",
 			__func__, ret);
-		/*MM-JohnHCChiang-BBS log-00+{ */
-		printk("BBox;SLIMBUS transfer failure\n");
-		BBOX_SLIMBUS_TRANSFER_FAIL;
-		/*MM-JohnHCChiang-BBS log-00+} */
 	}
 #else
 	if (ret)
@@ -304,10 +296,6 @@ static int wcd9xxx_slim_write_device(struct wcd9xxx *wcd9xxx,
 #if defined(CONFIG_FIH_NB1) || defined(CONFIG_FIH_A1N) || defined(CONFIG_FIH_F11)
 	if (ret){
 		pr_err("%s: Error, Codec write failed (%d)\n", __func__, ret);
-		/*MM-JohnHCChiang-BBS log-00+{ */
-		printk("BBox;SLIMBUS transfer failure\n");
-		BBOX_SLIMBUS_TRANSFER_FAIL;
-		/*MM-JohnHCChiang-BBS log-00+} */
 	}
 #else
 	if (ret)
@@ -1379,10 +1367,6 @@ static int wcd9xxx_slim_probe(struct slim_device *slim)
 #if defined(CONFIG_FIH_NB1) || defined(CONFIG_FIH_A1N) || defined(CONFIG_FIH_F11)
 	if (ret) {
 		dev_err(&slim->dev, "%s: Resetting Codec failed\n", __func__);
-		/*MM-JohnHCChiang-BBS log-00+{ */
-		printk("BBox;SLIMBUS probe failure\n");
-		BBOX_SLIMBUS_PROBE_FAIL;
-		/*MM-JohnHCChiang-BBS log-00+} */
 		goto err_supplies;
 	}
 	/*MM-JohnHCChiang-Retry codec initial-00+{ */

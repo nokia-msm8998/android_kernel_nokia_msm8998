@@ -124,8 +124,6 @@ void fih_bbs_camera_msg(int module, int error_code)
 		default: strcpy(param2, "Unknown"); break;
 	}
 
-  printk("BBox::UPD;88::%s::%s\n", param1, param2);
-
   return ;
 }
 EXPORT_SYMBOL(fih_bbs_camera_msg);
@@ -164,8 +162,6 @@ void fih_bbs_camera_msg_by_type(int type, int error_code)
 		default: strcpy(param2, "Unknown"); break;
 	}
 
-  printk("BBox::UPD;88::%s::%s\n", param1, param2);
-
   return ;
 }
 EXPORT_SYMBOL(fih_bbs_camera_msg_by_type);
@@ -201,8 +197,6 @@ void fih_bbs_camera_msg_by_addr(int addr, int error_code)
 		case FIH_BBS_CAMERA_ERRORCODE_UNKOWN: strcpy(param2, "unknow error"); break;
 		default: strcpy(param2, "Unknown"); break;
 	}
-
-  printk("BBox::UPD;88::%s::%s\n", param1, param2);
 
   return ;
 }

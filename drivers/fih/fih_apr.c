@@ -181,30 +181,6 @@ static void fih_apr_bbslog(void)
 	pr_info("%s: rere=0x%08lx\n", __func__, re);
 	pr_info("%s: ramp=0x%08lx\n", __func__, rp);
 
-	if (pf & FIH_POFF_UVLO)
-		printk("BBox::UEC;40::16\n");
-	if (pf & FIH_POFF_OVLO)
-		printk("BBox::UEC;40::17\n");
-	if ((pf & FIH_POFF_OTST3)||(re == FIH_RERE_OVER_TAMPERATURE))
-		printk("BBox::UEC;40::18\n");
-	if (!(pn & FIH_PON_FIH_APR_MASK))
-		printk("BBox::UEC;40::19\n");
-	if (pn & FIH_PON_APR_SYSTEM_CRASH)
-		printk("BBox::UEC;40::20\n");
-	if ((pn & FIH_PON_PMIC_C_KPDPWR)&&(pf & FIH_POFF_S3_RESET))
-		printk("BBox::UEC;40::21\n");
-	if (pn & FIH_PON_PMIC_C_SMPL)
-		printk("BBox::UEC;40::22\n");
-	if (pf & FIH_POFF_UVLO)
-		printk("BBox::UEC;40::23\n");
-	if (pn & FIH_PON_PMIC_W_GP2)
-		printk("BBox::UEC;40::24\n");
-	if (pn & FIH_PON_APR_KERNEL_PANIC)
-		printk("BBox::UEC;40::25\n");
-	if (pn & FIH_PON_APR_UNKNOWN_RESET)
-		printk("BBox::UEC;40::26\n");
-	if (pn & FIH_PON_APR_MODEM_FATAL)
-		printk("BBox::UEC;40::27\n");
 }
 
 static int fih_apr_probe(struct platform_device *pdev)

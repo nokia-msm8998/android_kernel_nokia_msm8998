@@ -472,7 +472,6 @@ static void stmvl53l0_read_calibration_file(struct stmvl53l0_data *data)
 		papi_func_tbl->SetOffsetCalibrationDataMicroMeter(data, offset_calib);
 	} else {
 		vl53l0_errmsg("no offset calibration data exist!\n");
-		BBOX_TOF_CAL_DATA_CHECK_FAIL /* MM-AL-AddBBSLog-00+ */
 	}
 	/* MM-AL-FixCalibrationError-00*} */
 #endif
@@ -516,7 +515,6 @@ static void stmvl53l0_read_calibration_file(struct stmvl53l0_data *data)
 		papi_func_tbl->SetXTalkCompensationRateMegaCps(data, (FixPoint1616_t) xtalk_calib);
 	} else {
 		vl53l0_errmsg("no xtalk calibration data exist!\n");
-		BBOX_TOF_CAL_DATA_CHECK_FAIL /* MM-AL-AddBBSLog-00+ */
 	}
 	/* MM-AL-FixCalibrationError-00*} */
 #endif
@@ -597,7 +595,6 @@ static VL53L0_Error stmvl53l0_setupAPIFunctions(struct stmvl53l0_data *data)
 	vl53l0_errmsg("read REVISION_ID: 0x%x\n", revision);
 	} else {
 		vl53l0_errmsg("Failed to read REVISION_ID\n");
-		BBOX_TOF_PROBE_FAIL /* MM-AL-AddBBSLog-00+ */
 		return err;
 	}
 	revision = (revision & 0xF0) >> 4;
