@@ -1,3 +1,5 @@
+#include <dt-bindings/msm/power-on.h>
+
 &soc {
 	gpio_keys {
 		/delete-node/ vol_up;
@@ -29,6 +31,8 @@
 &spmi_bus {
 	qcom,pm8998@0 {
 		qcom,power-on@800 {
+			qcom,hard-reset-poweroff-type =
+				<PON_POWER_OFF_WARM_RESET>;
 			qcom,s3-debounce = <128>;
 			qcom,pon_1 {
 				qcom,support-reset = <1>;
