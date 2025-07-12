@@ -730,7 +730,7 @@ struct kernfs_node *kernfs_find_and_get_node_by_ino(struct kernfs_root *root,
 	/*
 	 * The node could be a new node or a reused node. If it's a new node,
 	 * we are ok. If it's reused because of RCU (because of
-	 * SLAB_TYPESAFE_BY_RCU), the __kernfs_new_node always sets its 'ino'
+	 * SLAB_DESTROY_BY_RCU), the __kernfs_new_node always sets its 'ino'
 	 * before 'count'. So if 'count' is uptodate, 'ino' should be uptodate,
 	 * hence we can use 'ino' to filter stale node.
 	 */
