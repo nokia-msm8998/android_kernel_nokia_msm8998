@@ -91,7 +91,7 @@ static int dummycon_font_copy(struct vc_data *vc, int a)
     return 0;
 }
 
-static void con_bmove(struct vc_data *vc, int a, int b, int c, int d, int e, intf)
+static void con_bmove(struct vc_data *vc, int a, int b, int c, int d, int e, int f)
 {
 }
 
