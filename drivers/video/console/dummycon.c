@@ -111,6 +111,14 @@ static int con_scrolldelta(struct vc_data *vc, int x)
  *  Most of the operations are dummies.
  */
 
+static int dummycon_dummy(void)
+{
+    return 0;
+}
+
+#define DUMMY	(void *)dummycon_dummy
+
+
 const struct consw dummy_con = {
     .owner =		THIS_MODULE,
     .con_startup =	dummycon_startup,
